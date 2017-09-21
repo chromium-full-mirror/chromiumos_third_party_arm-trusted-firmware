@@ -608,13 +608,11 @@ void print_mmap(mmap_region_t *const mmap)
  *   ENOMEM: There is not enough memory in the mmap array.
  *    EPERM: Region overlaps another one in an invalid way.
  */
-static int mmap_add_region_check(xlat_ctx_t *ctx, const mmap_region_t *mm)
+static int mmap_add_region_check(xlat_ctx_t *ctx, unsigned long long base_pa,
+				 uintptr_t base_va, size_t size,
+				 mmap_attr_t attr)
 {
-	unsigned long long base_pa = mm->base_pa;
-	uintptr_t base_va = mm->base_va;
-	size_t size = mm->size;
-	mmap_attr_t attr = mm->attr;
-
+	mmap_region_t *mm = ctx->mmap;
 	unsigned long long end_pa = base_pa + size - 1;
 	uintptr_t end_va = base_va + size - 1;
 
@@ -632,27 +630,22 @@ static int mmap_add_region_check(xlat_ctx_t *ctx, const mmap_region_t *mm)
 	if ((base_pa + (unsigned long long)size - 1ULL) > ctx->pa_max_address)
 		return -ERANGE;
 
-	/* Check that there is space in the ctx->mmap array */
+	/* Check that there is space in the mmap array */
 	if (ctx->mmap[ctx->mmap_num - 1].size != 0)
 		return -ENOMEM;
 
 	/* Check for PAs and VAs overlaps with all other regions */
-	for (mmap_region_t *mm_cursor = ctx->mmap;
-						mm_cursor->size; ++mm_cursor) {
+	for (mm = ctx->mmap; mm->size; ++mm) {
 
-		uintptr_t mm_cursor_end_va = mm_cursor->base_va
-							+ mm_cursor->size - 1;
+		uintptr_t mm_end_va = mm->base_va + mm->size - 1;
 
 		/*
 		 * Check if one of the regions is completely inside the other
 		 * one.
 		 */
 		int fully_overlapped_va =
-			((base_va >= mm_cursor->base_va) &&
-					(end_va <= mm_cursor_end_va)) ||
-
-			((mm_cursor->base_va >= base_va) &&
-						(mm_cursor_end_va <= end_va));
+			((base_va >= mm->base_va) && (end_va <= mm_end_va)) ||
+			((mm->base_va >= base_va) && (mm_end_va <= end_va));
 
 		/*
 		 * Full VA overlaps are only allowed if both regions are
@@ -663,18 +656,13 @@ static int mmap_add_region_check(xlat_ctx_t *ctx, const mmap_region_t *mm)
 		if (fully_overlapped_va) {
 
 #if PLAT_XLAT_TABLES_DYNAMIC
-			if ((attr & MT_DYNAMIC) ||
-						(mm_cursor->attr & MT_DYNAMIC))
+			if ((attr & MT_DYNAMIC) || (mm->attr & MT_DYNAMIC))
 				return -EPERM;
-#else
-			(void)attr;
 #endif /* PLAT_XLAT_TABLES_DYNAMIC */
-			if ((mm_cursor->base_va - mm_cursor->base_pa) !=
-							(base_va - base_pa))
+			if ((mm->base_va - mm->base_pa) != (base_va - base_pa))
 				return -EPERM;
 
-			if ((base_va == mm_cursor->base_va) &&
-						(size == mm_cursor->size))
+			if ((base_va == mm->base_va) && (size == mm->size))
 				return -EPERM;
 
 		} else {
@@ -684,15 +672,13 @@ static int mmap_add_region_check(xlat_ctx_t *ctx, const mmap_region_t *mm)
 			 * Partial overlaps are not allowed
 			 */
 
-			unsigned long long mm_cursor_end_pa =
-				     mm_cursor->base_pa + mm_cursor->size - 1;
+			unsigned long long mm_end_pa =
+						     mm->base_pa + mm->size - 1;
 
 			int separated_pa =
-				(end_pa < mm_cursor->base_pa) ||
-				(base_pa > mm_cursor_end_pa);
+				(end_pa < mm->base_pa) || (base_pa > mm_end_pa);
 			int separated_va =
-				(end_va < mm_cursor->base_va) ||
-				(base_va > mm_cursor_end_va);
+				(end_va < mm->base_va) || (base_va > mm_end_va);
 
 			if (!(separated_va && separated_pa))
 				return -EPERM;
@@ -717,7 +703,8 @@ void mmap_add_region_ctx(xlat_ctx_t *ctx, const mmap_region_t *mm)
 	/* Static regions must be added before initializing the xlat tables. */
 	assert(!ctx->initialized);
 
-	ret = mmap_add_region_check(ctx, mm);
+	ret = mmap_add_region_check(ctx, mm->base_pa, mm->base_va, mm->size,
+				    mm->attr);
 	if (ret != 0) {
 		ERROR("mmap_add_region_check() failed. error %d\n", ret);
 		assert(0);
@@ -812,10 +799,7 @@ int mmap_add_dynamic_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
 	if (!mm->size)
 		return 0;
 
-	/* Now this region is a dynamic one */
-	mm->attr |= MT_DYNAMIC;
-
-	ret = mmap_add_region_check(ctx, mm);
+	ret = mmap_add_region_check(ctx, mm->base_pa, mm->base_va, mm->size, mm->attr | MT_DYNAMIC);
 	if (ret != 0)
 		return ret;
 
@@ -824,17 +808,14 @@ int mmap_add_dynamic_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
 	 * static regions in mmap_add_region_ctx().
 	 */
 
-	while ((mm_cursor->base_va + mm_cursor->size - 1)
-					< end_va && mm_cursor->size)
+	while ((mm_cursor->base_va + mm_cursor->size - 1) < end_va && mm_cursor->size)
 		++mm_cursor;
 
-	while ((mm_cursor->base_va + mm_cursor->size - 1 == end_va)
-				&& (mm_cursor->size < mm->size))
+	while ((mm_cursor->base_va + mm_cursor->size - 1 == end_va) && (mm_cursor->size < mm->size))
 		++mm_cursor;
 
 	/* Make room for new region by moving other regions up by one place */
-	memmove(mm_cursor + 1, mm_cursor,
-		     (uintptr_t)mm_last - (uintptr_t)mm_cursor);
+	memmove(mm_cursor + 1, mm_cursor, (uintptr_t)mm_last - (uintptr_t)mm_cursor);
 
 	/*
 	 * Check we haven't lost the empty sentinal from the end of the array.
@@ -844,20 +825,19 @@ int mmap_add_dynamic_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
 	assert(mm_last->size == 0);
 
 	*mm_cursor = *mm;
+	mm_cursor->attr |= MT_DYNAMIC;
 
 	/*
 	 * Update the translation tables if the xlat tables are initialized. If
 	 * not, this region will be mapped when they are initialized.
 	 */
 	if (ctx->initialized) {
-		uintptr_t end_va = xlat_tables_map_region(ctx, mm_cursor,
-				0, ctx->base_table, ctx->base_table_entries,
-				ctx->base_level);
+		uintptr_t end_va = xlat_tables_map_region(ctx, mm_cursor, 0, ctx->base_table,
+				ctx->base_table_entries, ctx->base_level);
 
 		/* Failed to map, remove mmap entry, unmap and return error. */
 		if (end_va != mm_cursor->base_va + mm_cursor->size - 1) {
-			memmove(mm_cursor, mm_cursor + 1,
-				(uintptr_t)mm_last - (uintptr_t)mm_cursor);
+			memmove(mm_cursor, mm_cursor + 1, (uintptr_t)mm_last - (uintptr_t)mm_cursor);
 
 			/*
 			 * Check if the mapping function actually managed to map
@@ -867,8 +847,8 @@ int mmap_add_dynamic_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
 				return -ENOMEM;
 
 			/*
-			 * Something went wrong after mapping some table
-			 * entries, undo every change done up to this point.
+			 * Something went wrong after mapping some table entries,
+			 * undo every change done up to this point.
 			 */
 			mmap_region_t unmap_mm = {
 					.base_pa = 0,
@@ -876,9 +856,8 @@ int mmap_add_dynamic_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
 					.size = end_va - mm->base_va,
 					.attr = 0
 			};
-			xlat_tables_unmap_region(ctx,
-				&unmap_mm, 0, ctx->base_table,
-				ctx->base_table_entries, ctx->base_level);
+			xlat_tables_unmap_region(ctx, &unmap_mm, 0, ctx->base_table,
+							ctx->base_table_entries, ctx->base_level);
 
 			return -ENOMEM;
 		}
