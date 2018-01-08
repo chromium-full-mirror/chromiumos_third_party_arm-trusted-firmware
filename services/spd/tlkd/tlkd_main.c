@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2018, ARM Limited and Contributors. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -242,11 +242,13 @@ uint64_t tlkd_smc_handler(uint32_t smc_fid,
 	 * b. register shared memory with the SP for passing args
 	 *    required for maintaining sessions with the Trusted
 	 *    Applications.
-	 * c. open/close sessions
-	 * d. issue commands to the Trusted Apps
+	 * c. register non-secure world's memory map with the OS
+	 * d. open/close sessions
+	 * e. issue commands to the Trusted Apps
 	 */
 	case TLK_REGISTER_LOGBUF:
 	case TLK_REGISTER_REQBUF:
+	case TLK_REGISTER_NS_DRAM:
 	case TLK_OPEN_TA_SESSION:
 	case TLK_CLOSE_TA_SESSION:
 	case TLK_TA_LAUNCH_OP:

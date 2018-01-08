@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2018, ARM Limited and Contributors. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -42,6 +42,7 @@
  */
 #define TLK_REGISTER_LOGBUF	TLK_TOS_STD_FID(0x1)
 #define TLK_REGISTER_REQBUF	TLK_TOS_STD_FID(0x2)
+#define TLK_REGISTER_NS_DRAM	TLK_TOS_STD_FID(0x4)
 #define TLK_RESUME_FID		TLK_TOS_STD_FID(0x100)
 
 /*
