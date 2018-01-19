@@ -85,6 +85,11 @@
 #include <cassert.h>
 #include <stdint.h>
 
+#define SMCCC_MAJOR_VERSION 1
+#define SMCCC_MINOR_VERSION 1
+
+#define MAKE_SMCCC_VERSION(_major, _minor) (((_major) << 16) | (_minor))
+
 /* Various flags passed to SMC handlers */
 #define SMC_FROM_SECURE		(0 << 0)
 #define SMC_FROM_NON_SECURE	(1 << 0)
@@ -95,6 +100,10 @@
 /* The macro below is used to identify a Standard Service SMC call */
 #define is_std_svc_call(_fid)		((((_fid) >> FUNCID_OEN_SHIFT) & \
 					   FUNCID_OEN_MASK) == OEN_STD_START)
+
+/* The macro below is used to identify a Arm Architectural Service SMC call */
+#define is_arm_arch_svc_call(_fid)	((((_fid) >> FUNCID_OEN_SHIFT) & \
+					   FUNCID_OEN_MASK) == OEN_ARM_START)
 
 /* The macro below is used to identify a valid Fast SMC call */
 #define is_valid_fast_smc(_fid)		((!(((_fid) >> 16) & 0xff)) && \
