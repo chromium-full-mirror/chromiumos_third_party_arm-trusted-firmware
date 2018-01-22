@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2018, ARM Limited and Contributors. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -30,6 +30,7 @@
 
 #include <arch.h>
 #include <arch_helpers.h>
+#include <arm_arch_svc.h>
 #include <assert.h>
 #include <debug.h>
 #include <platform.h>
@@ -274,6 +275,9 @@ long psci_migrate_info_up_cpu(void)
 int psci_features(unsigned int psci_fid)
 {
 	unsigned int local_caps = psci_caps;
+
+	if (psci_fid == SMCCC_VERSION)
+		return PSCI_E_SUCCESS;
 
 	/* Check if it is a 64 bit function */
 	if (((psci_fid >> FUNCID_CC_SHIFT) & FUNCID_CC_MASK) == SMC_64)
