@@ -108,7 +108,7 @@ static void pmu_bus_idle_req(uint32_t bus, uint32_t state)
 
 struct pmu_slpdata_s pmu_slpdata;
 
-static void qos_save(void)
+static void qos_restore(void)
 {
 	if (pmu_power_domain_st(PD_GPU) == pmu_pd_on)
 		RESTORE_QOS(pmu_slpdata.gpu_qos, GPU);
@@ -174,7 +174,7 @@ static void qos_save(void)
 	}
 }
 
-static void qos_restore(void)
+static void qos_save(void)
 {
 	if (pmu_power_domain_st(PD_GPU) == pmu_pd_on)
 		SAVE_QOS(pmu_slpdata.gpu_qos, GPU);
