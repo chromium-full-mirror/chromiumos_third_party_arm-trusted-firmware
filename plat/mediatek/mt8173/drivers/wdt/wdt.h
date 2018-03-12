@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2018, ARM Limited and Contributors. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -28,25 +28,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PLAT_SIP_CALLS_H__
-#define __PLAT_SIP_CALLS_H__
+#ifndef __WDT_H__
+#define __WDT_H__
 
-/*******************************************************************************
- * Plat SiP function constants
- ******************************************************************************/
-#define MTK_PLAT_SIP_NUM_CALLS	6
+void wdt_pet(void);
+void wdt_resume(void);
+void wdt_set_enable(int enable);
+int wdt_set_timeout(uint32_t timeout);
+uint64_t wdt_smc_handler(uint32_t smc_fid, uint32_t x1, uint32_t x2,
+	uint32_t x3, uint32_t x4, void *cookie, void *handle, uint64_t flags);
+void wdt_suspend(void);
+void wdt_trigger_reset(void);
 
-#define MTK_SIP_PWR_ON_MTCMOS			0x82000402
-#define MTK_SIP_PWR_OFF_MTCMOS			0x82000403
-#define MTK_SIP_PWR_MTCMOS_SUPPORT		0x82000404
-#define MTK_SIP_SET_HDCP_KEY_NUM		0x82000405
-#define MTK_SIP_CLR_HDCP_KEY			0x82000406
-#define MTK_SIP_SET_HDCP_KEY_EX			0x82000407
-
-/*
- * TODO: This isn't really an MTK_SIP call. Find a better home for it if we
- * ever want to upstream it.
- */
-#define MTK_SIP_SMC_WATCHDOG			0x82003D06
-
-#endif /* __PLAT_SIP_CALLS_H__ */
+#endif /* __WDT_H__ */
