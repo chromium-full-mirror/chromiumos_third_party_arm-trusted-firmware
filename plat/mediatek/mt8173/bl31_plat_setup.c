@@ -111,11 +111,23 @@ static void platform_setup_cpu(void)
 		MCU_BUS_DCM_EN);
 }
 
-static void platform_setup_sram(void)
+static void platform_setup_security(void)
 {
 	/* protect BL31 memory from non-secure read/write access */
 	mmio_write_32(SRAMROM_SEC_ADDR, (uint32_t)(BL31_END + 0x3ff) & 0x3fc00);
 	mmio_write_32(SRAMROM_SEC_CTRL, 0x10000ff9);
+
+	/* Clear bit 2 (debug mask) in DEVAPC so rest of the register works. */
+	mmio_write_32(DEVAPC0_APC_CON, 0x0);
+
+	/* Set bit 0 to protect DEVAPC itself from non-secure accesses. */
+	mmio_write_32(DEVAPC0_APC_CON, 0x1);
+
+	/* Mark WDT registers secure-only (owned by BL31). */
+	mmio_write_32(DEVAPC0_BASE, 1 << 14);
+
+	/* Allow SPM to DMA into secure memory, but nothing else. */
+	mmio_write_32(DEVAPC0_MAS_SEC_0, 1 << 9);
 }
 
 /*******************************************************************************
@@ -166,7 +178,7 @@ void bl31_early_platform_setup(bl31_params_t *from_bl2,
 void bl31_platform_setup(void)
 {
 	platform_setup_cpu();
-	platform_setup_sram();
+	platform_setup_security();
 
 	generic_delay_timer_init();
 
