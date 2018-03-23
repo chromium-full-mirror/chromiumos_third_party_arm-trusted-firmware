@@ -113,9 +113,14 @@ static void platform_setup_cpu(void)
 
 static void platform_setup_security(void)
 {
-	/* protect BL31 memory from non-secure read/write access */
+	/*
+	 * Protect BL31 memory from non-secure write access. Still allow reading
+	 * so that SPM can fetch its instructions via non-secure DMA. We don't
+	 * have any secrets to protect in Trusted Firmware SRAM anyway, we just
+	 * want to prevent the non-secure world from tampering.
+	 */
 	mmio_write_32(SRAMROM_SEC_ADDR, (uint32_t)(BL31_END + 0x3ff) & 0x3fc00);
-	mmio_write_32(SRAMROM_SEC_CTRL, 0x10000ff9);
+	mmio_write_32(SRAMROM_SEC_CTRL, 0x10000ffa);
 
 	/* Clear bit 2 (debug mask) in DEVAPC so rest of the register works. */
 	mmio_write_32(DEVAPC0_APC_CON, 0x0);
@@ -125,9 +130,6 @@ static void platform_setup_security(void)
 
 	/* Mark WDT registers secure-only (owned by BL31). */
 	mmio_write_32(DEVAPC0_BASE, 1 << 14);
-
-	/* Allow SPM to DMA into secure memory, but nothing else. */
-	mmio_write_32(DEVAPC0_MAS_SEC_0, 1 << 9);
 }
 
 /*******************************************************************************
