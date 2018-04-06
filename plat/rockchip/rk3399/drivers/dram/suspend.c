@@ -90,10 +90,11 @@ static __sramfunc uint32_t sram_get_timer_value(void)
 
 static __sramfunc void sram_udelay(uint32_t usec)
 {
-	uint32_t start, cnt, delta, delta_us;
+	uint32_t start, cnt, delta, total_ticks;
 
 	/* counter is decreasing */
 	start = sram_get_timer_value();
+	total_ticks = usec * SYS_COUNTER_FREQ_IN_MHZ;
 	do {
 		cnt = sram_get_timer_value();
 		if (cnt > start) {
@@ -101,8 +102,7 @@ static __sramfunc void sram_udelay(uint32_t usec)
 			delta += start;
 		} else
 			delta = start - cnt;
-		delta_us = (delta * SYS_COUNTER_FREQ_IN_MHZ);
-	} while (delta_us < usec);
+	} while (delta <= total_ticks);
 }
 
 static __sramfunc void configure_sgrf(void)
