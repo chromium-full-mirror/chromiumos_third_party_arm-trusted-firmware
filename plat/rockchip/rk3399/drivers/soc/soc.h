@@ -32,6 +32,9 @@
 #define REFDIV(n)		((0x3F << 16) | n)
 #define PLL_LOCK(n)		((n >> 31) & 0x1)
 
+#define PLL_MODE_WMSK			(PLL_MODE_MSK << \
+					 (REG_MSK_SHIFT + PLL_MODE_SHIFT))
+
 #define PLL_SLOW_MODE			BITS_WITH_WMASK(SLOW_MODE,\
 						PLL_MODE_MSK, PLL_MODE_SHIFT)
 

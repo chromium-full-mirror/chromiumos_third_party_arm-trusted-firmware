@@ -649,11 +649,17 @@ __pmusramfunc static void pmusram_restore_pll(int pll_id, uint32_t *src)
 	mmio_write_32(CRU_BASE + CRU_PLL_CON(pll_id, 4), src[4] | REG_SOC_WMSK);
 	mmio_write_32(CRU_BASE + CRU_PLL_CON(pll_id, 5), src[5] | REG_SOC_WMSK);
 
-	mmio_write_32(CRU_BASE + CRU_PLL_CON(pll_id, 3), src[3] | REG_SOC_WMSK);
+	/*
+	 * Set PLL_CON3 without the mode bits. We have to wait until the PLL
+	 * locks before we put the PLL in Normal Mode.
+	 */
+	mmio_write_32(CRU_BASE + CRU_PLL_CON(pll_id, 3),
+		      src[3] | (REG_SOC_WMSK & ~PLL_MODE_WMSK));
 
-	while ((mmio_read_32(CRU_BASE + CRU_PLL_CON(pll_id, 2)) &
-		(1 << 31)) == 0x0)
+	while (!PLL_LOCK(mmio_read_32(CRU_BASE + CRU_PLL_CON(pll_id, 2))))
 		;
+
+	mmio_write_32(CRU_BASE + CRU_PLL_CON(pll_id, 3), src[3] | PLL_MODE_WMSK);
 }
 
 void dmc_suspend(void)

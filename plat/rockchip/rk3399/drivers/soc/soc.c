@@ -52,8 +52,30 @@ static void set_pll_slow_mode(uint32_t pll_id)
 			      CRU_PLL_CON(pll_id, 3)), PLL_SLOW_MODE);
 }
 
+static void wait_pll_lock(uint32_t pll_id)
+{
+	if (pll_id == PPLL_ID) {
+		if (mmio_read_32(PMUCRU_BASE + PMUCRU_PPLL_CON(3)) & 0x1)
+			return;
+
+		while (!PLL_LOCK(mmio_read_32(PMUCRU_BASE +
+					      PMUCRU_PPLL_CON(2))))
+			;
+	} else {
+		if (mmio_read_32(CRU_BASE + CRU_PLL_CON(pll_id, 3)) & 0x1)
+			return;
+
+		while (!PLL_LOCK(mmio_read_32(CRU_BASE +
+					      CRU_PLL_CON(pll_id, 2))))
+			;
+	}
+}
+
 static void set_pll_normal_mode(uint32_t pll_id)
 {
+	/* Wait for PLLs to lock before setting Normal Mode. */
+	wait_pll_lock(pll_id);
+
 	if (pll_id == PPLL_ID)
 		mmio_write_32(PMUCRU_BASE + PMUCRU_PPLL_CON(3), PLL_NOMAL_MODE);
 	else
@@ -123,14 +145,13 @@ static void restore_pll(int pll_id, uint32_t *src)
 	mmio_write_32(CRU_BASE + CRU_PLL_CON(pll_id, 2), src[2]);
 	mmio_write_32(CRU_BASE + CRU_PLL_CON(pll_id, 4), src[4] | REG_SOC_WMSK);
 	mmio_write_32(CRU_BASE + CRU_PLL_CON(pll_id, 5), src[5] | REG_SOC_WMSK);
+	mmio_write_32(CRU_BASE + CRU_PLL_CON(pll_id, 3),
+		      src[3] | (REG_SOC_WMSK & ~PLL_MODE_WMSK));
+	wait_pll_lock(pll_id);
 
 	/* Do PLL_CON3 since that will enable things */
-	mmio_write_32(CRU_BASE + CRU_PLL_CON(pll_id, 3), src[3] | REG_SOC_WMSK);
-
-	/* Wait for PLL lock done */
-	while ((mmio_read_32(CRU_BASE + CRU_PLL_CON(pll_id, 2)) &
-		0x80000000) == 0x0)
-		;
+	mmio_write_32(CRU_BASE + CRU_PLL_CON(pll_id, 3), src[3] |
+		      PLL_MODE_WMSK);
 }
 
 /**
