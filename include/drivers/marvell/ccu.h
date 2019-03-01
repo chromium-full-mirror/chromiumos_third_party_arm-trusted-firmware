@@ -11,7 +11,7 @@
 #define CCU_H
 
 #ifndef __ASSEMBLY__
-#include <drivers/marvell/addr_map.h>
+#include <addr_map.h>
 #endif
 
 /* CCU registers definitions */

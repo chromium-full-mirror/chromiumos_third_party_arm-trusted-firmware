@@ -5,15 +5,13 @@
  */
 
 #include <assert.h>
-#include <string.h>
-
+#include <debug.h>
+#include <io_driver.h>
+#include <io_memmap.h>
+#include <io_storage.h>
 #include <platform_def.h>
-
-#include <common/debug.h>
-#include <drivers/io/io_driver.h>
-#include <drivers/io/io_memmap.h>
-#include <drivers/io/io_storage.h>
-#include <lib/utils.h>
+#include <string.h>
+#include <utils.h>
 
 /* As we need to be able to keep state for seek, only one file can be open
  * at a time. Make this a structure and point to the entity->info. When we

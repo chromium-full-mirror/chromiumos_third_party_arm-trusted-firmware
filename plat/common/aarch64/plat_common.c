@@ -4,15 +4,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-
 #include <arch_helpers.h>
-#include <drivers/console.h>
+#include <assert.h>
+#include <console.h>
+#include <platform.h>
 #if RAS_EXTENSION
-#include <lib/extensions/ras.h>
+#include <ras.h>
 #endif
-#include <lib/xlat_tables/xlat_mmu_helpers.h>
-#include <plat/common/platform.h>
+#include <xlat_mmu_helpers.h>
 
 /*
  * The following platform setup functions are weakly defined. They

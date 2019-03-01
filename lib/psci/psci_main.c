@@ -4,18 +4,16 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <string.h>
-
 #include <arch.h>
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <lib/pmf/pmf.h>
-#include <lib/runtime_instr.h>
-#include <lib/smccc.h>
-#include <plat/common/platform.h>
-#include <services/arm_arch_svc.h>
-
+#include <arm_arch_svc.h>
+#include <assert.h>
+#include <debug.h>
+#include <platform.h>
+#include <pmf.h>
+#include <runtime_instr.h>
+#include <smccc.h>
+#include <string.h>
 #include "psci_private.h"
 
 /*******************************************************************************

@@ -7,7 +7,6 @@
 #define IMX_SNVS_H
 
 #include <stdint.h>
-
 #include <arch.h>
 
 struct snvs {

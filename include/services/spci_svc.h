@@ -7,8 +7,8 @@
 #ifndef SPCI_SVC_H
 #define SPCI_SVC_H
 
-#include <lib/smccc.h>
-#include <lib/utils_def.h>
+#include <smccc.h>
+#include <utils_def.h>
 
 /* SPCI_VERSION helpers */
 

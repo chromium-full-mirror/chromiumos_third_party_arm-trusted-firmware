@@ -5,10 +5,8 @@
  */
 
 #include <assert.h>
-
-#include <drivers/delay_timer.h>
-#include <lib/mmio.h>
-
+#include <delay_timer.h>
+#include <mmio.h>
 #include <imx_gpt.h>
 
 #define GPTCR_SWR		BIT(15)		/* Software reset */

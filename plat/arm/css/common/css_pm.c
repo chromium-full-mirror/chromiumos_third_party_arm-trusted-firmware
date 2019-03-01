@@ -4,19 +4,15 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <errno.h>
-
-#include <platform_def.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <lib/cassert.h>
-#include <plat/common/platform.h>
-
+#include <assert.h>
+#include <cassert.h>
 #include <css_pm.h>
+#include <debug.h>
+#include <errno.h>
 #include <plat_arm.h>
-
+#include <platform.h>
+#include <platform_def.h>
 #include "../drivers/scp/css_scp.h"
 
 /* Allow CSS platforms to override `plat_arm_psci_pm_ops` */

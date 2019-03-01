@@ -22,13 +22,12 @@
 
 #ifndef __ASSEMBLY__
 
-#include <stdint.h>
-
+#include <cassert.h>
 #include <platform_def.h> /* For CACHE_WRITEBACK_GRANULE */
+#include <spinlock.h>
+#include <stdint.h>
+#include <tsp.h>
 
-#include <bl32/tsp/tsp.h>
-#include <lib/cassert.h>
-#include <lib/spinlock.h>
 
 typedef struct work_statistics {
 	/* Number of s-el1 interrupts on this cpu */

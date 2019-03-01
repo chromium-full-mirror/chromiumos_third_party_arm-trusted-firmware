@@ -7,10 +7,9 @@
 #ifndef PMC_H
 #define PMC_H
 
-#include <lib/mmio.h>
-#include <lib/utils_def.h>
-
+#include <mmio.h>
 #include <tegra_def.h>
+#include <utils_def.h>
 
 #define PMC_CONFIG				U(0x0)
 #define PMC_PWRGATE_STATUS			U(0x38)

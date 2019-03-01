@@ -5,14 +5,11 @@
  */
 
 #include <assert.h>
-#include <string.h>
-
+#include <bl_common.h>
+#include <debug.h>
 #include <platform_def.h>
-
-#include <common/bl_common.h>
-#include <common/debug.h>
-
 #include <smmu.h>
+#include <string.h>
 #include <tegra_private.h>
 
 extern void memcpy16(void *dest, const void *src, unsigned int length);

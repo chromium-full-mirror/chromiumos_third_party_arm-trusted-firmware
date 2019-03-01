@@ -7,8 +7,7 @@
 #ifndef FLOWCTRL_H
 #define FLOWCTRL_H
 
-#include <lib/mmio.h>
-
+#include <mmio.h>
 #include <tegra_def.h>
 
 #define FLOWCTRL_HALT_CPU0_EVENTS	0x0U

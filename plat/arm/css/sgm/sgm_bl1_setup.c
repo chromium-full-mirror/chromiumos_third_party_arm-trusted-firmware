@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <common/bl_common.h>
-#include <common/debug.h>
-
+#include <bl_common.h>
+#include <debug.h>
 #include <plat_arm.h>
 #include <sgm_plat_config.h>
 #include <soc_css.h>

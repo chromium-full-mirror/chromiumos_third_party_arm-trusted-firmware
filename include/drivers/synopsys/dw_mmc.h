@@ -7,7 +7,7 @@
 #ifndef DW_MMC_H
 #define DW_MMC_H
 
-#include <drivers/mmc.h>
+#include <mmc.h>
 
 typedef struct dw_mmc_params {
 	uintptr_t	reg_base;

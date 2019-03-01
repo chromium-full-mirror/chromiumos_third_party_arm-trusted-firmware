@@ -8,10 +8,9 @@
 #define PLATFORM_DEF_H
 
 #include <arch.h>
-#include <lib/utils_def.h>
-#include <plat/common/common_def.h>
-
+#include <common_def.h>
 #include <rk3368_def.h>
+#include <utils_def.h>
 
 /*******************************************************************************
  * Platform binary types for linking

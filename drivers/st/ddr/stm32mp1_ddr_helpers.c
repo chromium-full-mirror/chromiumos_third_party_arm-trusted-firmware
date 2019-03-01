@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <mmio.h>
 #include <platform_def.h>
-
-#include <drivers/st/stm32mp1_ddr_helpers.h>
-#include <drivers/st/stm32mp1_rcc.h>
-#include <lib/mmio.h>
+#include <stm32mp1_ddr_helpers.h>
+#include <stm32mp1_rcc.h>
 
 void ddr_enable_clock(void)
 {

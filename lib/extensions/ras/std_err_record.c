@@ -3,9 +3,8 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
-#include <lib/extensions/ras_arch.h>
-#include <lib/utils_def.h>
+#include <ras_arch.h>
+#include <utils_def.h>
 
 /*
  * Probe for error in memory-mapped registers containing error records

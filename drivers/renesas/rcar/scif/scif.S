@@ -75,8 +75,6 @@
 #if SCIF_CLK == SCIF_EXTARNAL_CLK
 #define	SCSCR_CKE_INT_CLK	(SCSCR_CKE_BRG)
 #else
-#define	SCFSR_TEND_MASK		(1 << 6)
-#define	SCFSR_TEND_TRANS_END	(0x0040)
 #define	SCSCR_CKE_INT_CLK	(SCSCR_CKE_INT)
 #endif
 #define	SCFSR_INIT_DATA		(0x0000)
@@ -283,11 +281,6 @@ func console_core_putc
 	bcs	2b
 	strb	w0, [x1, #SCIF_SCFTDR]
 
-	/* Clear TEND flag */
-	ldrh	w2, [x1, #SCIF_SCFSR]
-	and	w2, w2, #~SCFSR_TEND_MASK
-	strh	w2, [x1, #SCIF_SCFSR]
-
 	ret
 endfunc console_core_putc
 
@@ -316,11 +309,15 @@ endfunc console_getc
 func console_flush
 	ldr	x0, =SCIF2_BASE
 1:
-	/* Check TEND flag */
-	ldrh	w1, [x0, #SCIF_SCFSR]
-	and	w1, w1, #SCFSR_TEND_MASK
-	cmp	w1, #SCFSR_TEND_TRANS_END
+	ldrh	w1, [x0, #SCIF_SCFDR]
+	ubfx	w1, w1, #8, #5
+	cmp	w1, #0
 	bne	1b
+
+	mov x0, #100
+	mov x3, x30
+	bl rcar_micro_delay
+	mov x30, x3
 
 	ldr	x0, =SCIF2_BASE
 	ldrh	w1, [x0, #SCIF_SCSCR]

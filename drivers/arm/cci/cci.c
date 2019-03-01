@@ -4,15 +4,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stdint.h>
-
 #include <arch.h>
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <drivers/arm/cci.h>
-#include <lib/mmio.h>
+#include <assert.h>
+#include <cci.h>
+#include <debug.h>
+#include <mmio.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #define MAKE_CCI_PART_NUMBER(hi, lo)	(((hi) << 8) | (lo))
 #define CCI_PART_LO_MASK		U(0xff)

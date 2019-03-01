@@ -5,9 +5,8 @@
  */
 
 #include <assert.h>
+#include <mmio.h>
 #include <string.h>
-
-#include <lib/mmio.h>
 
 #include "rpi3_hw.h"
 

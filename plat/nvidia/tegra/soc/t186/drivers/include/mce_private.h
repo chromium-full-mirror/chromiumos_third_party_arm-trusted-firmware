@@ -7,8 +7,7 @@
 #ifndef MCE_PRIVATE_H
 #define MCE_PRIVATE_H
 
-#include <lib/mmio.h>
-
+#include <mmio.h>
 #include <tegra_def.h>
 
 /*******************************************************************************

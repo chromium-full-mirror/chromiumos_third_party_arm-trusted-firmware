@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <debug.h>
 #include <stdlib.h>
-
-#include <common/debug.h>
 
 void abort(void)
 {

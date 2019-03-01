@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <arch_helpers.h>
 #include <assert.h>
+#include <debug.h>
+#include <css_def.h>
 #include <stdint.h>
 #include <string.h>
 
-#include <arch_helpers.h>
-#include <common/debug.h>
-
-#include <css_def.h>
 #include "sds.h"
 #include "sds_private.h"
 

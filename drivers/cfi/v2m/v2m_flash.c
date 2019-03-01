@@ -5,9 +5,8 @@
  */
 
 #include <errno.h>
-
-#include <drivers/cfi/v2m_flash.h>
-#include <lib/mmio.h>
+#include <mmio.h>
+#include <v2m_flash.h>
 
 /*
  * This file supplies a low level interface to the vexpress NOR flash

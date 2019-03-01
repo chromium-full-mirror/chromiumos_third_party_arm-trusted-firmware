@@ -7,7 +7,7 @@
 #ifndef UART_16550_H
 #define UART_16550_H
 
-#include <drivers/console.h>
+#include <console.h>
 
 /* UART16550 Registers */
 #define UARTTX			0x0

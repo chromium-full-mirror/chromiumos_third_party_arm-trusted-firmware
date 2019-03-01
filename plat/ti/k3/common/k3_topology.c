@@ -5,8 +5,7 @@
  */
 
 #include <platform_def.h>
-
-#include <lib/psci/psci.h>
+#include <psci.h>
 
 /* The power domain tree descriptor */
 static unsigned char power_domain_tree_desc[] = {

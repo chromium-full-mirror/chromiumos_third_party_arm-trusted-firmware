@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <lib/extensions/ras.h>
+#include <ras.h>
 
 struct ras_interrupt fvp_ras_interrupts[] = {
 };

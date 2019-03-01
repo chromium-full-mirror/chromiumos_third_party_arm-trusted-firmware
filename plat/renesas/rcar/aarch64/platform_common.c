@@ -5,19 +5,17 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <platform_def.h>
-
 #include <arch.h>
 #include <arch_helpers.h>
-#include <common/bl_common.h>
-#include <common/debug.h>
-#include <common/interrupt_props.h>
-#include <drivers/arm/gicv2.h>
-#include <drivers/arm/gic_common.h>
-#include <lib/mmio.h>
-#include <lib/xlat_tables/xlat_tables_v2.h>
-#include <plat/common/platform.h>
-
+#include <bl_common.h>
+#include <debug.h>
+#include <gicv2.h>
+#include <gic_common.h>
+#include <interrupt_props.h>
+#include <mmio.h>
+#include <platform.h>
+#include <platform_def.h>
+#include <xlat_tables_v2.h>
 #include "rcar_def.h"
 #include "rcar_private.h"
 #include "rcar_version.h"
@@ -102,7 +100,7 @@ const uint8_t version_of_renesas[VERSION_OF_RENESAS_MAXLEN]
 #endif
 
 #if IMAGE_BL2
-static const mmap_region_t rcar_mmap[] = {
+const mmap_region_t rcar_mmap[] = {
 	MAP_FLASH0,	/*   0x08000000 -   0x0BFFFFFF  RPC area            */
 	MAP_DRAM0,	/*   0x40000000 -   0xBFFFFFFF  DRAM area(Legacy)   */
 	MAP_REG0,	/*   0xE6000000 -   0xE62FFFFF  SoC register area   */
@@ -116,7 +114,7 @@ static const mmap_region_t rcar_mmap[] = {
 #endif
 
 #if IMAGE_BL31
-static const mmap_region_t rcar_mmap[] = {
+const mmap_region_t rcar_mmap[] = {
 	MAP_SHARED_RAM,
 	MAP_ATFW_CRASH,
 	MAP_ATFW_LOG,
@@ -129,7 +127,7 @@ static const mmap_region_t rcar_mmap[] = {
 #endif
 
 #if IMAGE_BL32
-static const mmap_region_t rcar_mmap[] = {
+const mmap_region_t rcar_mmap[] = {
 	MAP_DEVICE0,
 	MAP_DEVICE1,
 	{0}

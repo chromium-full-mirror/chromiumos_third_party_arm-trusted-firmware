@@ -5,15 +5,13 @@
  */
 
 #include <assert.h>
-
-#include <common/debug.h>
-#include <drivers/io/io_driver.h>
-#include <drivers/io/io_semihosting.h>
-#include <drivers/io/io_storage.h>
-#include <lib/semihosting.h>
-#include <plat/common/common_def.h>
-
+#include <common_def.h>
+#include <debug.h>
+#include <io_driver.h>
+#include <io_semihosting.h>
+#include <io_storage.h>
 #include <plat_arm.h>
+#include <semihosting.h>	/* For FOPEN_MODE_... */
 
 /* Semihosting filenames */
 #define BL2_IMAGE_NAME			"bl2.bin"

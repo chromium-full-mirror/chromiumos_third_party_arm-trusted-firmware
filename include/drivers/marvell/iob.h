@@ -10,7 +10,7 @@
 #ifndef IOB_H
 #define IOB_H
 
-#include <drivers/marvell/addr_map.h>
+#include <addr_map.h>
 
 enum target_ids_iob {
 	INTERNAL_TID	= 0x0,

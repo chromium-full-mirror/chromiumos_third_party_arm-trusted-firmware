@@ -6,7 +6,7 @@
 
 #include <arch.h>
 #include <asm_macros.S>
-#include <common/bl_common.h>
+#include <bl_common.h>
 #include <cortex_a35.h>
 #include <cpu_macros.S>
 #include <plat_macros.S>

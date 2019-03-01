@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stddef.h>
-
 #include <arch_helpers.h>
-#include <drivers/arm/cci.h>
-#include <lib/utils_def.h>
+#include <cci.h>
+#include <stddef.h>
+#include <utils_def.h>
 
 #include "uniphier.h"
 

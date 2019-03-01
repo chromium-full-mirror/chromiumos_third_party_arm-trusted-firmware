@@ -7,11 +7,10 @@
 
 /* GWIN unit device driver for Marvell AP810 SoC */
 
-#include <common/debug.h>
-#include <drivers/marvell/gwin.h>
-#include <lib/mmio.h>
-
 #include <armada_common.h>
+#include <debug.h>
+#include <gwin.h>
+#include <mmio.h>
 #include <mvebu.h>
 #include <mvebu_def.h>
 

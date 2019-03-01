@@ -4,12 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stdbool.h>
-
 #include <arch.h>
 #include <arch_helpers.h>
-#include <lib/el3_runtime/pubsub.h>
-#include <lib/extensions/spe.h>
+#include <pubsub.h>
+#include <spe.h>
+#include <stdbool.h>
 
 static inline void psb_csync(void)
 {

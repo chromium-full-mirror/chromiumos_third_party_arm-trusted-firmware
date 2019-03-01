@@ -7,7 +7,7 @@
 #ifndef DSU_DEF_H
 #define DSU_DEF_H
 
-#include <lib/utils_def.h>
+#include <utils_def.h>
 
 /********************************************************************
  * DSU control registers definitions				    *

@@ -5,11 +5,10 @@
  */
 
 #include <assert.h>
+#include <debug.h>
 #include <errno.h>
+#include <runtime_svc.h>
 #include <string.h>
-
-#include <common/debug.h>
-#include <common/runtime_svc.h>
 
 /*******************************************************************************
  * The 'rt_svc_descs' array holds the runtime service descriptors exported by

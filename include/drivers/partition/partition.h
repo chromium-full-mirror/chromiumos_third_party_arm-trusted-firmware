@@ -7,9 +7,8 @@
 #ifndef PARTITION_H
 #define PARTITION_H
 
+#include <cassert.h>
 #include <stdint.h>
-
-#include <lib/cassert.h>
 
 #if !PLAT_PARTITION_MAX_ENTRIES
 # define PLAT_PARTITION_MAX_ENTRIES	128

@@ -7,12 +7,11 @@
 
 /* CP110 Marvell SoC driver */
 
-#include <common/debug.h>
-#include <drivers/delay_timer.h>
-#include <drivers/marvell/amb_adec.h>
-#include <drivers/marvell/iob.h>
-#include <drivers/marvell/mochi/cp110_setup.h>
-
+#include <amb_adec.h>
+#include <cp110_setup.h>
+#include <debug.h>
+#include <delay_timer.h>
+#include <iob.h>
 #include <plat_marvell.h>
 
 /*

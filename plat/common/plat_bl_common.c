@@ -4,17 +4,16 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <errno.h>
-
 #include <arch_helpers.h>
-#include <common/bl_common.h>
-#include <common/debug.h>
+#include <assert.h>
+#include <bl_common.h>
+#include <debug.h>
+#include <errno.h>
 #if TRUSTED_BOARD_BOOT
-#include <drivers/auth/mbedtls/mbedtls_config.h>
+#include <mbedtls_config.h>
 #endif
-#include <lib/xlat_tables/xlat_tables_compat.h>
-#include <plat/common/platform.h>
+#include <platform.h>
+#include <xlat_tables_compat.h>
 
 /*
  * The following platform functions are weakly defined. The Platforms

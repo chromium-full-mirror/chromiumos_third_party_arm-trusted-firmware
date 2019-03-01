@@ -5,8 +5,7 @@
  */
 
 #include <platform_def.h>
-
-#include <lib/xlat_tables/xlat_mmu_helpers.h>
+#include <xlat_mmu_helpers.h>
 
 #include "../uniphier.h"
 

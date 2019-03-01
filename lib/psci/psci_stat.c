@@ -5,12 +5,9 @@
  */
 
 #include <assert.h>
-
+#include <debug.h>
+#include <platform.h>
 #include <platform_def.h>
-
-#include <common/debug.h>
-#include <plat/common/platform.h>
-
 #include "psci_private.h"
 
 #ifndef PLAT_MAX_PWR_LVL_STATES

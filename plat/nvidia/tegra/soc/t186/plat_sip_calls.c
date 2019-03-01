@@ -4,19 +4,17 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <errno.h>
-
 #include <arch.h>
 #include <arch_helpers.h>
-#include <common/bl_common.h>
-#include <common/debug.h>
-#include <common/runtime_svc.h>
+#include <assert.h>
+#include <bl_common.h>
+#include <context_mgmt.h>
+#include <debug.h>
 #include <denver.h>
-#include <lib/el3_runtime/context_mgmt.h>
-
+#include <errno.h>
 #include <mce.h>
 #include <memctrl.h>
+#include <runtime_svc.h>
 #include <t18x_ari.h>
 #include <tegra_private.h>
 

@@ -54,7 +54,9 @@ $(eval $(call add_define,PLAT_PL061_MAX_GPIOS))
 
 PLAT_INCLUDES	:=	-Iplat/hisilicon/poplar/include		\
 			-Iplat/hisilicon/poplar			\
-			-Iinclude/common/tbbr
+			-Iinclude/common/tbbr			\
+			-Iinclude/drivers/synopsys		\
+			-Iinclude/drivers/io
 
 PLAT_BL_COMMON_SOURCES	:=						\
 		lib/xlat_tables/aarch64/xlat_tables.c			\

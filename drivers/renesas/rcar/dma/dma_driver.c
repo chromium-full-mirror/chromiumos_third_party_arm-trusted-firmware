@@ -5,14 +5,12 @@
  */
 
 #include <stdint.h>
-#include <string.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <lib/mmio.h>
-
+#include <string.h>
+#include <mmio.h>
 #include "rcar_def.h"
 #include "cpg_registers.h"
+#include "debug.h"
 #include "rcar_private.h"
 
 /* DMA CHANNEL setting (0/16/32) */

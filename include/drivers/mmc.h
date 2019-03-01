@@ -8,8 +8,7 @@
 #define MMC_H
 
 #include <stdint.h>
-
-#include <lib/utils_def.h>
+#include <utils_def.h>
 
 #define MMC_BLOCK_SIZE			U(512)
 #define MMC_BLOCK_MASK			(MMC_BLOCK_SIZE - U(1))

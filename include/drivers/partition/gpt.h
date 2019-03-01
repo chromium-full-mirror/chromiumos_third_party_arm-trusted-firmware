@@ -7,7 +7,7 @@
 #ifndef GPT_H
 #define GPT_H
 
-#include <drivers/partition/partition.h>
+#include <partition.h>
 
 #define PARTITION_TYPE_GPT		0xee
 #define GPT_HEADER_OFFSET		PARTITION_BLOCK_SIZE

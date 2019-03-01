@@ -7,7 +7,7 @@
 #ifndef IMX_USDHC_H
 #define IMX_USDHC_H
 
-#include <drivers/mmc.h>
+#include <mmc.h>
 
 typedef struct imx_usdhc_params {
 	uintptr_t	reg_base;

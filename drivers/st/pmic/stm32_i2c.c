@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <arch_helpers.h>
+#include <delay_timer.h>
 #include <errno.h>
+#include <mmio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-
-#include <arch_helpers.h>
-#include <drivers/delay_timer.h>
-#include <drivers/st/stm32_i2c.h>
-#include <lib/mmio.h>
+#include <stm32_i2c.h>
 
 /* STM32 I2C registers offsets */
 #define I2C_CR1			0x00U

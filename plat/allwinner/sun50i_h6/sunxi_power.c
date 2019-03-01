@@ -5,15 +5,13 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <errno.h>
-#include <string.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <drivers/delay_timer.h>
-#include <drivers/mentor/mi2cv.h>
-#include <lib/mmio.h>
-
+#include <debug.h>
+#include <delay_timer.h>
+#include <errno.h>
+#include <mmio.h>
+#include <mentor/mi2cv.h>
+#include <string.h>
 #include <sunxi_def.h>
 #include <sunxi_mmap.h>
 #include <sunxi_private.h>

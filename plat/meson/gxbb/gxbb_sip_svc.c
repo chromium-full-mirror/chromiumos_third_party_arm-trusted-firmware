@@ -4,13 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stdint.h>
-
+#include <debug.h>
+#include <mmio.h>
 #include <platform_def.h>
-
-#include <common/debug.h>
-#include <common/runtime_svc.h>
-#include <lib/mmio.h>
+#include <runtime_svc.h>
+#include <stdint.h>
 
 #include "gxbb_private.h"
 

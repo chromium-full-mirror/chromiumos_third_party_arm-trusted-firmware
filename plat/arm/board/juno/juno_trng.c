@@ -5,11 +5,9 @@
  */
 
 #include <assert.h>
+#include <mmio.h>
 #include <string.h>
-
-#include <lib/mmio.h>
-#include <lib/utils_def.h>
-
+#include <utils_def.h>
 #include "juno_decl.h"
 #include "juno_def.h"
 

@@ -4,16 +4,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <platform_def.h>
-
 #include <arch_helpers.h>
-#include <bl32/tsp/tsp.h>
-#include <common/bl_common.h>
-#include <common/debug.h>
-#include <lib/spinlock.h>
-#include <plat/common/platform.h>
+#include <bl_common.h>
+#include <debug.h>
+#include <platform.h>
+#include <platform_def.h>
 #include <platform_tsp.h>
-
+#include <spinlock.h>
+#include <tsp.h>
 #include "tsp_private.h"
 
 

@@ -4,21 +4,18 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <errno.h>
-
-#include <platform_def.h>
-
 #include <arch_helpers.h>
-#include <bl31/bl31.h>
-#include <common/debug.h>
-#include <drivers/console.h>
-#include <drivers/delay_timer.h>
-#include <lib/bakery_lock.h>
-#include <lib/mmio.h>
-#include <plat/common/platform.h>
-
+#include <assert.h>
+#include <bakery_lock.h>
+#include <bl31.h>
+#include <console.h>
+#include <debug.h>
+#include <delay_timer.h>
+#include <errno.h>
+#include <mmio.h>
 #include <plat_private.h>
+#include <platform.h>
+#include <platform_def.h>
 #include <pmu.h>
 #include <pmu_com.h>
 #include <rk3328_def.h>

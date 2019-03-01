@@ -4,14 +4,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <string.h>
-
 #include <arch_helpers.h>
-#include <common/bl_common.h>
-#include <lib/el3_runtime/context_mgmt.h>
-#include <lib/utils.h>
-
+#include <assert.h>
+#include <bl_common.h>
+#include <context_mgmt.h>
+#include <string.h>
+#include <utils.h>
 #include "opteed_private.h"
 
 /*******************************************************************************

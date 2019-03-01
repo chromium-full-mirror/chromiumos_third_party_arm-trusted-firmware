@@ -5,15 +5,12 @@
  */
 
 #include <assert.h>
-#include <string.h>
-
-#include <platform_def.h>
-
-#include <common/debug.h>
-
+#include <debug.h>
 #include <plat_arm.h>
+#include <platform_def.h>
 #include <sgm_plat_config.h>
 #include <sgm_variant.h>
+#include <string.h>
 
 static css_plat_config_t *css_plat_info;
 

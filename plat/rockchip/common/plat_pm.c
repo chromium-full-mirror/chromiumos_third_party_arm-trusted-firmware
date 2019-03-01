@@ -4,18 +4,15 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <errno.h>
-
-#include <platform_def.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <drivers/console.h>
-#include <drivers/delay_timer.h>
-#include <lib/psci/psci.h>
-
+#include <assert.h>
+#include <console.h>
+#include <debug.h>
+#include <delay_timer.h>
+#include <errno.h>
 #include <plat_private.h>
+#include <platform_def.h>
+#include <psci.h>
 
 /* Macros to read the rk power domain state */
 #define RK_CORE_PWR_STATE(state) \

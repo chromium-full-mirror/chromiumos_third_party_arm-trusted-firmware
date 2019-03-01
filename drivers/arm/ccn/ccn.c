@@ -4,16 +4,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <errno.h>
-#include <stdbool.h>
-
 #include <arch.h>
-#include <common/debug.h>
-#include <drivers/arm/ccn.h>
-#include <lib/bakery_lock.h>
-#include <lib/mmio.h>
-
+#include <assert.h>
+#include <bakery_lock.h>
+#include <ccn.h>
+#include <debug.h>
+#include <errno.h>
+#include <mmio.h>
+#include <stdbool.h>
 #include "ccn_private.h"
 
 static const ccn_desc_t *ccn_plat_desc;

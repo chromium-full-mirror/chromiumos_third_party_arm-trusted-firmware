@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <common/bl_common.h>
-#include <lib/utils.h>
-
+#include <bl_common.h>
 #include <mt8173_def.h>
+#include <utils.h>
 
 const unsigned int mt_irq_sec_array[] = {
 	MT_IRQ_SEC_SGI_0,

@@ -4,14 +4,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stdbool.h>
-
 #include <arch.h>
 #include <arch_helpers.h>
-#include <common/debug.h>
-
+#include <debug.h>
 #include <plat_imx8.h>
 #include <sci/sci.h>
+#include <stdbool.h>
 
 void __dead2 imx_system_off(void)
 {

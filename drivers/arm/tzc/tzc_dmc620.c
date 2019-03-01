@@ -5,10 +5,9 @@
  */
 
 #include <assert.h>
-
-#include <common/debug.h>
-#include <drivers/arm/tzc_dmc620.h>
-#include <lib/mmio.h>
+#include <debug.h>
+#include <mmio.h>
+#include <tzc_dmc620.h>
 
 /* Mask to extract bit 31 to 16 */
 #define MASK_31_16 UINT64_C(0x0000ffff0000)

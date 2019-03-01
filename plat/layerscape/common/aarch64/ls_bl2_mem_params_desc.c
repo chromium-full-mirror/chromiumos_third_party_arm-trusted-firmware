@@ -4,13 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <bl_common.h>
+#include <desc_image_load.h>
+#include <platform.h>
 #include <platform_def.h>
-
-#include <common/bl_common.h>
-#include <common/debug.h>
-#include <common/desc_image_load.h>
-#include <plat/common/platform.h>
-
+#include <debug.h>
 #include <ls_def.h>
 
 /*******************************************************************************

@@ -7,10 +7,9 @@
 #ifndef PLATFORM_DEF_H
 #define PLATFORM_DEF_H
 
-#include <common/interrupt_props.h>
-#include <drivers/arm/gic_common.h>
-#include <lib/utils_def.h>
-
+#include <gic_common.h>
+#include <interrupt_props.h>
+#include <utils_def.h>
 #include "mt8173_def.h"
 
 /*******************************************************************************

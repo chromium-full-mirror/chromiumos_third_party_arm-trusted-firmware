@@ -5,13 +5,11 @@
  * https://spdx.org/licenses
  */
 
-#include <common/debug.h>
-#include <common/runtime_svc.h>
-#include <lib/smccc.h>
-
+#include <debug.h>
 #include <marvell_plat_priv.h>
 #include <plat_marvell.h>
-
+#include <runtime_svc.h>
+#include <smccc.h>
 #include "comphy/phy-comphy-3700.h"
 
 /* Comphy related FID's */

@@ -5,11 +5,10 @@
  * https://spdx.org/licenses
  */
 
-#include <drivers/delay_timer.h>
-#include <drivers/marvell/aro.h>
-#include <lib/mmio.h>
-
 #include <a8k_plat_def.h>
+#include <aro.h>
+#include <delay_timer.h>
+#include <mmio.h>
 
 /* Notify bootloader on DRAM setup */
 #define AP807_CPU_ARO_CTRL(cluster)	\

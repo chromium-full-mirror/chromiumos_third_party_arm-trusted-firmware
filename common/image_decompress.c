@@ -4,13 +4,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <stdint.h>
-
 #include <arch_helpers.h>
-#include <common/bl_common.h>
-#include <common/debug.h>
-#include <common/image_decompress.h>
+#include <assert.h>
+#include <bl_common.h>
+#include <debug.h>
+#include <image_decompress.h>
+#include <stdint.h>
 
 static uintptr_t decompressor_buf_base;
 static uint32_t decompressor_buf_size;

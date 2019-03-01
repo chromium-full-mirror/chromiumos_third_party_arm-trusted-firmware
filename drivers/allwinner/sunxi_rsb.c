@@ -4,12 +4,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <debug.h>
+#include <delay_timer.h>
 #include <errno.h>
-
-#include <common/debug.h>
-#include <drivers/delay_timer.h>
-#include <lib/mmio.h>
-
+#include <mmio.h>
 #include <sunxi_mmap.h>
 
 #define RSB_CTRL	0x00

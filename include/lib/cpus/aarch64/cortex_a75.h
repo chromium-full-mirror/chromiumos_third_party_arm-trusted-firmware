@@ -7,7 +7,7 @@
 #ifndef CORTEX_A75_H
 #define CORTEX_A75_H
 
-#include <lib/utils_def.h>
+#include <utils_def.h>
 
 /* Cortex-A75 MIDR */
 #define CORTEX_A75_MIDR		U(0x410fd0a0)

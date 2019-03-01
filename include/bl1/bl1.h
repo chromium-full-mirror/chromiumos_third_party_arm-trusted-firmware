@@ -7,7 +7,7 @@
 #ifndef BL1_H
 #define BL1_H
 
-#include <common/bl_common.h>
+#include <bl_common.h>
 
 /*
  * Defines for BL1 SMC function ids.
@@ -62,8 +62,7 @@
     ((_fid >= FWU_SMC_FID_START) && (_fid <= FWU_SMC_FID_END))
 
 #ifndef __ASSEMBLY__
-
-#include <lib/cassert.h>
+#include <cassert.h>
 
 struct entry_point_info;
 

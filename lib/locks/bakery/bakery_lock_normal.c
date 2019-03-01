@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <string.h>
-
 #include <arch_helpers.h>
-#include <lib/bakery_lock.h>
-#include <lib/el3_runtime/cpu_data.h>
-#include <lib/utils_def.h>
-#include <plat/common/platform.h>
+#include <assert.h>
+#include <bakery_lock.h>
+#include <cpu_data.h>
+#include <platform.h>
+#include <string.h>
+#include <utils_def.h>
 
 /*
  * Functions in this file implement Bakery Algorithm for mutual exclusion with the

@@ -7,11 +7,10 @@
 
 #include <arch.h>
 #include <asm_macros.S>
-#include <common/bl_common.h>
-#include <common/runtime_svc.h>
+#include <bl_common.h>
 #include <cortex_a57.h>
 #include <platform_def.h>
-
+#include <runtime_svc.h>
 #include "rcar_def.h"
 
 	.globl	plat_get_my_entrypoint
@@ -217,8 +216,6 @@ endfunc platform_mem_init
 	 * ---------------------------------------------
 	 */
 func plat_report_exception
-	/* Switch to SP_EL0 */
-	msr	spsel, #0
 #if IMAGE_BL2
 	mov	w1, #FIQ_SP_EL0
 	cmp	w0, w1
@@ -328,11 +325,11 @@ func plat_reset_handler
 	ubfx	w0, w0, 8, 8
 	/* H3? */
 	cmp	w0, #0x4F
-	b.eq	RCARH3
+	b.eq	H3
 	/* set R-Car M3/M3N */
 	mov	x2, #1
 	b	CHK_A5x
-RCARH3:
+H3:
 	/* set R-Car H3 */
 	mov	x2, #0
 	/* --------------------------------------------------------------------

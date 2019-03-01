@@ -6,13 +6,11 @@
  */
 
 #include <assert.h>
-
+#include <debug.h>
+#include <mmio.h>
+#include <arch_helpers.h> /* for cache maintanance operations */
 #include <platform_def.h>
-
-#include <arch_helpers.h>
-#include <common/debug.h>
-#include <drivers/delay_timer.h>
-#include <lib/mmio.h>
+#include <delay_timer.h>
 
 #include <plat_pm_trace.h>
 #include <mss_scp_bootloader.h>

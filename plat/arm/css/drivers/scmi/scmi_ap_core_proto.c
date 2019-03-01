@@ -4,11 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-
+#include <assert.h>
+#include <debug.h>
 #include "scmi.h"
 #include "scmi_private.h"
 

@@ -4,14 +4,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
-PROGRAMMABLE_RESET_ADDRESS	:= 1
+PROGRAMMABLE_RESET_ADDRESS	:= 0
 COLD_BOOT_SINGLE_CPU		:= 1
 ARM_CCI_PRODUCT_ID		:= 500
 TRUSTED_BOARD_BOOT		:= 1
 RESET_TO_BL31			:= 1
 GENERATE_COT			:= 1
 BL2_AT_EL3			:= 1
-ENABLE_SVE_FOR_NS		:= 0
 
 $(eval $(call add_define,PLAT_EXTRA_LD_SCRIPT))
 
@@ -311,7 +310,6 @@ PLAT_INCLUDES	:=	-Iinclude/common/tbbr			\
 			-Idrivers/staging/renesas/rcar/qos	\
 			-Idrivers/renesas/rcar/iic_dvfs		\
 			-Idrivers/renesas/rcar/board		\
-			-Idrivers/renesas/rcar/cpld/		\
 			-Idrivers/renesas/rcar/avs		\
 			-Idrivers/renesas/rcar/delay		\
 			-Idrivers/renesas/rcar/rom		\
@@ -355,7 +353,7 @@ BL2_SOURCES	+=	${RCAR_GIC_SOURCES}				\
 			drivers/renesas/rcar/rpc/rpc_driver.c		\
 			drivers/renesas/rcar/dma/dma_driver.c		\
 			drivers/renesas/rcar/avs/avs_driver.c		\
-			drivers/renesas/rcar/delay/micro_delay.c	\
+			drivers/renesas/rcar/delay/micro_delay.S	\
 			drivers/renesas/rcar/emmc/emmc_interrupt.c	\
 			drivers/renesas/rcar/emmc/emmc_utility.c	\
 			drivers/renesas/rcar/emmc/emmc_mount.c		\
@@ -378,7 +376,6 @@ BL31_SOURCES	+=	${RCAR_GIC_SOURCES}				\
 			plat/renesas/rcar/plat_pm.c			\
 			drivers/renesas/rcar/console/rcar_console.S	\
 			drivers/renesas/rcar/console/rcar_printf.c	\
-			drivers/renesas/rcar/delay/micro_delay.c	\
 			drivers/renesas/rcar/pwrc/call_sram.S		\
 			drivers/renesas/rcar/pwrc/pwrc.c		\
 			drivers/renesas/rcar/common.c			\
@@ -418,7 +415,7 @@ clean_srecord:
 	rm -f ${SREC_PATH}/bl2.srec ${SREC_PATH}/bl31.srec
 
 .PHONY: rcar_srecord
-rcar_srecord: $(BL2_ELF_SRC) $(BL31_ELF_SRC)
+rcar_srecord:
 	@echo "generating srec: ${SREC_PATH}/bl2.srec"
 	$(Q)$(OC) -O srec --srec-forceS3 ${BL2_ELF_SRC}  ${SREC_PATH}/bl2.srec
 	@echo "generating srec: ${SREC_PATH}/bl31.srec"

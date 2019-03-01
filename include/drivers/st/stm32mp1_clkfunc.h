@@ -7,9 +7,8 @@
 #ifndef STM32MP1_CLKFUNC_H
 #define STM32MP1_CLKFUNC_H
 
-#include <stdbool.h>
-
 #include <libfdt.h>
+#include <stdbool.h>
 
 enum stm32mp_osc_id {
 	_HSI,

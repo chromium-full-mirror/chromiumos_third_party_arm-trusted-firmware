@@ -13,7 +13,6 @@
  */
 #if !(defined(__LINKER__) || defined(__ASSEMBLY__))
 
-#include <stddef.h>
 #include <stdint.h>
 
 typedef struct mem_region {

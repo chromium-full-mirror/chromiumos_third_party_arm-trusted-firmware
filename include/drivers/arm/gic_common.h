@@ -7,7 +7,7 @@
 #ifndef GIC_COMMON_H
 #define GIC_COMMON_H
 
-#include <lib/utils_def.h>
+#include <utils_def.h>
 
 /*******************************************************************************
  * GIC Distributor interface general definitions

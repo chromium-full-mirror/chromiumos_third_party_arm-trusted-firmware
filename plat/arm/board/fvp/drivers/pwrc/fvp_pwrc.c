@@ -4,11 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <lib/bakery_lock.h>
-#include <lib/mmio.h>
-
+#include <bakery_lock.h>
+#include <mmio.h>
 #include <plat_arm.h>
-
 #include "../../fvp_def.h"
 #include "../../fvp_private.h"
 #include "fvp_pwrc.h"

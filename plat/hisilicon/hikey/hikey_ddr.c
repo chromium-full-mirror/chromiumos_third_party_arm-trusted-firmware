@@ -4,17 +4,16 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <errno.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <drivers/arm/sp804_delay_timer.h>
-#include <lib/mmio.h>
-
+#include <assert.h>
+#include <debug.h>
+#include <errno.h>
 #include <hi6220.h>
 #include <hi6553.h>
 #include <hisi_sram_map.h>
+#include <mmio.h>
+#include <sp804_delay_timer.h>
+
 #include "hikey_private.h"
 
 static void init_pll(void)

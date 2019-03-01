@@ -7,8 +7,7 @@
 #ifndef PLAT_PRIVATE_H
 #define PLAT_PRIVATE_H
 
-#include <common/bl_common.h>
-
+#include <bl_common.h>
 #include "hi3798cv200.h"
 
 void plat_configure_mmu_el3(unsigned long total_base,

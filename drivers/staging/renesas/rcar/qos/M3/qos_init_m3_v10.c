@@ -5,9 +5,7 @@
  */
 
 #include <stdint.h>
-
-#include <common/debug.h>
-
+#include <debug.h>
 #include "../qos_common.h"
 #include "qos_init_m3_v10.h"
 

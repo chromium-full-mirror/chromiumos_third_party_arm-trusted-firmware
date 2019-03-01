@@ -7,12 +7,10 @@
 /* Helper functions to offer easier navigation of Device Tree Blob */
 
 #include <assert.h>
-#include <string.h>
-
+#include <debug.h>
+#include <fdt_wrappers.h>
 #include <libfdt.h>
-
-#include <common/debug.h>
-#include <common/fdt_wrappers.h>
+#include <string.h>
 
 /*
  * Read cells from a given property of the given node. At most 2 cells of the

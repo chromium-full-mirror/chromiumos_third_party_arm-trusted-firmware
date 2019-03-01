@@ -5,18 +5,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <errno.h>
-
-#include <libfdt.h>
-
-#include <platform_def.h>
-
+#include <allwinner/sunxi_rsb.h>
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <drivers/allwinner/sunxi_rsb.h>
-#include <drivers/delay_timer.h>
-#include <lib/mmio.h>
-
+#include <debug.h>
+#include <delay_timer.h>
+#include <errno.h>
+#include <libfdt.h>
+#include <mmio.h>
+#include <platform_def.h>
 #include <sunxi_def.h>
 #include <sunxi_mmap.h>
 #include <sunxi_private.h>

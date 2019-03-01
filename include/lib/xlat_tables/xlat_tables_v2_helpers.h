@@ -18,14 +18,12 @@
 
 #ifndef __ASSEMBLY__
 
+#include <cassert.h>
+#include <platform_def.h>
 #include <stdbool.h>
 #include <stddef.h>
-
-#include <platform_def.h>
-
-#include <lib/cassert.h>
-#include <lib/xlat_tables/xlat_tables_arch.h>
-#include <lib/xlat_tables/xlat_tables_defs.h>
+#include <xlat_tables_arch.h>
+#include <xlat_tables_defs.h>
 
 /* Forward declaration */
 struct mmap_region;

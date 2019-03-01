@@ -7,12 +7,11 @@
 #ifndef TSPD_PRIVATE_H
 #define TSPD_PRIVATE_H
 
-#include <platform_def.h>
-
 #include <arch.h>
-#include <bl31/interrupt_mgmt.h>
 #include <context.h>
-#include <lib/psci/psci.h>
+#include <interrupt_mgmt.h>
+#include <platform_def.h>
+#include <psci.h>
 
 /*******************************************************************************
  * Secure Payload PM state information e.g. SP is suspended, uninitialised etc
@@ -128,9 +127,8 @@
 
 #ifndef __ASSEMBLY__
 
+#include <cassert.h>
 #include <stdint.h>
-
-#include <lib/cassert.h>
 
 /*
  * The number of arguments to save during a SMC call for TSP.

@@ -7,7 +7,7 @@
 #ifndef IMX_UART_H
 #define IMX_UART_H
 
-#include <drivers/console.h>
+#include <console.h>
 
 #ifndef __ASSEMBLY__
 

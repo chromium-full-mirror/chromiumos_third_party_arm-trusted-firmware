@@ -7,14 +7,13 @@
 
 /* AP806 Marvell SoC driver */
 
-#include <common/debug.h>
-#include <drivers/marvell/ccu.h>
-#include <drivers/marvell/cache_llc.h>
-#include <drivers/marvell/io_win.h>
-#include <drivers/marvell/mci.h>
-#include <drivers/marvell/mochi/ap_setup.h>
-#include <lib/mmio.h>
-
+#include <ap_setup.h>
+#include <ccu.h>
+#include <cache_llc.h>
+#include <debug.h>
+#include <io_win.h>
+#include <mci.h>
+#include <mmio.h>
 #include <mvebu_def.h>
 
 #define SMMU_sACR				(MVEBU_SMMU_BASE + 0x10)

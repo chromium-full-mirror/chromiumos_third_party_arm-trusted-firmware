@@ -3,12 +3,10 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 #include <assert.h>
-
-#include <common/debug.h>
-#include <lib/pmf/pmf.h>
-#include <plat/common/platform.h>
+#include <debug.h>
+#include <platform.h>
+#include <pmf.h>
 #include <smccc_helpers.h>
 
 /*

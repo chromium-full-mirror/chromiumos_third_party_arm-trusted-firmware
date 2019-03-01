@@ -7,7 +7,7 @@
 #ifndef GICV2_H
 #define GICV2_H
 
-#include <drivers/arm/gic_common.h>
+#include <gic_common.h>
 
 /*******************************************************************************
  * GICv2 miscellaneous definitions
@@ -119,9 +119,8 @@
 #ifndef __ASSEMBLY__
 
 #include <cdefs.h>
+#include <interrupt_props.h>
 #include <stdint.h>
-
-#include <common/interrupt_props.h>
 
 /*******************************************************************************
  * This structure describes some of the implementation defined attributes of

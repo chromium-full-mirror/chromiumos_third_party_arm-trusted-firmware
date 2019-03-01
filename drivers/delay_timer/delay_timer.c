@@ -5,11 +5,9 @@
  */
 
 #include <assert.h>
-
+#include <delay_timer.h>
 #include <platform_def.h>
-
-#include <drivers/delay_timer.h>
-#include <lib/utils_def.h>
+#include <utils_def.h>
 
 /***********************************************************
  * The delay timer implementation

@@ -5,7 +5,7 @@
  */
 
 #include <asm_macros.S>
-#include <drivers/arm/gicv2.h>
+#include <gicv2.h>
 #include <platform_def.h>
 
 	.globl	plat_secondary_cold_boot_setup

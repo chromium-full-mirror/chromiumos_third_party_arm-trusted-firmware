@@ -8,12 +8,10 @@
 #define PLAT_PRIVATE_H
 
 #ifndef __ASSEMBLY__
-
+#include <mmio.h>
+#include <psci.h>
 #include <stdint.h>
-
-#include <lib/psci/psci.h>
-#include <lib/xlat_tables/xlat_tables.h>
-#include <lib/mmio.h>
+#include <xlat_tables.h>
 
 #define __sramdata __attribute__((section(".sram.data")))
 #define __sramconst __attribute__((section(".sram.rodata")))

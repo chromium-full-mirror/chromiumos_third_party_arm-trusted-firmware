@@ -5,16 +5,14 @@
  * https://spdx.org/licenses
  */
 
-#include <platform_def.h>
-
-#include <common/bl_common.h>
-#include <common/debug.h>
-#include <drivers/marvell/ccu.h>
-#include <drivers/marvell/mochi/cp110_setup.h>
-#include <lib/mmio.h>
-
 #include <armada_common.h>
+#include <bl_common.h>
+#include <ccu.h>
+#include <cp110_setup.h>
+#include <debug.h>
 #include <marvell_plat_priv.h> /* timer functionality */
+#include <mmio.h>
+#include <platform_def.h>
 
 #include "mss_scp_bootloader.h"
 

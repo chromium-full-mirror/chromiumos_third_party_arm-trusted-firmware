@@ -4,13 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <string.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <lib/mmio.h>
-
+#include <debug.h>
 #include <mce.h>
+#include <mmio.h>
+#include <string.h>
 #include <tegra_def.h>
 #include <tegra_private.h>
 

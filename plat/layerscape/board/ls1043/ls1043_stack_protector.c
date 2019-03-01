@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stdint.h>
-
 #include <arch_helpers.h>
+#include <stdint.h>
 
 #define RANDOM_CANARY_VALUE ((u_register_t) 3288484550995823360ULL)
 

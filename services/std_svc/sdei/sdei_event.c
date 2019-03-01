@@ -5,9 +5,7 @@
  */
 
 #include <assert.h>
-
-#include <lib/utils.h>
-
+#include <utils.h>
 #include "sdei_private.h"
 
 #define MAP_OFF(_map, _mapping) ((_map) - (_mapping)->map)

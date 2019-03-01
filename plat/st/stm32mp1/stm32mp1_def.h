@@ -7,15 +7,9 @@
 #ifndef STM32MP1_DEF_H
 #define STM32MP1_DEF_H
 
-#include <common/tbbr/tbbr_img_def.h>
-#include <lib/utils_def.h>
-#include <lib/xlat_tables/xlat_tables_defs.h>
-
-#ifndef __ASSEMBLY__
-#include <boot_api.h>
-#include <stm32mp1_dt.h>
-#include <stm32mp1_private.h>
-#endif
+#include <tbbr_img_def.h>
+#include <utils_def.h>
+#include <xlat_tables_defs.h>
 
 /*******************************************************************************
  * STM32MP1 memory map related constants

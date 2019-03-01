@@ -11,10 +11,9 @@
  * GIC600 supports independently power-gating redistributor interface.
  */
 
-#include <assert.h>
-
 #include <arch_helpers.h>
-#include <drivers/arm/gicv3.h>
+#include <assert.h>
+#include <gicv3.h>
 
 #include "gicv3_private.h"
 

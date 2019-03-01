@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <lib/mmio.h>
-#include "ulcb_cpld.h"
+#include <mmio.h>
 
 #define SCLK			8	/* GP_6_8 */
 #define SSTBZ			3	/* GP_2_3 */

@@ -7,10 +7,9 @@
 #ifndef DRAM_H
 #define DRAM_H
 
-#include <stdint.h>
-
 #include <dram_regs.h>
 #include <plat_private.h>
+#include <stdint.h>
 
 enum {
 	DDR3 = 3,

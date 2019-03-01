@@ -8,12 +8,10 @@
 #define GICV3_PRIVATE_H
 
 #include <assert.h>
+#include <gic_common.h>
+#include <gicv3.h>
+#include <mmio.h>
 #include <stdint.h>
-
-#include <drivers/arm/gic_common.h>
-#include <drivers/arm/gicv3.h>
-#include <lib/mmio.h>
-
 #include "../common/gic_common_private.h"
 
 /*******************************************************************************

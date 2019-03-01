@@ -5,9 +5,8 @@
  */
 
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <lib/utils.h>
-
+#include <debug.h>
+#include <utils.h>
 #include "juno_decl.h"
 #include "juno_def.h"
 

@@ -8,7 +8,7 @@
 #ifndef MARVELL_PLAT_PRIV_H
 #define MARVELL_PLAT_PRIV_H
 
-#include <lib/utils.h>
+#include <utils.h>
 
 /*****************************************************************************
  * Function and variable prototypes

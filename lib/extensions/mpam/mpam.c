@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stdbool.h>
-
 #include <arch.h>
 #include <arch_helpers.h>
-#include <lib/extensions/mpam.h>
+#include <mpam.h>
+#include <stdbool.h>
 
 bool mpam_supported(void)
 {

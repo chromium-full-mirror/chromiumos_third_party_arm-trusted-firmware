@@ -4,7 +4,6 @@
  * SPDX-License-Identifier:	BSD-3-Clause
  * https://spdx.org/licenses
  */
-
 #include <a3700_pm.h>
 #include <plat_marvell.h>
 

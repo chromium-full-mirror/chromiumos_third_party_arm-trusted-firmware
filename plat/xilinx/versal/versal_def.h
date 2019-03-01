@@ -7,7 +7,7 @@
 #ifndef VERSAL_DEF_H
 #define VERSAL_DEF_H
 
-#include <plat/common/common_def.h>
+#include <common_def.h>
 
 /* List all consoles */
 #define VERSAL_CONSOLE_ID_pl011	1

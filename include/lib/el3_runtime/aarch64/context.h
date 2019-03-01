@@ -7,7 +7,7 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
-#include <lib/utils_def.h>
+#include <utils_def.h>
 
 /*******************************************************************************
  * Constants that allow assembler code to access members of and the 'gp_regs'
@@ -180,11 +180,9 @@
 
 #ifndef __ASSEMBLY__
 
-#include <stdint.h>
-
+#include <cassert.h>
 #include <platform_def.h>	/* for CACHE_WRITEBACK_GRANULE */
-
-#include <lib/cassert.h>
+#include <stdint.h>
 
 /*
  * Common constants to help define the 'cpu_context' structure and its

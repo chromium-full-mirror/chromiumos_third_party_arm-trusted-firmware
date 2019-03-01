@@ -5,10 +5,8 @@
  */
 
 #include <assert.h>
-
-#include <common/bl_common.h>
-#include <common/desc_image_load.h>
-
+#include <bl_common.h>
+#include <desc_image_load.h>
 #include "ls_16550.h"
 #include "plat_ls.h"
 #include "ls_def.h"

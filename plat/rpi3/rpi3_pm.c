@@ -4,16 +4,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-
-#include <platform_def.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <drivers/console.h>
-#include <lib/mmio.h>
-#include <lib/psci/psci.h>
-#include <plat/common/platform.h>
+#include <assert.h>
+#include <console.h>
+#include <debug.h>
+#include <mmio.h>
+#include <platform_def.h>
+#include <platform.h>
+#include <psci.h>
 
 #include "rpi3_hw.h"
 

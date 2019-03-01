@@ -5,12 +5,11 @@
  */
 
 #include <assert.h>
+#include <bl_common.h>
+#include <context_mgmt.h>
 #include <errno.h>
-
-#include <common/bl_common.h>
-#include <bl31/interrupt_mgmt.h>
-#include <lib/el3_runtime/context_mgmt.h>
-#include <plat/common/platform.h>
+#include <interrupt_mgmt.h>
+#include <platform.h>
 
 /*******************************************************************************
  * Local structure and corresponding array to keep track of the state of the

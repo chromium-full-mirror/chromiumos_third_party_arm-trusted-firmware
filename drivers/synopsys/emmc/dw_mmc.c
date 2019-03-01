@@ -4,17 +4,16 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <errno.h>
-#include <string.h>
-
 #include <arch.h>
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <drivers/delay_timer.h>
-#include <drivers/mmc.h>
-#include <drivers/synopsys/dw_mmc.h>
-#include <lib/mmio.h>
+#include <assert.h>
+#include <debug.h>
+#include <delay_timer.h>
+#include <dw_mmc.h>
+#include <errno.h>
+#include <mmc.h>
+#include <mmio.h>
+#include <string.h>
 
 #define DWMMC_CTRL			(0x00)
 #define CTRL_IDMAC_EN			(1 << 25)

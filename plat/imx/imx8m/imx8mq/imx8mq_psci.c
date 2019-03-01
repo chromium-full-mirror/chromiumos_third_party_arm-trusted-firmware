@@ -4,16 +4,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stdbool.h>
-
 #include <arch.h>
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <lib/mmio.h>
-#include <lib/psci/psci.h>
-
+#include <debug.h>
 #include <gpc.h>
+#include <stdbool.h>
 #include <plat_imx8.h>
+#include <psci.h>
+#include <mmio.h>
 
 #define CORE_PWR_STATE(state) ((state)->pwr_domain_state[MPIDR_AFFLVL0])
 #define CLUSTER_PWR_STATE(state) ((state)->pwr_domain_state[MPIDR_AFFLVL1])

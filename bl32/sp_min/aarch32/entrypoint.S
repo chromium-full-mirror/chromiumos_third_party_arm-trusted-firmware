@@ -6,13 +6,13 @@
 
 #include <arch.h>
 #include <asm_macros.S>
-#include <common/bl_common.h>
-#include <common/runtime_svc.h>
+#include <bl_common.h>
 #include <context.h>
 #include <el3_common_macros.S>
-#include <lib/xlat_tables/xlat_tables_defs.h>
+#include <runtime_svc.h>
 #include <smccc_helpers.h>
 #include <smccc_macros.S>
+#include <xlat_tables_defs.h>
 
 	.globl	sp_min_vector_table
 	.globl	sp_min_entrypoint

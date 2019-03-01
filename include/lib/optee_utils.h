@@ -3,11 +3,10 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 #ifndef OPTEE_UTILS_H
 #define OPTEE_UTILS_H
 
-#include <common/bl_common.h>
+#include <bl_common.h>
 
 int parse_optee_header(entry_point_info_t *header_ep,
 	image_info_t *pager_image_info,

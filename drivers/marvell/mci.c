@@ -7,11 +7,10 @@
 
 /* MCI bus driver for Marvell ARMADA 8K and 8K+ SoCs */
 
-#include <common/debug.h>
-#include <drivers/delay_timer.h>
-#include <drivers/marvell/mci.h>
-#include <lib/mmio.h>
-
+#include <debug.h>
+#include <delay_timer.h>
+#include <mmio.h>
+#include <mci.h>
 #include <mvebu.h>
 #include <mvebu_def.h>
 #include <plat_marvell.h>

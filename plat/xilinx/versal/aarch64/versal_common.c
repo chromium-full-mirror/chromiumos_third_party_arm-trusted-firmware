@@ -4,12 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <common/debug.h>
-#include <drivers/generic_delay_timer.h>
-#include <lib/mmio.h>
-#include <lib/xlat_tables/xlat_tables.h>
-#include <plat/common/platform.h>
-
+#include <debug.h>
+#include <generic_delay_timer.h>
+#include <mmio.h>
+#include <platform.h>
+#include <xlat_tables.h>
 #include "../versal_def.h"
 #include "../versal_private.h"
 

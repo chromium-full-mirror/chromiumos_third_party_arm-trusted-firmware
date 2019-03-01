@@ -5,11 +5,10 @@
  * https://spdx.org/licenses
  */
 
+#include <debug.h>
+#include <mmio.h>
+#include <psci.h>
 #include <string.h>
-
-#include <common/debug.h>
-#include <lib/psci/psci.h>
-#include <lib/mmio.h>
 
 #include <mss_pm_ipc.h>
 

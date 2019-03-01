@@ -6,7 +6,7 @@
 #ifndef DESC_IMAGE_LOAD_H
 #define DESC_IMAGE_LOAD_H
 
-#include <common/bl_common.h>
+#include <bl_common.h>
 
 /* Following structure is used to store BL ep/image info. */
 typedef struct bl_mem_params_node {

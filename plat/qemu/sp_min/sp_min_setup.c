@@ -4,21 +4,18 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <string.h>
-
-#include <platform_def.h>
-
 #include <arch_helpers.h>
-#include <common/bl_common.h>
-#include <common/debug.h>
-#include <drivers/arm/gic_common.h>
-#include <drivers/arm/gicv2.h>
-#include <drivers/console.h>
-#include <lib/mmio.h>
-#include <lib/xlat_tables/xlat_tables.h>
-#include <plat/common/platform.h>
-
+#include <assert.h>
+#include <bl_common.h>
+#include <console.h>
+#include <debug.h>
+#include <gic_common.h>
+#include <gicv2.h>
+#include <mmio.h>
+#include <platform.h>
+#include <platform_def.h>
+#include <string.h>
+#include <xlat_tables.h>
 #include "../qemu_private.h"
 
 #if RESET_TO_SP_MIN

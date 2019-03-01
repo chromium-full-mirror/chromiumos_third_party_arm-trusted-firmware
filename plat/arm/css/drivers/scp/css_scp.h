@@ -7,11 +7,9 @@
 #ifndef CSS_SCP_H
 #define CSS_SCP_H
 
-#include <stdint.h>
-
+#include <cassert.h>
 #include <platform_def.h>
-
-#include <lib/cassert.h>
+#include <stdint.h>
 
 /* Forward declarations */
 struct psci_power_state;

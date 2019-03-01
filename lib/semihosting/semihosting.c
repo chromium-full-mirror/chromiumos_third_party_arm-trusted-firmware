@@ -6,9 +6,8 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <semihosting.h>
 #include <string.h>
-
-#include <lib/semihosting.h>
 
 #ifndef SEMIHOSTING_SUPPORTED
 #define SEMIHOSTING_SUPPORTED  1

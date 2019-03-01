@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <common/bl_common.h>
-
+#include <bl_common.h>
 #include <smmu.h>
 #include <tegra_def.h>
 

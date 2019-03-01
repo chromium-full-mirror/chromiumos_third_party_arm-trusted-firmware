@@ -7,18 +7,15 @@
 #ifndef DDR_PARAMETER_H
 #define DDR_PARAMETER_H
 
-#include <string.h>
-
-#include <platform_def.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <drivers/console.h>
-#include <drivers/delay_timer.h>
-#include <lib/mmio.h>
-
+#include <console.h>
+#include <debug.h>
+#include <delay_timer.h>
+#include <mmio.h>
 #include <plat_private.h>
+#include <platform_def.h>
 #include <soc.h>
+#include <string.h>
 
 #define DDR_REGION_NR_MAX		10
 #define REGION_NR_OFFSET		0

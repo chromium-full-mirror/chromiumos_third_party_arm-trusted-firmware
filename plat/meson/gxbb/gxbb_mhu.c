@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <bakery_lock.h>
+#include <mmio.h>
 #include <platform_def.h>
-
-#include <lib/bakery_lock.h>
-#include <lib/mmio.h>
 
 static DEFINE_BAKERY_LOCK(mhu_lock);
 

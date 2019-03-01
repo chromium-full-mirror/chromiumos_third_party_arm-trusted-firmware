@@ -7,7 +7,7 @@
 #ifndef JUNO_DEF_H
 #define JUNO_DEF_H
 
-#include <lib/utils_def.h>
+#include <utils_def.h>
 
 /*******************************************************************************
  * Juno memory map related constants

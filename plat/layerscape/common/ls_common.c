@@ -3,16 +3,13 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
-#include <assert.h>
-
-#include <platform_def.h>
-
 #include <arch.h>
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <lib/mmio.h>
-#include <lib/xlat_tables/xlat_tables_v2.h>
+#include <xlat_tables_v2.h>
+#include <assert.h>
+#include <debug.h>
+#include <mmio.h>
+#include "platform_def.h"
 
 const mmap_region_t *plat_ls_get_mmap(void);
 

@@ -5,7 +5,7 @@
  */
 
 #include <arch_helpers.h>
-#include <common/debug.h>
+#include <debug.h>
 
 /*
  * For SGI575 which support FCM (with automatic interconnect enter/exit),

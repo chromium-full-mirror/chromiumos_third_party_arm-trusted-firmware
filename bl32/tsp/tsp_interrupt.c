@@ -4,15 +4,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-
-#include <platform_def.h>
-
 #include <arch_helpers.h>
-#include <bl32/tsp/tsp.h>
-#include <common/debug.h>
-#include <plat/common/platform.h>
-
+#include <assert.h>
+#include <debug.h>
+#include <platform.h>
+#include <platform_def.h>
+#include <tsp.h>
 #include "tsp_private.h"
 
 /*******************************************************************************

@@ -4,10 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <platform_def.h>
-
 #include <arch_helpers.h>
-
+#include <platform_def.h>
 #include "css_mhu_doorbell.h"
 #include "../scmi/scmi.h"
 

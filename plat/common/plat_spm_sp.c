@@ -5,11 +5,9 @@
  */
 
 #include <assert.h>
-
+#include <debug.h>
 #include <platform_def.h>
-
-#include <common/debug.h>
-#include <tools_share/sptool.h>
+#include <sptool.h>
 
 static unsigned int sp_next;
 

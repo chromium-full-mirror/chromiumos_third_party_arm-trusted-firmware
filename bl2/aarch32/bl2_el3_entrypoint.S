@@ -6,8 +6,9 @@
 
 #include <arch.h>
 #include <asm_macros.S>
-#include <common/bl_common.h>
+#include <bl_common.h>
 #include <el3_common_macros.S>
+
 
 	.globl	bl2_entrypoint
 	.globl	bl2_run_next_image

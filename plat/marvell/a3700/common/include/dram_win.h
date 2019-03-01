@@ -8,8 +8,7 @@
 #ifndef DRAM_WIN_H
 #define DRAM_WIN_H
 
-#include <common/bl_common.h>
-
+#include <bl_common.h>
 #include <io_addr_dec.h>
 
 void dram_win_map_build(struct dram_win_map *win_map);

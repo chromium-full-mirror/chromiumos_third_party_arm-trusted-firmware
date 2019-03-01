@@ -133,6 +133,11 @@ ARM_CRYPTOCELL_INTEG		:=	0
 $(eval $(call assert_boolean,ARM_CRYPTOCELL_INTEG))
 $(eval $(call add_define,ARM_CRYPTOCELL_INTEG))
 
+# Enable PIE support for RESET_TO_BL31 case
+ifeq (${RESET_TO_BL31},1)
+    ENABLE_PIE			:=	1
+endif
+
 # CryptoCell integration relies on coherent buffers for passing data from
 # the AP CPU to the CryptoCell
 ifeq (${ARM_CRYPTOCELL_INTEG},1)
@@ -285,7 +290,12 @@ endif
 
 endif
 
+# RECLAIM_INIT_CODE can only be set when LOAD_IMAGE_V2=2 and xlat tables v2
+# are used
 ifeq (${RECLAIM_INIT_CODE}, 1)
+    ifeq (${LOAD_IMAGE_V2}, 0)
+        $(error "LOAD_IMAGE_V2 must be enabled to use RECLAIM_INIT_CODE")
+    endif
     ifeq (${ARM_XLAT_TABLES_LIB_V1}, 1)
         $(error "To reclaim init code xlat tables v2 must be used")
     endif

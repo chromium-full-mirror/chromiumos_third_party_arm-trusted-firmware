@@ -5,19 +5,18 @@
  * https://spdx.org/licenses
  */
 
-#include <assert.h>
-
 #include <arch.h>
-#include <common/debug.h>
-#ifdef USE_CCI
-#include <drivers/arm/cci.h>
-#endif
-#include <drivers/console.h>
-#include <plat/common/platform.h>
-
+#include <assert.h>
+#include <console.h>
+#include <debug.h>
 #include <marvell_def.h>
 #include <marvell_plat_priv.h>
 #include <plat_marvell.h>
+#include <platform.h>
+
+#ifdef USE_CCI
+#include <cci.h>
+#endif
 
 /*
  * The next 3 constants identify the extents of the code, RO data region and the

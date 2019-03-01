@@ -5,10 +5,9 @@
  */
 
 #include <assert.h>
+#include <debug.h>
+#include <platform.h>
 #include <stdarg.h>
-
-#include <common/debug.h>
-#include <plat/common/platform.h>
 
 static void string_print(char **s, size_t n, size_t *chars_printed,
 			 const char *str)

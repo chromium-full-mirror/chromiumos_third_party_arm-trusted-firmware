@@ -4,12 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-
 #include <arch.h>
-#include <lib/pmf/pmf.h>
-#include <lib/psci/psci.h>
-#include <plat/common/platform.h>
+#include <assert.h>
+#include <platform.h>
+#include <pmf.h>
+#include <psci.h>
 
 #if ENABLE_PSCI_STAT && ENABLE_PMF
 #pragma weak plat_psci_stat_accounting_start

@@ -6,8 +6,7 @@
 
 #ifndef CORTEX_A72_H
 #define CORTEX_A72_H
-
-#include <lib/utils_def.h>
+#include <utils_def.h>
 
 /* Cortex-A72 midr for revision 0 */
 #define CORTEX_A72_MIDR 				0x410FD080

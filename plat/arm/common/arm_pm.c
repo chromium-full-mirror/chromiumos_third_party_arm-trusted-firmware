@@ -4,17 +4,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <arch_helpers.h>
+#include <arm_def.h>
 #include <assert.h>
 #include <errno.h>
-
-#include <platform_def.h>
-
-#include <arch_helpers.h>
-#include <lib/psci/psci.h>
-#include <plat/common/platform.h>
-
-#include <arm_def.h>
 #include <plat_arm.h>
+#include <platform.h>
+#include <platform_def.h>
+#include <psci.h>
 
 /* Allow ARM Standard platforms to override these functions */
 #pragma weak plat_arm_program_trusted_mailbox

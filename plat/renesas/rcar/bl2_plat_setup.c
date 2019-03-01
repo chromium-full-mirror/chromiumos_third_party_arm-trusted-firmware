@@ -4,21 +4,18 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <string.h>
-
-#include <libfdt.h>
-
-#include <platform_def.h>
-
+#include <desc_image_load.h>
 #include <arch_helpers.h>
-#include <bl1/bl1.h>
-#include <common/bl_common.h>
-#include <common/debug.h>
-#include <common/desc_image_load.h>
-#include <drivers/console.h>
-#include <lib/mmio.h>
-#include <lib/xlat_tables/xlat_tables_defs.h>
-#include <plat/common/platform.h>
+#include <bl_common.h>
+#include <bl1.h>
+#include <console.h>
+#include <debug.h>
+#include <libfdt.h>
+#include <mmio.h>
+#include <platform.h>
+#include <platform_def.h>
+#include <string.h>
+#include <xlat_tables_defs.h>
 
 #include "avs_driver.h"
 #include "boot_init_dram.h"
@@ -61,8 +58,6 @@ extern void rcar_rpc_init(void);
 extern void rcar_pfc_init(void);
 extern void rcar_dma_init(void);
 
-static void bl2_init_generic_timer(void);
-
 /* R-Car Gen3 product check */
 #if (RCAR_LSI == RCAR_H3) || (RCAR_LSI == RCAR_H3N)
 #define TARGET_PRODUCT			RCAR_PRODUCT_H3
@@ -76,8 +71,6 @@ static void bl2_init_generic_timer(void);
 #elif RCAR_LSI == RCAR_E3
 #define TARGET_PRODUCT			RCAR_PRODUCT_E3
 #define TARGET_NAME			"R-Car E3"
-#elif RCAR_LSI == RCAR_AUTO
-#define TARGET_NAME			"R-Car H3/M3/M3N"
 #endif
 
 #if (RCAR_LSI == RCAR_E3)
@@ -263,10 +256,8 @@ tlb:
 		   product_cut == (RCAR_PRODUCT_M3N | RCAR_CUT_VER11)) {
 		mmio_write_32(IPMMUVI0_IMSCTLR, IMSCTLR_DISCACHE);
 		mmio_write_32(IPMMUPV0_IMSCTLR, IMSCTLR_DISCACHE);
-	} else if ((product_cut == (RCAR_PRODUCT_E3 | RCAR_CUT_VER10)) ||
-		   (product_cut == (RCAR_PRODUCT_E3 | RCAR_CUT_VER11))) {
+	} else if (product_cut == (RCAR_PRODUCT_E3 | RCAR_CUT_VER10)) {
 		mmio_write_32(IPMMUVI0_IMSCTLR, IMSCTLR_DISCACHE);
-		mmio_write_32(IPMMUVP0_IMSCTLR, IMSCTLR_DISCACHE);
 		mmio_write_32(IPMMUPV0_IMSCTLR, IMSCTLR_DISCACHE);
 	}
 
@@ -394,7 +385,7 @@ int bl2_plat_handle_post_image_load(unsigned int image_id)
 	return 0;
 }
 
-struct meminfo *bl2_plat_sec_mem_layout(void)
+meminfo_t *bl2_plat_sec_mem_layout(void)
 {
 	return &bl2_tzram_layout;
 }
@@ -629,8 +620,6 @@ void bl2_el3_early_platform_setup(u_register_t arg1, u_register_t arg2,
 #if (RCAR_LOSSY_ENABLE == 1)
 	int fcnlnode;
 #endif
-
-	bl2_init_generic_timer();
 
 	reg = mmio_read_32(RCAR_MODEMR);
 	boot_dev = reg & MODEMR_BOOT_DEV_MASK;
@@ -907,7 +896,7 @@ void bl2_el3_plat_arch_setup(void)
 #if RCAR_BL2_DCACHE == 1
 	NOTICE("BL2: D-Cache enable\n");
 	rcar_configure_mmu_el3(BL2_BASE,
-			       BL2_END - BL2_BASE,
+			       RCAR_SYSRAM_LIMIT - BL2_BASE,
 			       BL2_RO_BASE, BL2_RO_LIMIT
 #if USE_COHERENT_MEM
 			       , BL2_COHERENT_RAM_BASE, BL2_COHERENT_RAM_LIMIT
@@ -919,53 +908,4 @@ void bl2_el3_plat_arch_setup(void)
 void bl2_platform_setup(void)
 {
 
-}
-
-static void bl2_init_generic_timer(void)
-{
-#if RCAR_LSI == RCAR_E3
-	uint32_t reg_cntfid = EXTAL_EBISU;
-#else /* RCAR_LSI == RCAR_E3 */
-	uint32_t reg;
-	uint32_t reg_cntfid;
-	uint32_t modemr;
-	uint32_t modemr_pll;
-	uint32_t board_type;
-	uint32_t board_rev;
-	uint32_t pll_table[] = {
-		EXTAL_MD14_MD13_TYPE_0,	/* MD14/MD13 : 0b00 */
-		EXTAL_MD14_MD13_TYPE_1,	/* MD14/MD13 : 0b01 */
-		EXTAL_MD14_MD13_TYPE_2,	/* MD14/MD13 : 0b10 */
-		EXTAL_MD14_MD13_TYPE_3	/* MD14/MD13 : 0b11 */
-	};
-
-	modemr = mmio_read_32(RCAR_MODEMR);
-	modemr_pll = (modemr & MODEMR_BOOT_PLL_MASK);
-
-	/* Set frequency data in CNTFID0 */
-	reg_cntfid = pll_table[modemr_pll >> MODEMR_BOOT_PLL_SHIFT];
-	reg = mmio_read_32(RCAR_PRR) & (RCAR_PRODUCT_MASK | RCAR_CUT_MASK);
-	switch (modemr_pll) {
-	case MD14_MD13_TYPE_0:
-		rcar_get_board_type(&board_type, &board_rev);
-		if (BOARD_SALVATOR_XS == board_type) {
-			reg_cntfid = EXTAL_SALVATOR_XS;
-		}
-		break;
-	case MD14_MD13_TYPE_3:
-		if (RCAR_PRODUCT_H3_CUT10 == reg) {
-			reg_cntfid = reg_cntfid >> 1U;
-		}
-		break;
-	default:
-		/* none */
-		break;
-	}
-#endif /* RCAR_LSI == RCAR_E3 */
-	/* Update memory mapped and register based freqency */
-	write_cntfrq_el0((u_register_t )reg_cntfid);
-	mmio_write_32(ARM_SYS_CNTCTL_BASE + (uintptr_t)CNTFID_OFF, reg_cntfid);
-	/* Enable counter */
-	mmio_setbits_32(RCAR_CNTC_BASE + (uintptr_t)CNTCR_OFF,
-			(uint32_t)CNTCR_EN);
 }

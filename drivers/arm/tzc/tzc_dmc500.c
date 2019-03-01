@@ -5,12 +5,10 @@
  */
 
 #include <assert.h>
-
-#include <common/debug.h>
-#include <drivers/arm/tzc_dmc500.h>
-#include <drivers/arm/tzc_common.h>
-#include <lib/mmio.h>
-
+#include <debug.h>
+#include <mmio.h>
+#include <tzc_dmc500.h>
+#include "tzc_common.h"
 #include "tzc_common_private.h"
 
 /*

@@ -4,13 +4,12 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-
 #include <arch_helpers.h>
-#include <common/bl_common.h>
-#include <common/debug.h>
-#include <lib/el3_runtime/context_mgmt.h>
-#include <lib/psci/psci.h>
+#include <assert.h>
+#include <bl_common.h>
+#include <context_mgmt.h>
+#include <debug.h>
+#include <psci.h>
 #include <tlk.h>
 
 #include "tlkd_private.h"

@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <common/debug.h>
-#include <drivers/arm/cci.h>
-#include <lib/mmio.h>
-
+#include <cci.h>
+#include <debug.h>
+#include <mmio.h>
 #include "plat_ls.h"
 
 static const int cci_map[] = {

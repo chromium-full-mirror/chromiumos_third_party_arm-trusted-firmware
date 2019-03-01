@@ -4,13 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <platform_def.h>
-
-#include <common/bl_common.h>
-#include <common/debug.h>
-
 #include <arm_def.h>
+#include <bl_common.h>
+#include <debug.h>
 #include <plat_arm.h>
+#include <platform_def.h>
 #include <sgm_variant.h>
 
 /*
@@ -41,9 +39,7 @@ const mmap_region_t plat_arm_mmap[] = {
 	CSS_MAP_GIC_DEVICE,
 	SOC_CSS_MAP_DEVICE,
 	ARM_MAP_NS_DRAM1,
-#ifdef SPD_tspd
 	ARM_MAP_TSP_SEC_MEM,
-#endif
 #ifdef SPD_opteed
 	ARM_OPTEE_PAGEABLE_LOAD_MEM,
 #endif

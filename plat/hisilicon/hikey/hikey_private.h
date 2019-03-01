@@ -7,7 +7,7 @@
 #ifndef HIKEY_PRIVATE_H
 #define HIKEY_PRIVATE_H
 
-#include <common/bl_common.h>
+#include <bl_common.h>
 
 #define RANDOM_MAX		0x7fffffffffffffff
 #define RANDOM_MAGIC		0x9a4dbeaf

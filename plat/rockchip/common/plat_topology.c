@@ -4,12 +4,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <platform_def.h>
-
 #include <arch.h>
-#include <lib/psci/psci.h>
-
 #include <plat_private.h>
+#include <platform_def.h>
+#include <psci.h>
 
 /*******************************************************************************
  * This function returns the RockChip default topology tree information.

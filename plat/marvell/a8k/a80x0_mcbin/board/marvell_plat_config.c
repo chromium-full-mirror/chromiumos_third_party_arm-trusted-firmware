@@ -5,10 +5,9 @@
  * https://spdx.org/licenses
  */
 
-#include <drivers/delay_timer.h>
-#include <lib/mmio.h>
-
 #include <armada_common.h>
+#include <delay_timer.h>
+#include <mmio.h>
 
 /*
  * If bootrom is currently at BLE there's no need to include the memory

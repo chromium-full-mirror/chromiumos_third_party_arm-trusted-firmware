@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <debug.h>
 #include <platform_def.h>
-
-#include <common/debug.h>
-#include <lib/xlat_tables/xlat_tables_v2.h>
+#include <xlat_tables_v2.h>
 
 #define UNIPHIER_REG_REGION_BASE	0x50000000ULL
 #define UNIPHIER_REG_REGION_SIZE	0x20000000ULL

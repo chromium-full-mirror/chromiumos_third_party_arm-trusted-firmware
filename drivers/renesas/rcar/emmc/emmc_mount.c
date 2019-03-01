@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <common/debug.h>
-#include <lib/mmio.h>
-
+#include <debug.h>
+#include <mmio.h>
 #include "emmc_config.h"
 #include "emmc_hal.h"
 #include "emmc_std.h"

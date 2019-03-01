@@ -5,8 +5,7 @@
  */
 
 #include <assert.h>
-
-#include <lib/utils.h>
+#include <utils.h>
 
 /*
  * All the regions defined in mem_region_t must have the following properties

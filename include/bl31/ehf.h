@@ -11,8 +11,7 @@
 
 #include <cdefs.h>
 #include <stdint.h>
-
-#include <lib/utils_def.h>
+#include <utils_def.h>
 
 /* Valid priorities set bit 0 of the priority handler. */
 #define EHF_PRI_VALID_	BIT(0)

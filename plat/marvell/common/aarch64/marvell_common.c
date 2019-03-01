@@ -5,17 +5,15 @@
  * https://spdx.org/licenses
  */
 
-#include <assert.h>
-
-#include <platform_def.h>
-
 #include <arch.h>
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <lib/mmio.h>
-#include <lib/xlat_tables/xlat_tables.h>
-
+#include <assert.h>
+#include <debug.h>
+#include <mmio.h>
 #include <plat_marvell.h>
+#include <platform_def.h>
+#include <xlat_tables.h>
+
 
 /* Weak definitions may be overridden in specific ARM standard platform */
 #pragma weak plat_get_ns_image_entrypoint

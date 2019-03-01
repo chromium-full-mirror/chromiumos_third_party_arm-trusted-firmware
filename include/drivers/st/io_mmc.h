@@ -7,7 +7,7 @@
 #ifndef IO_MMC_H
 #define IO_MMC_H
 
-#include <drivers/io/io_driver.h>
+#include <io_driver.h>
 
 int register_io_dev_mmc(const io_dev_connector_t **dev_con);
 

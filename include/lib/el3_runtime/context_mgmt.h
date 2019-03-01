@@ -7,11 +7,10 @@
 #ifndef CONTEXT_MGMT_H
 #define CONTEXT_MGMT_H
 
+#include <arch.h>
 #include <assert.h>
 #include <context.h>
 #include <stdint.h>
-
-#include <arch.h>
 
 /*******************************************************************************
  * Forward declarations

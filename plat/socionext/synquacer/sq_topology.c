@@ -4,11 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <platform_def.h>
-
 #include <arch.h>
-
 #include <sq_common.h>
+#include <platform_def.h>
 
 unsigned char sq_pd_tree_desc[PLAT_CLUSTER_COUNT + 1];
 

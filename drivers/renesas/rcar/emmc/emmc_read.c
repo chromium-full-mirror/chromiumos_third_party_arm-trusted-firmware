@@ -3,9 +3,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 #include <arch_helpers.h>
-
 #include "emmc_config.h"
 #include "emmc_hal.h"
 #include "emmc_std.h"

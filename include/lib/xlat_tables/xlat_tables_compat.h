@@ -5,7 +5,7 @@
  */
 
 #if XLAT_TABLES_LIB_V2
-#include <lib/xlat_tables/xlat_tables_v2.h>
+#include <xlat_tables_v2.h>
 #else
-#include <lib/xlat_tables/xlat_tables.h>
+#include <xlat_tables.h>
 #endif

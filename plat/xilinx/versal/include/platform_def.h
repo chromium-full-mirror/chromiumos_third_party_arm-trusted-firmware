@@ -8,7 +8,6 @@
 #define PLATFORM_DEF_H
 
 #include <arch.h>
-
 #include "../versal_def.h"
 
 /*******************************************************************************

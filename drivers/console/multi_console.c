@@ -7,7 +7,6 @@
 #if MULTI_CONSOLE_API
 
 #include <assert.h>
-
 #include <drivers/console.h>
 
 console_t *console_list;

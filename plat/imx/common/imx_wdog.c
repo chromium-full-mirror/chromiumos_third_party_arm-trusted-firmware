@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <lib/mmio.h>
-
+#include <mmio.h>
 #include <imx_regs.h>
 #include <imx_wdog.h>
 

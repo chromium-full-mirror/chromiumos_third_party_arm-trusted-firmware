@@ -10,7 +10,7 @@
  */
 
 #include <asm_macros.S>
-#include <drivers/console.h>
+#include <console.h>
 
 	.globl	plat_crash_console_init
 	.globl	plat_crash_console_putc

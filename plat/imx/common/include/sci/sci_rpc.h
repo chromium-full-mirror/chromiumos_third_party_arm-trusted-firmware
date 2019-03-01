@@ -13,10 +13,9 @@
 
 /* Includes */
 
-#include <stdbool.h>
-
 #include <sci/sci_types.h>
 #include <sci/sci_ipc.h>
+#include <stdbool.h>
 
 /* Defines */
 

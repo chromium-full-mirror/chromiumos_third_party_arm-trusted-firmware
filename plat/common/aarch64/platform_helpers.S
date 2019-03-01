@@ -6,7 +6,7 @@
 
 #include <arch.h>
 #include <asm_macros.S>
-#include <drivers/console.h>
+#include <console.h>
 #include <platform_def.h>
 
 	.weak	plat_report_exception

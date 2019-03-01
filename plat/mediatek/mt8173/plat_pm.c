@@ -4,24 +4,22 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <errno.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <drivers/arm/cci.h>
-#include <drivers/arm/gicv2.h>
-#include <drivers/console.h>
-#include <lib/bakery_lock.h>
-#include <lib/mmio.h>
-#include <lib/psci/psci.h>
-
+#include <assert.h>
+#include <bakery_lock.h>
+#include <cci.h>
+#include <console.h>
+#include <debug.h>
+#include <errno.h>
+#include <gicv2.h>
 #include <mcucfg.h>
+#include <mmio.h>
 #include <mt8173_def.h>
 #include <mt_cpuxgpt.h> /* generic_timer_backup() */
 #include <plat_arm.h>
 #include <plat_private.h>
 #include <power_tracer.h>
+#include <psci.h>
 #include <rtc.h>
 #include <scu.h>
 #include <spm_hotplug.h>

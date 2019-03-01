@@ -4,21 +4,18 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <assert.h>
-
+#include <console.h>
+#include <debug.h>
+#include <plat_marvell.h>
 #include <platform_def.h>
 
-#include <common/debug.h>
-#include <drivers/console.h>
-
-#include <plat_marvell.h>
-
 #ifdef PLAT_a3700
-#include <drivers/marvell/uart/a3700_console.h>
+#include <a3700_console.h>
 
 static console_a3700_t marvell_boot_console;
 static console_a3700_t marvell_runtime_console;
 #else
-#include <drivers/ti/uart/uart_16550.h>
+#include <uart_16550.h>
 
 static console_16550_t marvell_boot_console;
 static console_16550_t marvell_runtime_console;

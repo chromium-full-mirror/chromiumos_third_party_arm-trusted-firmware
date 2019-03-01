@@ -10,8 +10,7 @@
 #ifndef CP110_SETUP_H
 #define CP110_SETUP_H
 
-#include <lib/mmio.h>
-
+#include <mmio.h>
 #include <mvebu_def.h>
 
 #define MVEBU_DEVICE_ID_REG		(MVEBU_CP_DFX_OFFSET + 0x40)

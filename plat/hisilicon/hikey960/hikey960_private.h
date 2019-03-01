@@ -7,7 +7,7 @@
 #ifndef HIKEY960_PRIVATE_H
 #define HIKEY960_PRIVATE_H
 
-#include <common/bl_common.h>
+#include <bl_common.h>
 
 /*
  * Function and variable prototypes

@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <debug.h>
+#include <runtime_svc.h>
 #include <stdio.h>
-
-#include <common/debug.h>
-#include <common/runtime_svc.h>
 
 #include "generic-arm64-smcall.h"
 

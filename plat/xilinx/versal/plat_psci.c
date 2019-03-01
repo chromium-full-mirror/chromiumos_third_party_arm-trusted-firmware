@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <common/debug.h>
-#include <lib/mmio.h>
-#include <lib/psci/psci.h>
-#include <plat/common/platform.h>
-
+#include <debug.h>
+#include <mmio.h>
+#include <platform.h>
+#include <psci.h>
 #include "versal_private.h"
 
 static uintptr_t versal_sec_entry;

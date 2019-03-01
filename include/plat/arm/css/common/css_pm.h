@@ -8,9 +8,8 @@
 #define CSS_PM_H
 
 #include <cdefs.h>
+#include <psci.h>
 #include <stdint.h>
-
-#include <lib/psci/psci.h>
 
 /* Macros to read the CSS power domain state */
 #define CSS_CORE_PWR_STATE(state)	(state)->pwr_domain_state[ARM_PWR_LVL0]

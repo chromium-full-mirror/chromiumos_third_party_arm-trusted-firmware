@@ -5,16 +5,14 @@
  * https://spdx.org/licenses
  */
 
-#include <platform_def.h>
-
-#include <bl31/interrupt_mgmt.h>
-#include <common/debug.h>
-#include <drivers/arm/gicv2.h>
-#include <lib/bakery_lock.h>
-#include <lib/mmio.h>
-#include <plat/common/platform.h>
-
+#include <bakery_lock.h>
+#include <debug.h>
+#include <gicv2.h>
+#include <interrupt_mgmt.h>
+#include <mmio.h>
 #include <plat_marvell.h>
+#include <platform.h>
+#include <platform_def.h>
 
 /*
  * The following functions are defined as weak to allow a platform to override

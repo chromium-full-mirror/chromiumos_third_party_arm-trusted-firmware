@@ -8,8 +8,7 @@
 #define SPM_RES_DESC_H
 
 #include <stdint.h>
-
-#include <services/sp_res_desc_def.h>
+#include <sp_res_desc_def.h>
 
 /*******************************************************************************
  * Attribute Section

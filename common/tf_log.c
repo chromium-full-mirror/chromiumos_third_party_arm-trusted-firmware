@@ -4,12 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stdarg.h>
 #include <assert.h>
-#include <stdio.h>
-
-#include <common/debug.h>
-#include <plat/common/platform.h>
+#include <debug.h>
+#include <platform.h>
 
 /* Set the default maximum log level to the `LOG_LEVEL` build flag */
 static unsigned int max_log_level = LOG_LEVEL;

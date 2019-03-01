@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <plat/common/platform.h>
+#include <platform.h>
 
 extern char qemu_rotpk_hash[], qemu_rotpk_hash_end[];
 

@@ -5,11 +5,10 @@
  */
 
 #include <assert.h>
+#include <mmio.h>
 #include <stdbool.h>
 #include <stddef.h>
-
-#include <lib/mmio.h>
-#include <lib/utils_def.h>
+#include <utils_def.h>
 
 #include "uniphier.h"
 

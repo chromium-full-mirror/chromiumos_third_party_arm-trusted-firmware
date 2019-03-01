@@ -4,15 +4,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <stdbool.h>
-
+#include <amu.h>
+#include <amu_private.h>
 #include <arch.h>
 #include <arch_helpers.h>
-#include <lib/el3_runtime/pubsub_events.h>
-#include <lib/extensions/amu.h>
-#include <lib/extensions/amu_private.h>
-#include <plat/common/platform.h>
+#include <assert.h>
+#include <platform.h>
+#include <pubsub_events.h>
+#include <stdbool.h>
 
 #define AMU_GROUP0_NR_COUNTERS	4
 

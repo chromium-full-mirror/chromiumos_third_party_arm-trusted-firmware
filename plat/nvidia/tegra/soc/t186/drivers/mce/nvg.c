@@ -4,15 +4,13 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <errno.h>
-
 #include <arch.h>
 #include <arch_helpers.h>
-#include <common/debug.h>
+#include <debug.h>
 #include <denver.h>
-#include <lib/mmio.h>
-
+#include <errno.h>
 #include <mce_private.h>
+#include <mmio.h>
 #include <t18x_ari.h>
 
 int32_t nvg_enter_cstate(uint32_t ari_base, uint32_t state, uint32_t wake_time)

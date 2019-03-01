@@ -5,11 +5,10 @@
  */
 
 #include <assert.h>
+#include <debug.h>
+#include <mmio.h>
 #include <stddef.h>
-
-#include <common/debug.h>
-#include <drivers/arm/tzc380.h>
-#include <lib/mmio.h>
+#include <tzc380.h>
 
 struct tzc380_instance {
 	uintptr_t base;

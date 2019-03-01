@@ -7,9 +7,8 @@
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
-
-#include <plat/common/platform.h>
-#include <tools_share/tbbr_oid.h>
+#include <platform.h>
+#include <tbbr_oid.h>
 
 #include "fvp_def.h"
 

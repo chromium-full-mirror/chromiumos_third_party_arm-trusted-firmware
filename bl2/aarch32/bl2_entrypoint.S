@@ -6,7 +6,8 @@
 
 #include <arch.h>
 #include <asm_macros.S>
-#include <common/bl_common.h>
+#include <bl_common.h>
+
 
 	.globl	bl2_vector_table
 	.globl	bl2_entrypoint

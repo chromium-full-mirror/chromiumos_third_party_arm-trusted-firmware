@@ -4,16 +4,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-
-#include <platform_def.h>
-
 #include <arch_helpers.h>
-#include <common/bl_common.h>
-#include <common/debug.h>
-#include <lib/mmio.h>
-#include <lib/xlat_tables/xlat_tables.h>
-#include <plat/common/platform.h>
+#include <assert.h>
+#include <bl_common.h>
+#include <debug.h>
+#include <mmio.h>
+#include <platform.h>
+#include <platform_def.h>
+#include <xlat_tables.h>
 
 #include "../hikey960_def.h"
 #include "../hikey960_private.h"

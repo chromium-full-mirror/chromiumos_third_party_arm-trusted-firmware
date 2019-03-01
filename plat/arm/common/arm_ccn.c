@@ -4,12 +4,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <platform_def.h>
-
 #include <arch.h>
-#include <drivers/arm/ccn.h>
-
+#include <ccn.h>
 #include <plat_arm.h>
+#include <platform_def.h>
 
 static const unsigned char master_to_rn_id_map[] = {
 	PLAT_ARM_CLUSTER_TO_CCN_ID_MAP

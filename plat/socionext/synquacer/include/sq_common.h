@@ -8,8 +8,7 @@
 #define SQ_COMMON_H
 
 #include <stdint.h>
-
-#include <lib/xlat_tables/xlat_tables_v2.h>
+#include <xlat_tables_v2.h>
 
 struct draminfo {
 	uint32_t	num_regions;

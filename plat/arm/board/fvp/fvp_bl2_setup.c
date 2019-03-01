@@ -4,12 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <drivers/arm/sp804_delay_timer.h>
-#include <drivers/generic_delay_timer.h>
-#include <lib/mmio.h>
-#include <plat/common/platform.h>
-
+#include <generic_delay_timer.h>
+#include <mmio.h>
 #include <plat_arm.h>
+#include <platform.h>
+#include <sp804_delay_timer.h>
 #include <v2m_def.h>
 #include "fvp_def.h"
 #include "fvp_private.h"

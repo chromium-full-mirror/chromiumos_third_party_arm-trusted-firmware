@@ -5,14 +5,12 @@
  */
 
 #include <assert.h>
-
+#include <bl_common.h>
+#include <gicv2.h>
+#include <interrupt_props.h>
+#include <platform.h>
 #include <platform_def.h>
-
-#include <common/bl_common.h>
-#include <common/interrupt_props.h>
-#include <drivers/arm/gicv2.h>
-#include <lib/xlat_tables/xlat_mmu_helpers.h>
-#include <plat/common/platform.h>
+#include <xlat_mmu_helpers.h>
 
 #include "gxbb_private.h"
 

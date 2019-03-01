@@ -4,21 +4,19 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <assert.h>
-#include <stdbool.h>
-#include <string.h>
-
-#include <platform_def.h>
-
+#include <amu.h>
 #include <arch.h>
 #include <arch_helpers.h>
-#include <common/bl_common.h>
+#include <assert.h>
+#include <bl_common.h>
 #include <context.h>
-#include <lib/el3_runtime/context_mgmt.h>
-#include <lib/extensions/amu.h>
-#include <lib/utils.h>
-#include <plat/common/platform.h>
+#include <context_mgmt.h>
+#include <platform.h>
+#include <platform_def.h>
 #include <smccc_helpers.h>
+#include <stdbool.h>
+#include <string.h>
+#include <utils.h>
 
 /*******************************************************************************
  * Context management library initialisation routine. This library is used by

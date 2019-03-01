@@ -4,13 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <platform_def.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <lib/mmio.h>
-
+#include <debug.h>
+#include <mmio.h>
 #include <plat_private.h>
+#include <platform_def.h>
 #include <rk3368_def.h>
 #include <soc.h>
 

@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <common/debug.h>
-#include <lib/mmio.h>
-#include <lib/utils_def.h>
-
+#include <mmio.h>
+#include <debug.h>
+#include <utils_def.h>
 #include "cpg_registers.h"
 #include "avs_driver.h"
 #include "rcar_def.h"

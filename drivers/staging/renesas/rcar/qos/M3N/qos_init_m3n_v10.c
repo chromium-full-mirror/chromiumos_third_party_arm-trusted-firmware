@@ -5,14 +5,12 @@
  */
 
 #include <stdint.h>
-
-#include <common/debug.h>
-
+#include <debug.h>
 #include "../qos_common.h"
 #include "../qos_reg.h"
 #include "qos_init_m3n_v10.h"
 
-#define	RCAR_QOS_VERSION		"rev.0.08"
+#define	RCAR_QOS_VERSION		"rev.0.06"
 
 #define QOSCTRL_EARLYR			(QOS_BASE1 + 0x0060U)
 #define QOSCTRL_FSS			(QOS_BASE1 + 0x0048U)
@@ -197,6 +195,14 @@ void qos_init_m3n_v10(void)
 		}
 #endif /* RCAR_REWT_TRAINING != RCAR_REWT_TRAINING_DISABLE */
 	}
+
+	/* 3DG bus Leaf setting */
+	io_write_32(GPU_ACT_GRD, 0x00001234U);
+	io_write_32(GPU_ACT0, 0x00000000U);
+	io_write_32(GPU_ACT1, 0x00000000U);
+	io_write_32(GPU_ACT2, 0x00000000U);
+	io_write_32(GPU_ACT3, 0x00000000U);
+	io_write_32(GPU_ACT_GRD, 0x00000000U);
 
 	/* RT bus Leaf setting */
 	io_write_32(RT_ACT0, 0x00000000U);

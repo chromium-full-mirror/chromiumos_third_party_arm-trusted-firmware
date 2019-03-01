@@ -6,15 +6,14 @@
 
 /* Runtime firmware routines to report errata status for the current CPU. */
 
-#include <assert.h>
-#include <stdbool.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <lib/cpus/errata_report.h>
-#include <lib/el3_runtime/cpu_data.h>
-#include <lib/spinlock.h>
-#include <lib/utils.h>
+#include <assert.h>
+#include <cpu_data.h>
+#include <debug.h>
+#include <errata_report.h>
+#include <spinlock.h>
+#include <stdbool.h>
+#include <utils.h>
 
 #ifdef IMAGE_BL1
 # define BL_STRING	"BL1"

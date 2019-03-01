@@ -4,13 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <libfdt.h>
-
 #include <arch_helpers.h>
-#include <common/debug.h>
-#include <common/desc_image_load.h>
-#include <plat/common/platform.h>
-
+#include <debug.h>
+#include <desc_image_load.h>
+#include <libfdt.h>
+#include <platform.h>
 #include <sgi_variant.h>
 
 /*******************************************************************************

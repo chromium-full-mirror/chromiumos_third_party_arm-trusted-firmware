@@ -5,8 +5,7 @@
  */
 
 #include <arch.h>
-#include <common/debug.h>
-
+#include <debug.h>
 #include <power_tracer.h>
 
 #define trace_log(...)  INFO("psci: " __VA_ARGS__)

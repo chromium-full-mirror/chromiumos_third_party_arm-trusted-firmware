@@ -9,7 +9,7 @@
 
 #if SPM_DEPRECATED
 
-#include <lib/utils_def.h>
+#include <utils_def.h>
 
 #define SPM_VERSION_MAJOR	U(0)
 #define SPM_VERSION_MAJOR_SHIFT	16

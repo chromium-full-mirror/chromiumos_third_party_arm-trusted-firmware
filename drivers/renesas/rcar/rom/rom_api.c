@@ -4,10 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <mmio.h>
 #include <stdint.h>
-
-#include <lib/mmio.h>
-
 #include "rcar_def.h"
 #include "rom_api.h"
 

@@ -8,9 +8,8 @@
 #ifndef ARMADA_COMMON_H
 #define ARMADA_COMMON_H
 
-#include <stdint.h>
-
 #include <io_addr_dec.h>
+#include <stdint.h>
 
 int marvell_get_io_dec_win_conf(struct dec_win_config **win, uint32_t *size);
 
