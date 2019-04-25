@@ -11,6 +11,7 @@
 #include <platform_def.h>
 #include <plat_mt_cirq.h>
 #include <spm.h>
+#include <uart8250.h>
 
 #define SPM_SYSCLK_SETTLE       99
 
@@ -56,9 +57,9 @@ static const struct pwr_ctrl suspend_ctrl = {
 	.mp1_cputop_idle_mask = 0,
 	.mcusys_idle_mask = 0,
 	.mm_mask_b = 0,
-	.md_ddr_en_0_dbc_en = 0x1,
+	.md_ddr_en_0_dbc_en = 0,
 	.md_ddr_en_1_dbc_en = 0,
-	.md_mask_b = 0x1,
+	.md_mask_b = 0,
 	.sspm_mask_b = 0x1,
 	.scp_mask_b = 0x1,
 	.srcclkeni_mask_b = 0x1,
@@ -80,21 +81,21 @@ static const struct pwr_ctrl suspend_ctrl = {
 
 	/* SPM_SRC_MASK */
 	.csyspwreq_mask = 0x1,
-	.ccif0_md_event_mask_b = 0x1,
+	.ccif0_md_event_mask_b = 0,
 	.ccif0_ap_event_mask_b = 0x1,
-	.ccif1_md_event_mask_b = 0x1,
+	.ccif1_md_event_mask_b = 0,
 	.ccif1_ap_event_mask_b = 0x1,
-	.ccif2_md_event_mask_b = 0x1,
+	.ccif2_md_event_mask_b = 0,
 	.ccif2_ap_event_mask_b = 0x1,
-	.ccif3_md_event_mask_b = 0x1,
+	.ccif3_md_event_mask_b = 0,
 	.ccif3_ap_event_mask_b = 0x1,
-	.md_srcclkena_0_infra_mask_b = 0x1,
+	.md_srcclkena_0_infra_mask_b = 0,
 	.md_srcclkena_1_infra_mask_b = 0,
 	.conn_srcclkena_infra_mask_b = 0,
 	.ufs_infra_req_mask_b = 0,
 	.srcclkeni_infra_mask_b = 0,
-	.md_apsrc_req_0_infra_mask_b = 0x1,
-	.md_apsrc_req_1_infra_mask_b = 0x1,
+	.md_apsrc_req_0_infra_mask_b = 0,
+	.md_apsrc_req_1_infra_mask_b = 0,
 	.conn_apsrcreq_infra_mask_b = 0x1,
 	.ufs_srcclkena_mask_b = 0,
 	.md_vrf18_req_0_mask_b = 0,
@@ -109,7 +110,7 @@ static const struct pwr_ctrl suspend_ctrl = {
 	.vdec_req_mask_b = 0,
 
 	/* SPM_SRC2_MASK */
-	.md_ddr_en_0_mask_b = 0x1,
+	.md_ddr_en_0_mask_b = 0,
 	.md_ddr_en_1_mask_b = 0,
 	.conn_ddr_en_mask_b = 0x1,
 	.ddren_sspm_apsrc_req_mask_b = 0x1,
@@ -127,7 +128,7 @@ static const struct pwr_ctrl suspend_ctrl = {
 	.spm_wakeup_event_ext_mask = 0xFFFFFFFF,
 
 	/* SPM_SRC3_MASK */
-	.md_ddr_en_2_0_mask_b = 0x1,
+	.md_ddr_en_2_0_mask_b = 0,
 	.md_ddr_en_2_1_mask_b = 0,
 	.conn_ddr_en_2_mask_b = 0x1,
 	.ddren2_sspm_apsrc_req_mask_b = 0x1,
@@ -171,18 +172,33 @@ void go_to_sleep_before_wfi(void)
 	spm_set_pcm_flags(&suspend_ctrl);
 	spm_send_cpu_wakeup_event();
 	spm_set_pcm_wdt(1);
+	spm_disable_pcm_timer();
 
-	INFO("cpu%d: \"%s\", wakesrc = 0x%x\n",
-	     cpu, spm_get_firmware_version(), suspend_ctrl.wake_src);
+	INFO("cpu%d: \"%s\", wakesrc = 0x%x, pcm_con1 = 0x%x\n",
+	     cpu, spm_get_firmware_version(), suspend_ctrl.wake_src,
+	     mmio_read_32(PCM_CON1));
 	INFO("settle = %u, sec = %u, sw_flag = 0x%x 0x%x, src_req = 0x%x\n",
 	     settle, mmio_read_32(PCM_TIMER_VAL) / 32768,
 	     suspend_ctrl.pcm_flags, suspend_ctrl.pcm_flags1,
 	     mmio_read_32(SPM_SRC_REQ));
 }
+extern console_t *console_list;
+static void enable_uart(void)
+{
+#ifdef MULTI_CONSOLE_API
+	static console_8250_t console;
+	console_list = NULL;
+	console_8250_register(UART0_BASE, UART_CLOCK, UART_BAUDRATE, &console);
+#else
+	console_init(UART0_BASE, UART_CLOCK, UART_BAUDRATE);
+#endif
+}
 
 static void go_to_sleep_after_wfi(void)
 {
 	struct wake_status spm_wakesta;
+
+	enable_uart();
 
 	mt_cirq_flush();
 	mt_cirq_disable();
@@ -197,7 +213,6 @@ static void go_to_sleep_after_wfi(void)
 void spm_system_suspend(void)
 {
 	spm_lock_get();
-
 	go_to_sleep_before_wfi();
 	spm_lock_release();
 }
