@@ -39,15 +39,17 @@ BL31_SOURCES    += drivers/arm/cci/cci.c                          \
                    lib/cpus/aarch64/cortex_a73.S                  \
                    ${MTK_PLAT}/common/mtk_plat_common.c           \
                    ${MTK_PLAT}/common/drivers/uart/8250_console.S \
+                   ${MTK_PLAT}/common/drivers/rtc/rtc_common.c    \
                    ${MTK_PLAT}/common/params_setup.c              \
                    ${MTK_PLAT_SOC}/aarch64/plat_helpers.S         \
                    ${MTK_PLAT_SOC}/aarch64/platform_common.c      \
                    ${MTK_PLAT_SOC}/drivers/mcsi/mcsi.c            \
                    ${MTK_PLAT_SOC}/drivers/pmic/pmic_wrap_init.c  \
                    ${MTK_PLAT_SOC}/drivers/pmic/pmic.c            \
-                   ${MTK_PLAT_SOC}/drivers/rtc/rtc.c            \
+                   ${MTK_PLAT_SOC}/drivers/rtc/rtc.c              \
                    ${MTK_PLAT_SOC}/drivers/spmc/mtspmc.c          \
                    ${MTK_PLAT_SOC}/drivers/spm/spm.c              \
+                   ${MTK_PLAT_SOC}/drivers/spm/spm_pmic_wrap.c    \
                    ${MTK_PLAT_SOC}/drivers/spm/spm_suspend.c      \
                    ${MTK_PLAT_SOC}/drivers/gpio/mtgpio.c          \
                    ${MTK_PLAT_SOC}/plat_pm.c                      \

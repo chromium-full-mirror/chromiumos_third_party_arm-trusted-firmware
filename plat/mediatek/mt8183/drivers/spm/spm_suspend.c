@@ -6,10 +6,12 @@
 
 #include <arch_helpers.h>
 #include <debug.h>
+#include <delay_timer.h>
 #include <mt_gic_v3.h>
 #include <mmio.h>
 #include <platform_def.h>
 #include <plat_mt_cirq.h>
+#include <pmic.h>
 #include <spm.h>
 #include <uart8250.h>
 
@@ -57,9 +59,9 @@ static const struct pwr_ctrl suspend_ctrl = {
 	.mp1_cputop_idle_mask = 0,
 	.mcusys_idle_mask = 0,
 	.mm_mask_b = 0,
-	.md_ddr_en_0_dbc_en = 0,
+	.md_ddr_en_0_dbc_en = 0x1,
 	.md_ddr_en_1_dbc_en = 0,
-	.md_mask_b = 0,
+	.md_mask_b = 0x1,
 	.sspm_mask_b = 0x1,
 	.scp_mask_b = 0x1,
 	.srcclkeni_mask_b = 0x1,
@@ -81,21 +83,21 @@ static const struct pwr_ctrl suspend_ctrl = {
 
 	/* SPM_SRC_MASK */
 	.csyspwreq_mask = 0x1,
-	.ccif0_md_event_mask_b = 0,
+	.ccif0_md_event_mask_b = 0x1,
 	.ccif0_ap_event_mask_b = 0x1,
-	.ccif1_md_event_mask_b = 0,
+	.ccif1_md_event_mask_b = 0x1,
 	.ccif1_ap_event_mask_b = 0x1,
-	.ccif2_md_event_mask_b = 0,
+	.ccif2_md_event_mask_b = 0x1,
 	.ccif2_ap_event_mask_b = 0x1,
-	.ccif3_md_event_mask_b = 0,
+	.ccif3_md_event_mask_b = 0x1,
 	.ccif3_ap_event_mask_b = 0x1,
-	.md_srcclkena_0_infra_mask_b = 0,
+	.md_srcclkena_0_infra_mask_b = 0x1,
 	.md_srcclkena_1_infra_mask_b = 0,
 	.conn_srcclkena_infra_mask_b = 0,
 	.ufs_infra_req_mask_b = 0,
 	.srcclkeni_infra_mask_b = 0,
-	.md_apsrc_req_0_infra_mask_b = 0,
-	.md_apsrc_req_1_infra_mask_b = 0,
+	.md_apsrc_req_0_infra_mask_b = 0x1,
+	.md_apsrc_req_1_infra_mask_b = 0x1,
 	.conn_apsrcreq_infra_mask_b = 0x1,
 	.ufs_srcclkena_mask_b = 0,
 	.md_vrf18_req_0_mask_b = 0,
@@ -110,7 +112,7 @@ static const struct pwr_ctrl suspend_ctrl = {
 	.vdec_req_mask_b = 0,
 
 	/* SPM_SRC2_MASK */
-	.md_ddr_en_0_mask_b = 0,
+	.md_ddr_en_0_mask_b = 0x1,
 	.md_ddr_en_1_mask_b = 0,
 	.conn_ddr_en_mask_b = 0x1,
 	.ddren_sspm_apsrc_req_mask_b = 0x1,
@@ -128,7 +130,7 @@ static const struct pwr_ctrl suspend_ctrl = {
 	.spm_wakeup_event_ext_mask = 0xFFFFFFFF,
 
 	/* SPM_SRC3_MASK */
-	.md_ddr_en_2_0_mask_b = 0,
+	.md_ddr_en_2_0_mask_b = 0x1,
 	.md_ddr_en_2_1_mask_b = 0,
 	.conn_ddr_en_2_mask_b = 0x1,
 	.ddren2_sspm_apsrc_req_mask_b = 0x1,
@@ -171,7 +173,7 @@ void go_to_sleep_before_wfi(void)
 	spm_set_wakeup_event(&suspend_ctrl);
 	spm_set_pcm_flags(&suspend_ctrl);
 	spm_send_cpu_wakeup_event();
-	spm_set_pcm_wdt(1);
+	spm_set_pcm_wdt(0);
 	spm_disable_pcm_timer();
 
 	INFO("cpu%d: \"%s\", wakesrc = 0x%x, pcm_con1 = 0x%x\n",
@@ -210,8 +212,48 @@ static void go_to_sleep_after_wfi(void)
 	spm_output_wake_reason(&spm_wakesta, "suspend");
 }
 
+static void spm_enable_armpll_l(void)
+{
+	uint32_t temp;
+
+	/* power on */
+	temp = mmio_read_32(ARMPLL_L_PWR_CON0);
+	mmio_write_32(ARMPLL_L_PWR_CON0, temp | 0x1);
+
+	/* clear isolation */
+	temp = mmio_read_32(ARMPLL_L_PWR_CON0);
+	mmio_write_32(ARMPLL_L_PWR_CON0, temp & ~0x2);
+
+	/* enable pll */
+	temp = mmio_read_32(ARMPLL_L_CON0);
+	mmio_write_32(ARMPLL_L_CON0, temp | 0x1);
+
+	/* Add 20us delay for turning on PLL */
+	udelay(20);
+}
+
+static void spm_disable_armpll_l(void)
+{
+	uint32_t temp;
+
+	/* disable pll */
+	temp = mmio_read_32(ARMPLL_L_CON0);
+	mmio_write_32(ARMPLL_L_CON0, temp & ~0x1);
+
+	/* isolation */
+	temp = mmio_read_32(ARMPLL_L_PWR_CON0);
+	mmio_write_32(ARMPLL_L_PWR_CON0, temp | 0x2);
+
+	/* power off */
+	temp = mmio_read_32(ARMPLL_L_PWR_CON0);
+	mmio_write_32(ARMPLL_L_PWR_CON0, temp & ~0x1);
+}
+
 void spm_system_suspend(void)
 {
+	spm_disable_armpll_l();
+	bcpu_enable(0);
+	bcpu_sram_enable(0);
 	spm_lock_get();
 	go_to_sleep_before_wfi();
 	spm_lock_release();
@@ -222,4 +264,7 @@ void spm_system_suspend_finish(void)
 	spm_lock_get();
 	go_to_sleep_after_wfi();
 	spm_lock_release();
+	spm_enable_armpll_l();
+	bcpu_sram_enable(1);
+	bcpu_enable(1);
 }
