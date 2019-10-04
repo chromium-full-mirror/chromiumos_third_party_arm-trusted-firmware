@@ -14,7 +14,6 @@
 #define GIC500_ACTIVE_SEL_MASK (0x7 << GIC500_ACTIVE_SEL_SHIFT)
 #define GIC500_ACTIVE_CPU_SHIFT 16
 #define GIC500_ACTIVE_CPU_MASK (0xff << GIC500_ACTIVE_CPU_SHIFT)
-#define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
 #define NR_INT_POL_CTL 20
 

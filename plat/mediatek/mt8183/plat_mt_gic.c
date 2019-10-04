@@ -20,7 +20,6 @@
 
 uintptr_t rdistif_base_addrs[PLATFORM_CORE_COUNT];
 static uint32_t rdist_has_saved[PLATFORM_CORE_COUNT];
-const gicv3_driver_data_t *gicv3_driver_data;
 
 /* we save and restore the GICv3 context on system suspend */
 gicv3_dist_ctx_t dist_ctx;
@@ -128,34 +127,27 @@ void mt_gic_rdistif_save(void)
 void mt_gic_rdistif_restore(void)
 {
 	unsigned int proc_num;
-	unsigned int gicr_base;
+	uintptr_t gicr_base;
 
 	proc_num = plat_my_core_pos();
-	if (rdist_has_saved[proc_num] == 0)
-		return;
-
-	gicr_base = gicv3_driver_data->rdistif_base_addrs[proc_num];
-	mmio_write_32(gicr_base + GICR_IGROUPR0, gic_data.saved_group);
-	mmio_write_32(gicr_base + GICR_ISENABLER0, gic_data.saved_enable);
-	mmio_write_32(gicr_base + GICR_ICFGR0, gic_data.saved_conf0);
-	mmio_write_32(gicr_base + GICR_ICFGR1, gic_data.saved_conf1);
-	mmio_write_32(gicr_base + GICR_IGRPMODR0, gic_data.saved_grpmod);
+	if (rdist_has_saved[proc_num] == 1) {
+		gicr_base = gicv3_driver_data->rdistif_base_addrs[proc_num];
+		mmio_write_32(gicr_base + GICR_IGROUPR0, gic_data.saved_group);
+		mmio_write_32(gicr_base + GICR_ISENABLER0, gic_data.saved_enable);
+		mmio_write_32(gicr_base + GICR_ICFGR0, gic_data.saved_conf0);
+		mmio_write_32(gicr_base + GICR_ICFGR1, gic_data.saved_conf1);
+		mmio_write_32(gicr_base + GICR_IGRPMODR0, gic_data.saved_grpmod);
+	}
 }
 
 void mt_gic_sync_dcm_enable(void)
 {
-	unsigned int val = mmio_read_32(GIC_SYNC_DCM);
-
-	val &= ~GIC_SYNC_DCM_MASK;
-	mmio_write_32(GIC_SYNC_DCM, val | GIC_SYNC_DCM_ON);
+	mmio_clrsetbits_32(GIC_SYNC_DCM, GIC_SYNC_DCM_MASK, GIC_SYNC_DCM_ON);
 }
 
 void mt_gic_sync_dcm_disable(void)
 {
-	unsigned int val = mmio_read_32(GIC_SYNC_DCM);
-
-	val &= ~GIC_SYNC_DCM_MASK;
-	mmio_write_32(GIC_SYNC_DCM, val | GIC_SYNC_DCM_OFF);
+	mmio_clrsetbits_32(GIC_SYNC_DCM, GIC_SYNC_DCM_MASK, GIC_SYNC_DCM_OFF);
 }
 
 void mt_gic_init(void)
