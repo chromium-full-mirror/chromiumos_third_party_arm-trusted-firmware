@@ -323,8 +323,6 @@ spm_debug_flags:
 
 void spm_boot_init(void)
 {
-	uint32_t val;
-
 	NOTICE("%s() start\n", __func__);
 
 	spm_lock_init();
