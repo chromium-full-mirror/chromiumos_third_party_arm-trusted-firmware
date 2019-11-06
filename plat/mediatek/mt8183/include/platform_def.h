@@ -39,6 +39,10 @@
 
 #define INFRACFG_AO_BASE   (IO_PHYS + 0x1000)
 
+#define TOPCKGEN_BASE      (IO_PHYS + 0x0)
+#define CLK_SCP_CFG_0      (TOPCKGEN_BASE + 0x200)
+#define CLK_SCP_CFG_1      (TOPCKGEN_BASE + 0x204)
+
 #define APMIXEDSYS         (IO_PHYS + 0xC000)
 #define AP_PLL_CON3        (APMIXEDSYS + 0xC)
 #define AP_PLL_CON4        (APMIXEDSYS + 0x10)
