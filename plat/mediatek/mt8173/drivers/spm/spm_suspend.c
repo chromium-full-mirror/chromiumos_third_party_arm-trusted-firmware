@@ -58,6 +58,9 @@
 #define ARMCA15PLL_ISO_EN	(1U << 1)
 #define ARMCA15PLL_EN		(1U << 0)
 
+#define CORE_CHECK_RETRY_COUNT		100000
+#define CORE_CHECK_RETRY_PERIOD_US	10
+
 const unsigned int spm_flags =
 	SPM_DUALVCORE_PDN_DIS | SPM_PASR_DIS | SPM_DPD_DIS |
 	SPM_CPU_DVS_DIS | SPM_OPT | SPM_INFRA_PDN_DIS;
@@ -315,8 +318,30 @@ static void bigcore_pll_off(void)
 	mmio_clrbits_32(ARMCA15PLL_PWR_CON0, ARMCA15PLL_PWR_ON);
 }
 
+void last_core_check(void)
+{
+	unsigned int pwr_sta, pwr_sta2, i;
+
+	/* need to confirm only CPU0 online before switch to suspend */
+	for (i = 0; i < CORE_CHECK_RETRY_COUNT; i++) {
+		pwr_sta = mmio_read_32(SPM_PWR_STATUS) & CPU_PWR_MASK;
+		pwr_sta2 = mmio_read_32(SPM_PWR_STATUS_2ND) & CPU_PWR_MASK;
+		if (!pwr_sta && !pwr_sta2)
+			break;
+		udelay(CORE_CHECK_RETRY_PERIOD_US);
+	}
+
+	if (i >= CORE_CHECK_RETRY_COUNT) {
+		ERROR("Non-CPU0 still powered on after waiting 1s (%x, %x)\n", pwr_sta, pwr_sta2);
+		panic();
+	}
+
+	INFO("Wait %u us for non-CPU0 to power off\n", i);
+}
+
 void spm_system_suspend(void)
 {
+	last_core_check();
 	bigcore_pll_off();
 	spm_lock_get();
 	go_to_sleep_before_wfi(spm_flags);
