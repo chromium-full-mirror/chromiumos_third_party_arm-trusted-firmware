@@ -27,13 +27,15 @@
 	 *  EL3 uses the SP as the base address and the SP is not aligned to a
 	 *  16-byte boundary.
 	 *
+	 * ================ DISABLED FOR TROGDOR b/172698904 ===================
 	 * SCTLR_EL3.A: Enable Alignment fault checking. All instructions that
 	 *  load or store one or more registers have an alignment check that the
 	 *  address being accessed is aligned to the size of the data element(s)
 	 *  being accessed.
+	 * ================ DISABLED FOR TROGDOR b/172698904 ===================
 	 * ---------------------------------------------------------------------
 	 */
-	mov	x1, #(SCTLR_I_BIT | SCTLR_A_BIT | SCTLR_SA_BIT)
+	mov	x1, #(SCTLR_I_BIT | SCTLR_SA_BIT)
 	mrs	x0, sctlr_el3
 	orr	x0, x0, x1
 	msr	sctlr_el3, x0
