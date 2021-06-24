@@ -87,6 +87,9 @@ static void plat_cpu_pwron_common(unsigned int cpu,
 
 	coordinate_cluster_pwron();
 
+	/* PTP3 config */
+	ptp3_init(cpu);
+
 	/*
 	 * If mcusys does power down before then restore
 	 * all CPUs' GIC Redistributors
@@ -99,9 +102,6 @@ static void plat_cpu_pwron_common(unsigned int cpu,
 		mt_gic_rdistif_init();
 		mt_gic_rdistif_restore();
 	}
-
-	/* PTP3 config */
-	ptp3_init(cpu);
 }
 
 /*
