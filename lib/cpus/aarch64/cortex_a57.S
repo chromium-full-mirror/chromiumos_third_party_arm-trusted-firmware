@@ -455,7 +455,12 @@ func cortex_a57_reset_func
 	bl	errata_a57_859972_wa
 #endif
 
-#if IMAGE_BL31 && WORKAROUND_CVE_2017_5715
+#if IMAGE_BL31 && ( WORKAROUND_CVE_2017_5715 || WORKAROUND_CVE_2022_23960 )
+	/* ---------------------------------------------------------------
+	 * Override vector table & enable existing workaround if either of
+	 * the build flags are enabled
+	 * ---------------------------------------------------------------
+	 */
 	adr	x0, wa_cve_2017_5715_mmu_vbar
 	msr	vbar_el3, x0
 	/* isb will be performed before returning from this function */
@@ -479,6 +484,15 @@ func cortex_a57_reset_func
 	isb
 	ret	x19
 endfunc cortex_a57_reset_func
+
+func check_errata_cve_2022_23960
+#if WORKAROUND_CVE_2022_23960
+	mov	x0, #ERRATA_APPLIES
+#else
+	mov	x0, #ERRATA_MISSING
+#endif
+	ret
+endfunc check_errata_cve_2022_23960
 
 	/* ----------------------------------------------------
 	 * The CPU Ops core power down function for Cortex-A57.
@@ -603,6 +617,7 @@ func cortex_a57_errata_report
 	report_errata ERRATA_A57_859972, cortex_a57, 859972
 	report_errata WORKAROUND_CVE_2017_5715, cortex_a57, cve_2017_5715
 	report_errata WORKAROUND_CVE_2018_3639, cortex_a57, cve_2018_3639
+	report_errata WORKAROUND_CVE_2022_23960, cortex_a57, cve_2022_23960
 
 	ldp	x8, x30, [sp], #16
 	ret
