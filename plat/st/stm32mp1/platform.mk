@@ -13,6 +13,7 @@ STM32_TF_VERSION	?=	0
 
 # Not needed for Cortex-A7
 WORKAROUND_CVE_2017_5715:=	0
+WORKAROUND_CVE_2022_23960:=	0
 
 # Number of TF-A copies in the device
 STM32_TF_A_COPIES		:=	2
