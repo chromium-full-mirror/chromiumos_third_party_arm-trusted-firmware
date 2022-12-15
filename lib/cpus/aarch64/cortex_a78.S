@@ -318,6 +318,31 @@ func check_errata_2395406
 	mov	x1, #CPU_REV(1, 2)
 	b	cpu_rev_var_ls
 endfunc check_errata_2395406
+
+/* ----------------------------------------------------
+ * Errata Workaround for Cortex-A78 Errata 2772019
+ * This applies to revisions <= r1p2 and is still open.
+ * x0: variant[4:7] and revision[0:3] of current cpu.
+ * Shall clobber: x0-x17
+ * ----------------------------------------------------
+ */
+func errata_a78_2772019_wa
+	mov	x17, x30
+	bl	check_errata_2772019
+	cbz	x0, 1f
+
+
+	/* dsb before isb of power down sequence */
+	dsb	sy
+1:
+	ret	x17
+endfunc errata_a78_2772019_wa
+
+func check_errata_2772019
+	/* Applies to all revisions <= r1p2 */
+	mov	x1, #0x12
+	b	cpu_rev_var_ls
+endfunc check_errata_2772019
 	/* -------------------------------------------------
 	 * The CPU Ops reset function for Cortex-A78
 	 * -------------------------------------------------
@@ -410,6 +435,12 @@ func cortex_a78_core_pwr_dwn
 	mrs	x0, CORTEX_A78_CPUPWRCTLR_EL1
 	orr	x0, x0, #CORTEX_A78_CPUPWRCTLR_EL1_CORE_PWRDN_EN_BIT
 	msr	CORTEX_A78_CPUPWRCTLR_EL1, x0
+#if ERRATA_A78_2772019
+	mov	x15, x30
+	bl	cpu_get_rev_var
+	bl	errata_a78_2772019_wa
+	mov	x30, x15
+#endif /* ERRATA_A78_2772019 */
 	isb
 	ret
 endfunc cortex_a78_core_pwr_dwn
@@ -437,6 +468,7 @@ func cortex_a78_errata_report
 	report_errata ERRATA_A78_2242635, cortex_a78, 2242635
 	report_errata ERRATA_A78_2376745, cortex_a78, 2376745
 	report_errata ERRATA_A78_2395406, cortex_a78, 2395406
+	report_errata ERRATA_A78_2772019, cortex_a78, 2772019
 
 	ldp	x8, x30, [sp], #16
 	ret
