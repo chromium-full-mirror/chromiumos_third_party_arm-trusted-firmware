@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2021, ARM Limited. All rights reserved.
+ * Copyright (c) 2019-2023, ARM Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -34,6 +34,8 @@
 #define CORTEX_A78_ACTLR2_EL1				S3_0_C15_C1_1
 #define CORTEX_A78_ACTLR2_EL1_BIT_1			(ULL(1) << 1)
 #define CORTEX_A78_ACTLR2_EL1_BIT_2			(ULL(1) << 2)
+
+#define CORTEX_A78_ACTLR3_EL1				S3_0_C15_C1_2
 
 /*******************************************************************************
  * CPU Activity Monitor Unit register specific definitions.
