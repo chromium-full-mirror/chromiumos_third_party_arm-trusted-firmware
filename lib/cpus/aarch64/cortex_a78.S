@@ -326,7 +326,9 @@ func cortex_a78_reset_func
 	mov	x0, #CORTEX_A78_AMU_GROUP1_MASK
 	msr	CPUAMCNTENSET1_EL0, x0
 #endif
-
+	mrs	x1, CORTEX_A78_CPUECTLR_EL1
+	orr	x1, x1, #BIT(46)
+	msr	CORTEX_A78_CPUECTLR_EL1, x1
 	isb
 	ret	x19
 endfunc cortex_a78_reset_func
