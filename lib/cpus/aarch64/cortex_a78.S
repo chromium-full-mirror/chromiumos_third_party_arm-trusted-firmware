@@ -183,6 +183,7 @@ cpu_reset_func_start cortex_a78
 	mov	x0, #CORTEX_A78_AMU_GROUP1_MASK
 	msr	CPUAMCNTENSET1_EL0, x0
 #endif
+	sysreg_bit_set CORTEX_A78_CPUECTLR_EL1, BIT(46)
 cpu_reset_func_end cortex_a78
 
 	/* ---------------------------------------------
