@@ -8,9 +8,9 @@
 #include <stdint.h>
 
 #include <lib/smccc.h>
-#include <mtk_sip_svc.h>
-
 #include <plat/common/plat_trng.h>
+
+#include <mtk_sip_svc.h>
 
 DEFINE_SVC_UUID2(_plat_trng_uuid,
 	0xf6b2c8d9, 0x1abb, 0x4d83, 0xb2, 0x3f,
