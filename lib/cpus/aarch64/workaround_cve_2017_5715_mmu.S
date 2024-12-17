@@ -33,15 +33,18 @@ vector_base workaround_mmu_runtime_exceptions
 
 	/*
 	 * Ensure SMC is coming from A64 state on #0
-	 * with W0 = SMCCC_ARCH_WORKAROUND_1
+	 * with W0 = SMCCC_ARCH_WORKAROUND_1 or W0 = SMCCC_ARCH_WORKAROUND_3
 	 *
 	 * This sequence evaluates as:
-	 *    (W0==SMCCC_ARCH_WORKAROUND_1) ? (ESR_EL3==SMC#0) : (NE)
+	 *    (W0==SMCCC_ARCH_WORKAROUND_1) || (W0==SMCCC_ARCH_WORKAROUND_3) ?
+	 *    (ESR_EL3==SMC#0) : (NE)
 	 * allowing use of a single branch operation
 	 */
 	.if \_is_sync_exception
 		orr	w1, wzr, #SMCCC_ARCH_WORKAROUND_1
 		cmp	w0, w1
+		orr	w1, wzr, #SMCCC_ARCH_WORKAROUND_3
+		ccmp	w0, w1, #4, ne
 		mrs	x0, esr_el3
 		mov_imm	w1, ESR_EL3_A64_SMC0
 		ccmp	w0, w1, #0, eq

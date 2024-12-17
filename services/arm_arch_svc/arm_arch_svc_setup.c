@@ -25,6 +25,10 @@ static int32_t smccc_arch_features(u_register_t arg)
 	case SMCCC_ARCH_WORKAROUND_1:
 		return 0;
 #endif
+#if (WORKAROUND_CVE_2022_23960 || WORKAROUND_CVE_2017_5715)
+	case SMCCC_ARCH_WORKAROUND_3:
+		return 0;
+#endif
 	default:
 		return SMC_UNK;
 	}
@@ -54,6 +58,10 @@ uintptr_t arm_arch_svc_smc_handler(uint32_t smc_fid,
 		 * during entry to EL3.  On unaffected PEs, this function
 		 * has no effect.
 		 */
+		SMC_RET0(handle);
+#endif
+#if (WORKAROUND_CVE_2022_23960 || WORKAROUND_CVE_2017_5715)
+	case SMCCC_ARCH_WORKAROUND_3:
 		SMC_RET0(handle);
 #endif
 	default:
