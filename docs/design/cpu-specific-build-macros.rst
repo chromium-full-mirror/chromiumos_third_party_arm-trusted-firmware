@@ -981,6 +981,10 @@ For Cortex-A720, the following errata build flags are defined :
 -  ``ERRATA_A720_3456091``: This applies errata 3456091 workaround to
    Cortex-A720 CPU. This needs to be enabled for revisions r0p0, r0p1
    and r0p2. It is still open.
+
+-  ``ERRATA_A720_3699561``: This applies errata 3699561 workaround to
+   Cortex-A720 CPU. This needs to be enabled for revisions r0p0, r0p1
+   and r0p2. It is still open.
 DSU Errata Workarounds
 ----------------------
 
