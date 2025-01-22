@@ -51,6 +51,13 @@ bool errata_ich_vmcr_el2_applies(void)
 			return true;
 		break;
 #endif /* ERRATA_A720_3699561 */
+
+#if ERRATA_X4_3701758
+	case EXTRACT_PARTNUM(CORTEX_X4_MIDR):
+		if (check_erratum_cortex_x4_3701758(cpu_get_rev_var()) == ERRATA_APPLIES)
+			return true;
+		break;
+#endif /* ERRATA_X4_3701758 */
 	default:
 		break;
 	}
