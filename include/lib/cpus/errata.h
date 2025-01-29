@@ -95,6 +95,8 @@ static inline void wa_cve_2025_0647_execute_cpp_el3(uint64_t arg)
 #endif /* __aarch64__ */
 }
 #endif /* WORKAROUND_CVE_2025_0647 */
+
+bool errata_ich_vmcr_el2_applies(void);
 #else
 
 /*
