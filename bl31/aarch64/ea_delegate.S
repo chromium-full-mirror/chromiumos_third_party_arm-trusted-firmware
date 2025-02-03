@@ -246,7 +246,7 @@ func ea_proceed
 	 * If the ESR loaded earlier is not zero, we were processing an EA
 	 * already, and this is a double fault.
 	 */
-	ldr	x5, [sp, #CTX_EL3STATE_OFFSET + CTX_ESR_EL3]
+	ldr	x5, [sp, #CTX_EL3STATE_OFFSET + CTX_SAVED_ESR_EL3]
 	cbz	x5, 1f
 	no_ret	plat_handle_double_fault
 
@@ -261,8 +261,9 @@ func ea_proceed
 	 * EL3 from there would trample the original ESR.
 	 */
 	mrs	x4, scr_el3
+	str	x4, [sp, #CTX_EL3STATE_OFFSET + CTX_SCR_EL3]
 	mrs	x5, esr_el3
-	stp	x4, x5, [sp, #CTX_EL3STATE_OFFSET + CTX_SCR_EL3]
+	str	x5, [sp, #CTX_EL3STATE_OFFSET + CTX_SAVED_ESR_EL3]
 
 	/*
 	 * Setup rest of arguments, and call platform External Abort handler.
@@ -308,10 +309,9 @@ func ea_proceed
 	msr	spsr_el3, x1
 	msr	elr_el3, x2
 
-	/* Restore ESR_EL3 and SCR_EL3 */
-	ldp	x3, x4, [sp, #CTX_EL3STATE_OFFSET + CTX_SCR_EL3]
+	/* Restore SCR_EL3 */
+	ldr	x3, [sp, #CTX_EL3STATE_OFFSET + CTX_SCR_EL3]
 	msr	scr_el3, x3
-	msr	esr_el3, x4
 
 #if ENABLE_ASSERTIONS
 	cmp	x4, xzr
@@ -319,7 +319,7 @@ func ea_proceed
 #endif
 
 	/* Clear ESR storage */
-	str	xzr, [sp, #CTX_EL3STATE_OFFSET + CTX_ESR_EL3]
+	str	xzr, [sp, #CTX_EL3STATE_OFFSET + CTX_SAVED_ESR_EL3]
 
 	ret	x29
 endfunc ea_proceed
