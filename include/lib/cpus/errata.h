@@ -68,6 +68,33 @@ struct erratum_entry {
 
 CASSERT(sizeof(struct erratum_entry) == ERRATUM_ENTRY_SIZE,
 	assert_erratum_entry_asm_c_different_sizes);
+
+/*
+ * API to perform CPP RCTX instruction functionality in EL3
+ *
+ * Rather than trapping EL3 to EL3 if CPP RCTX is needed, it is simpler to just
+ * have an API that performs the workaround steps. TF-A does not support nested
+ * exceptions outside of specific circumstances, and enabling that generically
+ * is not trivial, so this is a simpler and faster solution.
+ *
+ * The workaround is not reliant on the config register passed to the CPP RCTX
+ * instruction, but the argument is included for compatibility in systems that
+ * might have some cores that need the workaround and some that do not. If the
+ * workaround is not needed, the argument will be used in a normal CPP RCTX call
+ * rather than the workaround procedure.
+ */
+#if WORKAROUND_CVE_2025_0647
+void wa_cve_2025_0647_execute_cpp_el3(uint64_t arg);
+#else
+__attribute__((always_inline))
+static inline void wa_cve_2025_0647_execute_cpp_el3(uint64_t arg)
+{
+#ifdef __aarch64__
+	register uint64_t x0 __asm__("x0") = arg;
+	__asm__ volatile ("cpp rctx, x0" : : "r"(x0) : "memory");
+#endif /* __aarch64__ */
+}
+#endif /* WORKAROUND_CVE_2025_0647 */
 #else
 
 /*

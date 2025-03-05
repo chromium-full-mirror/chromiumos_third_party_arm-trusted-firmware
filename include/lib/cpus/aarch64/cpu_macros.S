@@ -172,12 +172,18 @@
 	.endm
 
 	.macro declare_cpu_ops_wa_4 _name:req, _midr:req, \
-		_resetfunc:req, _extra1:req, _extra2:req, \
-		_extra3:req, _extra4:req, _power_down_ops:vararg
-		declare_cpu_ops_base \_name, \_midr, \_resetfunc, \
-			\_extra1, \_extra2, \_extra3, \_extra4, 0, \_power_down_ops
+	        _resetfunc:req, _extra1:req, _extra2:req, \
+	        _extra3:req, _extra4:req, _power_down_ops:vararg
+	        declare_cpu_ops_base \_name, \_midr, \_resetfunc, \
+	                \_extra1, \_extra2, \_extra3, \_extra4, 0, \_power_down_ops
 	.endm
 
+	.macro declare_cpu_ops_wa_4_eh _name:req, _midr:req, \
+	        _resetfunc:req, _extra1:req, _extra2:req, \
+	        _extra3:req, _extra4:req, _e_handler:req, _power_down_ops:vararg
+	        declare_cpu_ops_base \_name, \_midr, \_resetfunc, \
+	                \_extra1, \_extra2, \_extra3, \_extra4, \_e_handler, \_power_down_ops
+	.endm
 	/*
 	 * This macro is used on some CPUs to detect if they are vulnerable
 	 * to CVE-2017-5715.
