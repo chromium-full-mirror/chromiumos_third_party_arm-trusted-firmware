@@ -112,6 +112,16 @@
 #define UART_BAUDRATE	(115200)
 
 /*******************************************************************************
+ * TZGP (SSR) base
+ *******************************************************************************/
+#define SSR_TOP_BASE				(0x18000000)
+#define SSR_RNG_BASE				(SSR_TOP_BASE + 0x1000)
+#define SSR_RNG_DRBG_BASE			(SSR_TOP_BASE + 0xB000)
+#define MTK_SSR_TOP_BASE_SIZE			(0x1000)
+#define MTK_SSR_RNG_BASE_SIZE			(0x1000)
+#define MTK_SSR_RNG_DRBG_BASE_SIZE		(0x1000)
+
+/*******************************************************************************
  * PMIF address
  ******************************************************************************/
 #define PMIF_SPMI_M_BASE	(IO_PHYS + 0x0C01A000)

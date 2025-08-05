@@ -36,6 +36,7 @@ PLAT_INCLUDES := -I${MTK_PLAT}/common \
 		 -I${MTK_PLAT_SOC}/drivers/gpio/ \
 		 -I${MTK_PLAT_SOC}/include \
 		 -Idrivers/arm/gic \
+		 -I${MTK_PLAT_SOC}/drivers/tzgp \
 
 MODULES-y += $(MTK_PLAT)/common
 MODULES-y += $(MTK_PLAT)/common/lpm_v2
@@ -49,6 +50,7 @@ MODULES-y += $(MTK_PLAT)/drivers/emi
 MODULES-y += $(MTK_PLAT)/drivers/gicv3
 MODULES-y += $(MTK_PLAT)/drivers/mcusys
 MODULES-y += $(MTK_PLAT)/drivers/mminfra
+MODULES-y += $(MTK_PLAT)/drivers/rng
 MODULES-y += $(MTK_PLAT)/drivers/smmu
 MODULES-y += $(MTK_PLAT)/drivers/spm
 MODULES-y += $(MTK_PLAT)/drivers/timer
@@ -90,5 +92,8 @@ BL31_SOURCES += drivers/delay_timer/delay_timer.c \
 		$(MTK_PLAT)/$(MTK_SOC)/plat_mmap.c
 
 include plat/mediatek/build_helpers/mtk_build_helpers_epilogue.mk
+
+LDLIBS += -L$(MTK_PLAT_SOC)/drivers/tzgp/lib
+LDLIBS += -l:tzgp_lib_ssr_rng.a
 
 include lib/coreboot/coreboot.mk
