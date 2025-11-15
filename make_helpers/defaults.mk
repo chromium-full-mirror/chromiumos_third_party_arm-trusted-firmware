@@ -140,6 +140,9 @@ FIP_NAME			:= fip.bin
 # Default FWU_FIP file name
 FWU_FIP_NAME			:= fwu_fip.bin
 
+# Default BL2 FIP file name
+BL2_FIP_NAME			:= bl2_fip.bin
+
 # By default firmware encryption with SSK
 FW_ENC_STATUS			:= 0
 
@@ -201,7 +204,7 @@ DISCRETE_TPM			:= 0
 # Option to enable the DICE Protection Environmnet as a Measured Boot backend
 DICE_PROTECTION_ENVIRONMENT	:=0
 
-# NS timer register save and restore
+# NS timer register save and restore (deprecated)
 NS_TIMER_SWITCH			:= 0
 
 # Include lib/libc in the final image
@@ -231,6 +234,9 @@ SAVE_KEYS			:= 0
 
 # Software Delegated Exception support
 SDEI_SUPPORT			:= 0
+
+# Number of UUIDs allowed for a physical partition
+SPMC_AT_EL3_PARTITION_MAX_UUIDS := 4
 
 # True Random Number firmware Interface support
 TRNG_SUPPORT			:= 0
@@ -425,6 +431,9 @@ CTX_INCLUDE_MPAM_REGS		:= 0
 # Enable context memory usage reporting during BL31 setup.
 PLATFORM_REPORT_CTX_MEM_USE	:= 0
 
+# Request a custom addition to the BL31 linker script
+PLAT_EXTRA_LD_SCRIPT		:= 0
+
 # Enable early console
 EARLY_CONSOLE			:= 0
 
@@ -445,3 +454,10 @@ LFA_SUPPORT			:= 0
 
 # Enable support for arm DSU driver.
 USE_DSU_DRIVER			:= 0
+
+# Define the separation of BL2 flag, by default it is disabled.
+SEPARATE_BL2_FIP		:=	0
+
+# Disable NUMA awareness for per-CPU framework by default. Platforms should
+# enable this feature by setting PLATFORM_NODE_COUNT > 1
+PLATFORM_NODE_COUNT		:= 1

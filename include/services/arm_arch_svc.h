@@ -35,7 +35,7 @@
 #if ENABLE_FEAT_FPMR
 #define SCR_FEAT_FPMR SCR_EnFPM_BIT
 #else
-#define SCR_FEAT_FPMR
+#define SCR_FEAT_FPMR (0)
 #endif
 
 #if ENABLE_FEAT_D128
@@ -140,6 +140,24 @@
 #define SCR_FEAT_MEC (0)
 #endif
 
+#if ENABLE_FEAT_AIE
+#define SCR_FEAT_AIE SCR_AIEn_BIT
+#else
+#define SCR_FEAT_AIE (0)
+#endif
+
+#if ENABLE_FEAT_PFAR
+#define SCR_FEAT_PFAR SCR_PFAREn_BIT
+#else
+#define SCR_FEAT_PFAR (0)
+#endif
+
+#if ENABLE_FEAT_IDTE3
+#define SCR_FEAT_IDTE3 (SCR_TID3_BIT | SCR_TID5_BIT)
+#else
+#define SCR_FEAT_IDTE3 (0)
+#endif
+
 #ifndef SCR_PLAT_FEATS
 #define SCR_PLAT_FEATS (0)
 #endif
@@ -181,6 +199,7 @@
 #define SCR_EL3_FEATS (								\
 	SCR_FEAT_FGT2		|						\
 	SCR_FEAT_FPMR		|						\
+	SCR_FEAT_MEC		|						\
 	SCR_FEAT_D128		|						\
 	SCR_FEAT_S1PIE		|						\
 	SCR_FEAT_SCTLR2		|						\
@@ -198,6 +217,9 @@
 	SCR_FEAT_CSV2_2		|						\
 	SCR_APK_BIT		| /* FEAT_Pauth */				\
 	SCR_FEAT_RAS		|						\
+	SCR_FEAT_AIE		|						\
+	SCR_FEAT_PFAR		|						\
+	SCR_FEAT_IDTE3		|						\
 	SCR_PLAT_FEATS)
 #define SCR_EL3_FLIPPED (							\
 	SCR_FEAT_RAS		|						\
@@ -212,7 +234,6 @@
 	SCR_NS_BIT		|						\
 	SCR_NSE_BIT		|						\
 	SCR_RES1_BITS		|						\
-	SCR_FEAT_MEC		|						\
 	SCR_PLAT_IGNORED)
 CASSERT((SCR_EL3_FEATS & SCR_EL3_IGNORED) == 0, scr_feat_is_ignored);
 CASSERT((SCR_EL3_FLIPPED & SCR_EL3_FEATS) == SCR_EL3_FLIPPED, scr_flipped_not_a_feat);
@@ -292,12 +313,26 @@ CASSERT((CPTR_EL3_FLIPPED & CPTR_EL3_FEATS) == CPTR_EL3_FLIPPED, cptr_flipped_no
 #define MDCR_FEAT_SPE (0)
 #endif
 
+#if ENABLE_FEAT_DEBUGV8P9
+#define MDCR_DEBUGV8P9 MDCR_EBWE_BIT
+#else
+#define MDCR_DEBUGV8P9 (0)
+#endif
+
+#if ENABLE_FEAT_EBEP
+#define MDCR_FEAT_EBEP MDCR_PMEE(MDCR_PMEE_CTRL_EL2)
+#else
+#define MDCR_FEAT_EBEP (0)
+#endif
+
 #define MDCR_EL3_FEATS (							\
+	MDCR_DEBUGV8P9		|						\
 	MDCR_FEAT_BRBE		|						\
 	MDCR_FEAT_FGT		|						\
 	MDCR_FEAT_TRBE		|						\
 	MDCR_FEAT_TRF		|						\
 	MDCR_FEAT_SPE		|						\
+	MDCR_FEAT_EBEP		|						\
 	MDCR_TDOSA_BIT		|						\
 	MDCR_TDA_BIT		|						\
 	MDCR_EnPM2_BIT		|						\
@@ -311,7 +346,6 @@ CASSERT((CPTR_EL3_FLIPPED & CPTR_EL3_FEATS) == CPTR_EL3_FLIPPED, cptr_flipped_no
 	MDCR_TPM_BIT		|						\
 	MDCR_PLAT_FLIPPED)
 #define MDCR_EL3_IGNORED (							\
-	MDCR_EBWE_BIT		|						\
 	MDCR_EnPMS3_BIT		|						\
 	MDCR_EnPMSN_BIT		|						\
 	MDCR_SBRBE(2UL)		|						\

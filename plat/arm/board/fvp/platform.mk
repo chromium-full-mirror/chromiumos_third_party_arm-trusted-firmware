@@ -24,11 +24,7 @@ FVP_GICR_REGION_PROTECTION	:= 0
 
 # Size (in kilobytes) of the Trusted SRAM region to utilize when building for
 # the FVP platform.
-ifeq (${ENABLE_RME},1)
 FVP_TRUSTED_SRAM_SIZE		:= 384
-else
-FVP_TRUSTED_SRAM_SIZE		:= 256
-endif
 
 # Macro to enable helpers for running SPM tests. Disabled by default.
 PLAT_TEST_SPM	:= 0
@@ -60,17 +56,20 @@ else
 endif
 endif
 
-      ENABLE_BRBE_FOR_NS	:= 2
-      ENABLE_TRBE_FOR_NS	:= 2
-      ENABLE_FEAT_D128		:= 2
-      ENABLE_FEAT_FPMR		:= 2
-      ENABLE_FEAT_MOPS		:= 2
-      ENABLE_FEAT_FGWTE3	:= 2
+      ENABLE_BRBE_FOR_NS		:= 2
+      ENABLE_TRBE_FOR_NS		:= 2
+      ENABLE_FEAT_D128			:= 2
+      ENABLE_FEAT_FPMR			:= 2
+      ENABLE_FEAT_MOPS			:= 2
+      ENABLE_FEAT_FGWTE3		:= 2
+      ENABLE_FEAT_MPAM_PE_BW_CTRL	:= 2
+      ENABLE_FEAT_CPA2			:= 2
 endif
 
 ENABLE_SYS_REG_TRACE_FOR_NS	:= 2
 ENABLE_FEAT_CSV2_2		:= 2
 ENABLE_FEAT_CSV2_3		:= 2
+ENABLE_FEAT_CLRBHB		:= 2
 ENABLE_FEAT_DEBUGV8P9		:= 2
 ENABLE_FEAT_DIT			:= 2
 ENABLE_FEAT_PAN			:= 2
@@ -90,6 +89,9 @@ ENABLE_FEAT_S1POE		:= 2
 ENABLE_FEAT_SCTLR2		:= 2
 ENABLE_FEAT_MTE2		:= 2
 ENABLE_FEAT_LS64_ACCDATA	:= 2
+ENABLE_FEAT_AIE			:= 2
+ENABLE_FEAT_PFAR		:= 2
+ENABLE_FEAT_EBEP		:= 2
 
 ifeq (${ENABLE_RME},1)
     ENABLE_FEAT_MEC		:= 2
@@ -246,12 +248,16 @@ endif
 
 #Build AArch64-only CPUs with no FVP model yet.
 ifeq (${BUILD_CPUS_WITH_NO_FVP_MODEL},1)
-	# travis/gelas need these
 	ERRATA_SME_POWER_DOWN := 1
-	FVP_CPU_LIBS    +=	lib/cpus/aarch64/cortex_gelas.S		\
-				lib/cpus/aarch64/nevis.S		\
-				lib/cpus/aarch64/travis.S		\
-				lib/cpus/aarch64/cortex_alto.S
+	FVP_CPU_LIBS    +=	lib/cpus/aarch64/c1_pro.S		\
+				lib/cpus/aarch64/c1_nano.S		\
+				lib/cpus/aarch64/c1_ultra.S		\
+				lib/cpus/aarch64/c1_premium.S		\
+				lib/cpus/aarch64/canyon.S		\
+				lib/cpus/aarch64/caddo.S		\
+				lib/cpus/aarch64/veymont.S		\
+				lib/cpus/aarch64/dionysus.S		\
+				lib/cpus/aarch64/venom.S
 endif
 
 else
@@ -305,7 +311,8 @@ BL2_SOURCES		+=	plat/arm/board/fvp/aarch64/fvp_helpers.S	\
 BL31_SOURCES		+=	plat/arm/board/fvp/fvp_plat_attest_token.c	\
 				plat/arm/board/fvp/fvp_realm_attest_key.c	\
 				plat/arm/board/fvp/fvp_el3_token_sign.c		\
-				plat/arm/board/fvp/fvp_ide_keymgmt.c
+				plat/arm/board/fvp/fvp_ide_keymgmt.c		\
+				plat/arm/common/plat_rmm_mem_carveout.c
 endif
 
 ifneq (${ENABLE_FEAT_RNG_TRAP},0)
@@ -375,9 +382,7 @@ FDT_SOURCES		+=	${FVP_HW_CONFIG_DTS}
 $(eval FVP_HW_CONFIG	:=	${BUILD_PLAT}/$(patsubst %.dts,%.dtb,$(FVP_HW_CONFIG_DTS)))
 HW_CONFIG		:=	${FVP_HW_CONFIG}
 
-# Allow hw_config's secondary-load-address in the DT to be changed
-FVP_HW_CONFIG_ADDR	?=	0x82000000
-DTC_CPPFLAGS		+=	-DFVP_HW_CONFIG_ADDR=$(FVP_HW_CONFIG_ADDR)
+HW_CONFIG_BASE		?=	0x82000000
 
 # Set default initrd base 128MiB offset of the default kernel address in FVP
 INITRD_BASE		?=	0x90000000
@@ -412,14 +417,10 @@ FVP_TOS_FW_CONFIG	:=	${BUILD_PLAT}/fdts/${PLAT}_tsp_fw_config.dtb
 $(eval $(call TOOL_ADD_PAYLOAD,${FVP_TOS_FW_CONFIG},--tos-fw-config,${FVP_TOS_FW_CONFIG}))
 endif
 
-# Add the FW_CONFIG to FIP and specify the same to certtool
-$(eval $(call TOOL_ADD_PAYLOAD,${FVP_FW_CONFIG},--fw-config,${FVP_FW_CONFIG}))
 # Add the SOC_FW_CONFIG to FIP and specify the same to certtool
 $(eval $(call TOOL_ADD_PAYLOAD,${FVP_SOC_FW_CONFIG},--soc-fw-config,${FVP_SOC_FW_CONFIG}))
 # Add the NT_FW_CONFIG to FIP and specify the same to certtool
 $(eval $(call TOOL_ADD_PAYLOAD,${FVP_NT_FW_CONFIG},--nt-fw-config,${FVP_NT_FW_CONFIG}))
-# Add the TB_FW_CONFIG to FIP and specify the same to certtool
-$(eval $(call TOOL_ADD_PAYLOAD,${FVP_TB_FW_CONFIG},--tb-fw-config,${FVP_TB_FW_CONFIG}))
 endif
 
 ifeq (${SPD},spmd)
@@ -466,15 +467,11 @@ endif
 endif
 
 ifeq (${HANDLE_EA_EL3_FIRST_NS},1)
-    ifeq (${ENABLE_FEAT_RAS},1)
-    	ifeq (${PLATFORM_TEST_FFH_LSP_RAS_SP},1)
-            BL31_SOURCES		+=	plat/arm/board/fvp/aarch64/fvp_lsp_ras_sp.c
-	else
-            BL31_SOURCES		+=	plat/arm/board/fvp/aarch64/fvp_ras.c
-	endif
-    else
-        BL31_SOURCES		+= 	plat/arm/board/fvp/aarch64/fvp_ea.c
+    ifeq (${PLATFORM_TEST_FFH_LSP_RAS_SP},1)
+        BL31_SOURCES		+=	plat/arm/board/fvp/aarch64/fvp_lsp_ras_sp.c
     endif
+    BL31_SOURCES		+=	plat/arm/board/fvp/aarch64/fvp_ras.c	\
+					plat/arm/board/fvp/aarch64/fvp_ea.c
 endif
 
 ifneq (${ENABLE_STACK_PROTECTOR},0)
@@ -506,7 +503,7 @@ ifeq (${USE_DEBUGFS},1)
 endif
 
 # Add support for platform supplied linker script for BL31 build
-$(eval $(call add_define,PLAT_EXTRA_LD_SCRIPT))
+PLAT_EXTRA_LD_SCRIPT	:=	1
 
 ifneq (${RESET_TO_BL2}, 0)
     override BL1_SOURCES =
@@ -563,10 +560,14 @@ ifeq (${PLATFORM_TEST_EA_FFH}, 1)
 
 endif
 
+PLATFORM_TEST_RAS_FFH	?=	0
 $(eval $(call add_define,PLATFORM_TEST_RAS_FFH))
 ifeq (${PLATFORM_TEST_RAS_FFH}, 1)
     ifeq (${ENABLE_FEAT_RAS}, 0)
          $(error "PLATFORM_TEST_RAS_FFH expects ENABLE_FEAT_RAS to be 1")
+    endif
+    ifeq (${SDEI_SUPPORT}, 0)
+         $(error "PLATFORM_TEST_RAS_FFH expects SDEI_SUPPORT to be 1")
     endif
     ifeq (${HANDLE_EA_EL3_FIRST_NS}, 0)
          $(error "PLATFORM_TEST_RAS_FFH expects HANDLE_EA_EL3_FIRST_NS to be 1")
@@ -598,4 +599,20 @@ $(eval $(call add_define,PLAT_TEST_SPM))
 
 ifeq (${LFA_SUPPORT},1)
 BL31_SOURCES            +=      plat/arm/board/fvp/fvp_lfa.c
+endif
+
+# This is set to 1 by default when the firmware update
+# support is enabled. Since the BL2 image is not updatable
+ifeq ($(PSA_FWU_SUPPORT),1)
+    SEPARATE_BL2_FIP  :=	1
+endif
+
+ifeq (${TRANSFER_LIST}, 0)
+ifeq (${SEPARATE_BL2_FIP},1)
+$(eval $(call TOOL_ADD_PAYLOAD,${FVP_FW_CONFIG},--fw-config,${FVP_FW_CONFIG},BL2_))
+$(eval $(call TOOL_ADD_PAYLOAD,${FVP_TB_FW_CONFIG},--tb-fw-config,${FVP_TB_FW_CONFIG},BL2_))
+else
+$(eval $(call TOOL_ADD_PAYLOAD,${FVP_FW_CONFIG},--fw-config,${FVP_FW_CONFIG}))
+$(eval $(call TOOL_ADD_PAYLOAD,${FVP_TB_FW_CONFIG},--tb-fw-config,${FVP_TB_FW_CONFIG}))
+endif
 endif

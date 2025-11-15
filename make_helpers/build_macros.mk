@@ -41,6 +41,36 @@ define default_ones
 	$(foreach var,$1,$(eval $(call default_one,$(var))))
 endef
 
+# Convenience function for setting CRYPTO_SUPPORT per component based on build flags
+# and set MBEDTLS_LIB based on CRYPTO_SUPPORT
+# $(eval $(call set_crypto_support,NEED_AUTH,NEED_HASH))
+#   $(1) = NEED_AUTH, determines need for authentication verification support
+#   $(2) = NEED_HASH, determines need for hash calculation support
+# CRYPTO_SUPPORT is set to 0 (default), 1 (authentication only), 2 (hash only), or
+# 3 (both) based on what support is required.
+define set_crypto_support
+	ifeq ($($1)-$($2),1-1)
+		CRYPTO_SUPPORT := 3
+	else ifeq ($($2),1)
+		CRYPTO_SUPPORT := 2
+	else ifeq ($($1),1)
+		CRYPTO_SUPPORT := 1
+	else
+		CRYPTO_SUPPORT := 0
+	endif
+	MBEDTLS_LIB ?= $(BUILD_PLAT)/lib/libmbedtls.a
+	CRYPTO_LIB := $(if $(filter-out 0,$(CRYPTO_SUPPORT)),$(MBEDTLS_LIB),)
+endef
+
+# Convenience function for creating a build definition
+# $(call make_define,FOO) will have:
+# -DFOO if $(FOO) is empty; -DFOO=$(FOO) otherwise
+make_define = -D$(1)$(if $($(1)),=$($(1)))
+
+# Convenience function for creating multiple build definitions
+# For BL1, BL1_CPPFLAGS += $(call make_defines,FOO BOO)
+make_defines = $(foreach def,$(1),$(call make_define,$(def)))
+
 # Convenience function for adding build definitions
 # $(eval $(call add_define,FOO)) will have:
 # -DFOO if $(FOO) is empty; -DFOO=$(FOO) otherwise
@@ -90,9 +120,15 @@ define assert_numerics
     $(foreach num,$1,$(eval $(call assert_numeric,$(num))))
 endef
 
-# Convenience function to check for a given linker option. An call to
-# $(call ld_option, --no-XYZ) will return --no-XYZ if supported by the linker
-ld_option = $(shell $($(ARCH)-ld) $(1) -Wl,--version >/dev/null 2>&1 || $($(ARCH)-ld) $(1) -v >/dev/null 2>&1 && echo $(1))
+# Convenience function to check for a given linker option. A call to
+# $(call ld_option, --no-XYZ) will return --no-XYZ if supported by the linker,
+# prefixed appropriately for the linker in use
+ld_option = $(call toolchain-ld-option,$(ARCH),$(1))
+
+# Convenience function to add a prefix to a linker flag if necessary. Useful
+# when the flag is known to be supported and it just needs to be prefixed
+# correctly.
+ld_prefix = $(toolchain-ld-prefix-$($(ARCH)-ld-id))
 
 # Convenience function to check for a given compiler option. A call to
 # $(call cc_option, --no-XYZ) will return --no-XYZ if supported by the compiler
@@ -318,7 +354,7 @@ $(eval OBJS := $(patsubst %.c,$(1)/$(2)/%.o,$(SRCS)))
 $(eval DST := $(1)/$(2)/$(2)$(.exe))
 $(eval $(foreach src,$(SRCS),$(call MAKE_TOOL_C,$(1),$(src),$(2),$(3))))
 
-$(DST): $(OBJS) $(filter-out %.d,$(MAKEFILE_LIST))
+$(DST): $(OBJS) $(filter-out %.d,$(MAKEFILE_LIST)) | $(1)
 	$$(s)echo "  HOSTLD  $$@"
 	$$(q)$(host-cc) $${OBJS} -o $$@ $($(3)_LDFLAGS)
 	$$(s)echo
@@ -340,7 +376,7 @@ $(eval LIB := $(notdir $(1)))
 
 $(OBJ): $(2) $(filter-out %.d,$(MAKEFILE_LIST)) | $$$$(@D)/
 	$$(s)echo "  CC      $$<"
-	$$(q)$($(ARCH)-cc) $$($(LIB)_CFLAGS) $$(TF_CFLAGS) $(call MAKE_DEP,$(DEP),$(OBJ)) -c $$< -o $$@
+	$$(q)$($(ARCH)-cc) $$(LIB$(4)_CFLAGS) $$(TF_CFLAGS) $(call MAKE_DEP,$(DEP),$(OBJ)) -c $$< -o $$@
 
 -include $(DEP)
 
@@ -379,7 +415,7 @@ $(eval BL_INCLUDE_DIRS := $($(4)_INCLUDE_DIRS))
 $(eval BL_CPPFLAGS := $($(4)_CPPFLAGS) $(addprefix -D,$(BL_DEFINES)) $(addprefix -I,$(BL_INCLUDE_DIRS)))
 $(eval BL_CFLAGS := $($(4)_CFLAGS))
 
-$(OBJ): $(2) $(filter-out %.d,$(MAKEFILE_LIST)) | $$$$(@D)/
+$(OBJ): $(2) $(filter-out %.d,$(MAKEFILE_LIST)) | $$$$(@D)/ $(BL_INCLUDE_DIRS:%=%/)
 	$$(s)echo "  CC      $$<"
 	$$(q)$($(ARCH)-cc) $$(LTO_CFLAGS) $$(TF_CFLAGS) $(BL_CPPFLAGS) $(BL_CFLAGS) $(call MAKE_DEP,$(DEP),$(OBJ)) -c $$< -o $$@
 
@@ -403,7 +439,7 @@ $(eval BL_INCLUDE_DIRS := $($(4)_INCLUDE_DIRS))
 $(eval BL_CPPFLAGS := $($(4)_CPPFLAGS) $(addprefix -D,$(BL_DEFINES)) $(addprefix -I,$(BL_INCLUDE_DIRS)))
 $(eval BL_ASFLAGS := $($(4)_ASFLAGS))
 
-$(OBJ): $(2) $(filter-out %.d,$(MAKEFILE_LIST)) | $$$$(@D)/
+$(OBJ): $(2) $(filter-out %.d,$(MAKEFILE_LIST)) | $$$$(@D)/ $(BL_INCLUDE_DIRS:%=%/)
 	$$(s)echo "  AS      $$<"
 	$$(q)$($(ARCH)-as) -x assembler-with-cpp $$(TF_CFLAGS) $$(ASFLAGS) $(BL_CPPFLAGS) $(BL_ASFLAGS) $(call MAKE_DEP,$(DEP),$(OBJ)) -c $$< -o $$@
 
@@ -439,6 +475,8 @@ $(eval BL_DEFINES := IMAGE_$(4) $($(4)_DEFINES))
 $(eval BL_INCLUDE_DIRS := $($(4)_INCLUDE_DIRS))
 $(eval BL_CPPFLAGS := $($(4)_CPPFLAGS) $(addprefix -D,$(BL_DEFINES)) $(addprefix -I,$(BL_INCLUDE_DIRS)))
 $(eval FLAGS := -D__LINKER__ $(BL_CPPFLAGS))
+
+$(1): | $(BL_INCLUDE_DIRS:%=%/)
 
 $(eval $(call MAKE_PRE,$(1),$(2),$(DEP),$(FLAGS)))
 -include $(DEP)
@@ -533,10 +571,6 @@ define linker_script_path
         $(patsubst %.S,$(BUILD_DIR)/%,$(1))
 endef
 
-ifeq ($(USE_ROMLIB),1)
-WRAPPER_FLAGS := @${BUILD_PLAT}/romlib/romlib.ldflags
-endif
-
 # MAKE_BL macro defines the targets and options to build each BL image.
 # Arguments:
 #   $(1) = BL stage
@@ -561,6 +595,7 @@ define MAKE_BL
 
         $(eval LINKER_SCRIPT_SOURCES := $($(BL)_LINKER_SCRIPT_SOURCES))
         $(eval LINKER_SCRIPTS := $(call linker_script_path,$(LINKER_SCRIPT_SOURCES)))
+        $(eval GNU_LINKER_ARGS := $(call ld_prefix,-Map=$(MAPFILE)) $(foreach script,$(LINKER_SCRIPTS) $(DEFAULT_LINKER_SCRIPT), $(call ld_prefix,--script $(script))))
 
 $(eval $(call MAKE_OBJS,$(BUILD_DIR),$(SOURCES),$(1),$(BL)))
 
@@ -586,14 +621,12 @@ ifeq ($($(ARCH)-ld-id),arm-link)
 		--predefine=$(call escape-shell,-DTF_CFLAGS=$(TF_CFLAGS)) \
 		--map --list="$(MAPFILE)" --scatter=${PLAT_DIR}/scat/${1}.scat \
 		$(LDPATHS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS) $(OBJS)
-else ifeq ($($(ARCH)-ld-id),gnu-gcc)
-	$$(q)$($(ARCH)-ld) -o $$@ $$(TF_LDFLAGS) $$(LDFLAGS) $$(WRAPPER_FLAGS) $(BL_LDFLAGS) -Wl,-Map=$(MAPFILE) \
-		$(addprefix -Wl$(comma)--script$(comma),$(LINKER_SCRIPTS)) -Wl,--script,$(DEFAULT_LINKER_SCRIPT) \
-		$(OBJS) $(LDPATHS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS)
 else
-	$$(q)$($(ARCH)-ld) -o $$@ $$(TF_LDFLAGS) $$(LDFLAGS) $$(WRAPPER_FLAGS) $(BL_LDFLAGS) -Map=$(MAPFILE) \
-		$(addprefix -T ,$(LINKER_SCRIPTS)) --script $(DEFAULT_LINKER_SCRIPT) \
-		$(OBJS) $(LDPATHS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS)
+	$$(q)$($(ARCH)-ld) -o $$@ $$(TF_LDFLAGS) $$(LDFLAGS) $(BL_LDFLAGS) \
+		$(GNU_LINKER_ARGS) $(LDPATHS) \
+		$(call ld_prefix,--start-group) \
+			$(OBJS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS) \
+		$(call ld_prefix,--end-group)
 endif
 ifeq ($(DISABLE_BIN_GENERATION),1)
 	$(s)echo

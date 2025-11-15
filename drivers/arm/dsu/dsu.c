@@ -76,9 +76,9 @@ void save_dsu_pmu_state(cluster_pmu_state_t *cluster_pmu_state)
 
 void cluster_off_dsu_pmu_context_save(void)
 {
-	unsigned int cluster_pos;
+	unsigned int cluster_pos = plat_cluster_id_by_mpidr(read_mpidr_el1());
 
-	cluster_pos = (unsigned int) plat_cluster_id_by_mpidr(read_mpidr_el1());
+	assert(cluster_pos < ARRAY_SIZE(cluster_pmu_context));
 
 	save_dsu_pmu_state(&cluster_pmu_context[cluster_pos]);
 }
@@ -128,9 +128,9 @@ void restore_dsu_pmu_state(cluster_pmu_state_t *cluster_pmu_state)
 
 void cluster_on_dsu_pmu_context_restore(void)
 {
-	unsigned int cluster_pos;
+	unsigned int cluster_pos = plat_cluster_id_by_mpidr(read_mpidr_el1());
 
-	cluster_pos = (unsigned int) plat_cluster_id_by_mpidr(read_mpidr_el1());
+	assert(cluster_pos < ARRAY_SIZE(cluster_pmu_context));
 
 	restore_dsu_pmu_state(&cluster_pmu_context[cluster_pos]);
 }
@@ -138,12 +138,20 @@ void cluster_on_dsu_pmu_context_restore(void)
 void dsu_driver_init(const dsu_driver_data_t *plat_driver_data)
 {
 	uint64_t actlr_el3 = read_actlr_el3();
+	uint64_t actlr_el2 = read_actlr_el2();
 	uint64_t pwrctlr = read_clusterpwrctlr_el1();
 	uint64_t pwrdn = read_clusterpwrdn_el1();
+	unsigned int pmmdcr_el3 = read_clusterpmmdcr_el3();
 
-	/* enable access to power control registers. */
-	actlr_el3 |= ACTLR_EL3_PWREN_BIT;
+	/* Prohibit PMU event counting in secure state */
+	pmmdcr_el3 &= ~CLUSTERPMMDCR_SPME;
+	write_clusterpmmdcr_el3(pmmdcr_el3);
+
+	/* enable access to power control and PMU registers. */
+	actlr_el3 |= ACTLR_EL3_PWREN_BIT | ACTLR_CLUSTERPMUEN;
 	write_actlr_el3(actlr_el3);
+	actlr_el2 |= ACTLR_CLUSTERPMUEN;
+	write_actlr_el2(actlr_el2);
 
 	UPDATE_REG_FIELD(CLUSTERPWRCTLR_FUNCRET, pwrctlr,
 			plat_driver_data->clusterpwrctlr_funcret);

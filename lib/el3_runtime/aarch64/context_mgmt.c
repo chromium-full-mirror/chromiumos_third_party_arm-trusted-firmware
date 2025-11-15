@@ -26,9 +26,10 @@
 #include <lib/el3_runtime/pubsub_events.h>
 #include <lib/extensions/amu.h>
 #include <lib/extensions/brbe.h>
+#include <lib/extensions/cpa2.h>
 #include <lib/extensions/debug_v8p9.h>
 #include <lib/extensions/fgt2.h>
-#include <lib/extensions/fpmr.h>
+#include <lib/extensions/idte3.h>
 #include <lib/extensions/mpam.h>
 #include <lib/extensions/pauth.h>
 #include <lib/extensions/pmuv3.h>
@@ -47,7 +48,7 @@
 CASSERT(((TWED_DELAY & ~SCR_TWEDEL_MASK) == 0U), assert_twed_delay_value_check);
 #endif /* ENABLE_FEAT_TWED */
 
-per_world_context_t per_world_context[CPU_DATA_CONTEXT_NUM];
+per_world_context_t per_world_context[CPU_CONTEXT_NUM];
 
 static void manage_extensions_nonsecure(cpu_context_t *ctx);
 static void manage_extensions_secure(cpu_context_t *ctx);
@@ -143,7 +144,7 @@ static void setup_secure_context(cpu_context_t *ctx, const struct entry_point_in
 	 * Initialize EL1 context registers unless SPMC is running
 	 * at S-EL2.
 	 */
-#if (!SPMD_SPM_AT_SEL2)
+#if !CTX_INCLUDE_EL2_REGS || IMAGE_BL1
 	setup_el1_context(ctx, ep);
 #endif
 
@@ -323,6 +324,20 @@ static void setup_ns_context(cpu_context_t *ctx, const struct entry_point_info *
 		 * register.
 		 */
 		scr_el3 |= SCR_EnFPM_BIT;
+	}
+
+	if (is_feat_aie_supported()) {
+		/* Set the AIEn bit in SCR_EL3 to enable access to (A)MAIR2
+		 * system registers from NS world.
+		 */
+		scr_el3 |= SCR_AIEn_BIT;
+	}
+
+	if (is_feat_pfar_supported()) {
+		/* Set the PFAREn bit in SCR_EL3 to enable access to the PFAR
+		 * system registers from NS world.
+		 */
+		scr_el3 |= SCR_PFAREn_BIT;
 	}
 
 	write_ctx_reg(state, CTX_SCR_EL3, scr_el3);
@@ -596,7 +611,11 @@ static void setup_context_common(cpu_context_t *ctx, const entry_point_info_t *e
 
 	pmuv3_enable(ctx);
 
-#if CTX_INCLUDE_EL2_REGS
+	if (is_feat_idte3_supported()) {
+		idte3_enable(ctx);
+	}
+
+#if CTX_INCLUDE_EL2_REGS && IMAGE_BL31
 	/*
 	 * Initialize SCTLR_EL2 context register with reset value.
 	 */
@@ -677,9 +696,13 @@ void cm_setup_context(cpu_context_t *ctx, const entry_point_info_t *ep)
  * registers in-place which are expected to either never change or be
  * overwritten by el3_exit. Expects the core_pos of the current core as argument.
  ******************************************************************************/
-#if IMAGE_BL31
-void cm_manage_extensions_el3(unsigned int my_idx)
+void __no_pauth cm_manage_extensions_el3(unsigned int my_idx)
 {
+	if (is_feat_pauth_supported()) {
+		pauth_init_enable_el3();
+	}
+
+#if IMAGE_BL31
 	if (is_feat_sve_supported()) {
 		sve_init_el3();
 	}
@@ -695,7 +718,17 @@ void cm_manage_extensions_el3(unsigned int my_idx)
 	if (is_feat_fgwte3_supported()) {
 		write_fgwte3_el3(FGWTE3_EL3_EARLY_INIT_VAL);
 	}
+
+	if (is_feat_mpam_supported()) {
+		mpam_init_el3();
+	}
+
+	if (is_feat_cpa2_supported()) {
+		cpa2_enable_el3();
+	}
+
 	pmuv3_init_el3();
+#endif /* IMAGE_BL31 */
 }
 
 /******************************************************************************
@@ -704,27 +737,7 @@ void cm_manage_extensions_el3(unsigned int my_idx)
  ******************************************************************************/
 static void cm_el3_arch_init_per_world(per_world_context_t *per_world_ctx)
 {
-	/*
-	 * Initialise CPTR_EL3, setting all fields rather than relying on hw.
-	 *
-	 * CPTR_EL3.TFP: Set to zero so that accesses to the V- or Z- registers
-	 *  by Advanced SIMD, floating-point or SVE instructions (if
-	 *  implemented) do not trap to EL3.
-	 *
-	 * CPTR_EL3.TCPAC: Set to zero so that accesses to CPACR_EL1,
-	 *  CPTR_EL2,CPACR, or HCPTR do not trap to EL3.
-	 */
-	uint64_t cptr_el3 = CPTR_EL3_RESET_VAL & ~(TCPAC_BIT | TFP_BIT);
-
-	per_world_ctx->ctx_cptr_el3 = cptr_el3;
-
-	/*
-	 * Initialize MPAM3_EL3 to its default reset value
-	 *
-	 * MPAM3_EL3_RESET_VAL sets the MPAM3_EL3.TRAPLOWER bit that forces
-	 * all lower ELn MPAM3_EL3 register access to, trap to EL3
-	 */
-
+	per_world_ctx->ctx_cptr_el3 = CPTR_EL3_RESET_VAL;
 	per_world_ctx->ctx_mpam3_el3 = MPAM3_EL3_RESET_VAL;
 }
 
@@ -737,6 +750,7 @@ static void manage_extensions_nonsecure_per_world(void)
 {
 	cm_el3_arch_init_per_world(&per_world_context[CPU_CONTEXT_NS]);
 
+#if IMAGE_BL31
 	if (is_feat_sme_supported()) {
 		sme_enable_per_world(&per_world_context[CPU_CONTEXT_NS]);
 	}
@@ -757,9 +771,10 @@ static void manage_extensions_nonsecure_per_world(void)
 		mpam_enable_per_world(&per_world_context[CPU_CONTEXT_NS]);
 	}
 
-	if (is_feat_fpmr_supported()) {
-		fpmr_enable_per_world(&per_world_context[CPU_CONTEXT_NS]);
+	if (is_feat_idte3_supported()) {
+		idte3_init_cached_idregs_per_world(CPU_CONTEXT_NS);
 	}
+#endif /* IMAGE_BL31 */
 }
 
 /*******************************************************************************
@@ -771,6 +786,7 @@ static void manage_extensions_secure_per_world(void)
 {
 	cm_el3_arch_init_per_world(&per_world_context[CPU_CONTEXT_SECURE]);
 
+#if IMAGE_BL31
 	if (is_feat_sme_supported()) {
 
 		if (ENABLE_SME_FOR_SWD) {
@@ -807,11 +823,16 @@ static void manage_extensions_secure_per_world(void)
 	if (is_feat_sys_reg_trace_supported()) {
 		sys_reg_trace_disable_per_world(&per_world_context[CPU_CONTEXT_SECURE]);
 	}
+
+	if (is_feat_idte3_supported()) {
+		idte3_init_cached_idregs_per_world(CPU_CONTEXT_SECURE);
+	}
+#endif /* IMAGE_BL31 */
 }
 
 static void manage_extensions_realm_per_world(void)
 {
-#if ENABLE_RME
+#if ENABLE_RME && IMAGE_BL31
 	cm_el3_arch_init_per_world(&per_world_context[CPU_CONTEXT_REALM]);
 
 	if (is_feat_sve_supported()) {
@@ -846,7 +867,11 @@ static void manage_extensions_realm_per_world(void)
 	if (is_feat_mpam_supported()) {
 		mpam_enable_per_world(&per_world_context[CPU_CONTEXT_REALM]);
 	}
-#endif /* ENABLE_RME */
+
+	if (is_feat_idte3_supported()) {
+		idte3_init_cached_idregs_per_world(CPU_CONTEXT_REALM);
+	}
+#endif /* ENABLE_RME && IMAGE_BL31 */
 }
 
 void cm_manage_extensions_per_world(void)
@@ -855,7 +880,19 @@ void cm_manage_extensions_per_world(void)
 	manage_extensions_secure_per_world();
 	manage_extensions_realm_per_world();
 }
+
+void cm_init_percpu_once_regs(void)
+{
+#if IMAGE_BL31
+	if (is_feat_idte3_supported()) {
+		idte3_init_percpu_once_regs(CPU_CONTEXT_NS);
+		idte3_init_percpu_once_regs(CPU_CONTEXT_SECURE);
+#if ENABLE_RME
+		idte3_init_percpu_once_regs(CPU_CONTEXT_REALM);
+#endif /* ENABLE_RME */
+	}
 #endif /* IMAGE_BL31 */
+}
 
 /*******************************************************************************
  * Enable architecture extensions on first entry to Non-secure world.
@@ -1183,7 +1220,7 @@ void cm_prepare_el3_exit(size_t security_state)
 			write_fgwte3_el3(FGWTE3_EL3_LATE_INIT_VAL);
 		}
 	}
-#if (!CTX_INCLUDE_EL2_REGS)
+#if !CTX_INCLUDE_EL2_REGS || IMAGE_BL1
 	/* Restore EL1 system registers, only when CTX_INCLUDE_EL2_REGS=0 */
 	cm_el1_sysregs_context_restore(security_state);
 #endif
@@ -1546,12 +1583,12 @@ void cm_el2_sysregs_context_save(uint32_t security_state)
 		write_el2_ctx_tcr2(el2_sysregs_ctx, tcr2_el2, read_tcr2_el2());
 	}
 
-	if (is_feat_sxpie_supported()) {
+	if (is_feat_s1pie_supported()) {
 		write_el2_ctx_sxpie(el2_sysregs_ctx, pire0_el2, read_pire0_el2());
 		write_el2_ctx_sxpie(el2_sysregs_ctx, pir_el2, read_pir_el2());
 	}
 
-	if (is_feat_sxpoe_supported()) {
+	if (is_feat_s1poe_supported()) {
 		write_el2_ctx_sxpoe(el2_sysregs_ctx, por_el2, read_por_el2());
 	}
 
@@ -1641,12 +1678,12 @@ void cm_el2_sysregs_context_restore(uint32_t security_state)
 		write_tcr2_el2(read_el2_ctx_tcr2(el2_sysregs_ctx, tcr2_el2));
 	}
 
-	if (is_feat_sxpie_supported()) {
+	if (is_feat_s1pie_supported()) {
 		write_pire0_el2(read_el2_ctx_sxpie(el2_sysregs_ctx, pire0_el2));
 		write_pir_el2(read_el2_ctx_sxpie(el2_sysregs_ctx, pir_el2));
 	}
 
-	if (is_feat_sxpoe_supported()) {
+	if (is_feat_s1poe_supported()) {
 		write_por_el2(read_el2_ctx_sxpoe(el2_sysregs_ctx, por_el2));
 	}
 
@@ -1743,14 +1780,15 @@ static void el1_sysregs_context_save(el1_sysregs_t *ctx)
 		write_el1_ctx_aarch32(ctx, ifsr32_el2, read_ifsr32_el2());
 	}
 
-	if (NS_TIMER_SWITCH) {
-		/* Save NS Timer registers */
-		write_el1_ctx_arch_timer(ctx, cntp_ctl_el0, read_cntp_ctl_el0());
-		write_el1_ctx_arch_timer(ctx, cntp_cval_el0, read_cntp_cval_el0());
-		write_el1_ctx_arch_timer(ctx, cntv_ctl_el0, read_cntv_ctl_el0());
-		write_el1_ctx_arch_timer(ctx, cntv_cval_el0, read_cntv_cval_el0());
-		write_el1_ctx_arch_timer(ctx, cntkctl_el1, read_cntkctl_el1());
-	}
+	/* Save counter-timer kernel control register */
+	write_el1_ctx_arch_timer(ctx, cntkctl_el1, read_cntkctl_el1());
+#if NS_TIMER_SWITCH
+	/* Save NS Timer registers */
+	write_el1_ctx_arch_timer(ctx, cntp_ctl_el0, read_cntp_ctl_el0());
+	write_el1_ctx_arch_timer(ctx, cntp_cval_el0, read_cntp_cval_el0());
+	write_el1_ctx_arch_timer(ctx, cntv_ctl_el0, read_cntv_ctl_el0());
+	write_el1_ctx_arch_timer(ctx, cntv_cval_el0, read_cntv_cval_el0());
+#endif
 
 	if (is_feat_mte2_supported()) {
 		write_el1_ctx_mte2(ctx, tfsre0_el1, read_tfsre0_el1());
@@ -1851,14 +1889,15 @@ static void el1_sysregs_context_restore(el1_sysregs_t *ctx)
 		write_ifsr32_el2(read_el1_ctx_aarch32(ctx, ifsr32_el2));
 	}
 
-	if (NS_TIMER_SWITCH) {
-		/* Restore NS Timer registers */
-		write_cntp_ctl_el0(read_el1_ctx_arch_timer(ctx, cntp_ctl_el0));
-		write_cntp_cval_el0(read_el1_ctx_arch_timer(ctx, cntp_cval_el0));
-		write_cntv_ctl_el0(read_el1_ctx_arch_timer(ctx, cntv_ctl_el0));
-		write_cntv_cval_el0(read_el1_ctx_arch_timer(ctx, cntv_cval_el0));
-		write_cntkctl_el1(read_el1_ctx_arch_timer(ctx, cntkctl_el1));
-	}
+	/* Restore counter-timer kernel control register */
+	write_cntkctl_el1(read_el1_ctx_arch_timer(ctx, cntkctl_el1));
+#if NS_TIMER_SWITCH
+	/* Restore NS Timer registers */
+	write_cntp_ctl_el0(read_el1_ctx_arch_timer(ctx, cntp_ctl_el0));
+	write_cntp_cval_el0(read_el1_ctx_arch_timer(ctx, cntp_cval_el0));
+	write_cntv_ctl_el0(read_el1_ctx_arch_timer(ctx, cntv_ctl_el0));
+	write_cntv_cval_el0(read_el1_ctx_arch_timer(ctx, cntv_cval_el0));
+#endif
 
 	if (is_feat_mte2_supported()) {
 		write_tfsre0_el1(read_el1_ctx_mte2(ctx, tfsre0_el1));

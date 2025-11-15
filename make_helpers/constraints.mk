@@ -8,10 +8,16 @@ ifneq ($(AARCH32_INSTRUCTION_SET),$(filter $(AARCH32_INSTRUCTION_SET),A32 T32))
          $(error Error: Unknown AArch32 instruction set ${AARCH32_INSTRUCTION_SET})
 endif
 
-ifneq (${ENABLE_RME},0)
+# Make sure RME configuration is valid
+ifeq (${ENABLE_RME},1)
+	ifneq (${SEPARATE_CODE_AND_RODATA},1)
+                $(error ENABLE_RME requires SEPARATE_CODE_AND_RODATA)
+	endif
+
 	ifneq (${ARCH},aarch64)
                 $(error ENABLE_RME requires AArch64)
 	endif
+
 	ifeq ($(SPMC_AT_EL3),1)
                 $(error SPMC_AT_EL3 and ENABLE_RME cannot both be enabled.)
 	endif
@@ -20,6 +26,10 @@ ifneq (${ENABLE_RME},0)
 		ifneq (${SPD}, spmd)
                         $(error ENABLE_RME is incompatible with SPD=${SPD}. Use SPD=spmd)
 		endif
+	endif
+else
+	ifeq (${ENABLE_FEAT_RME_GDI},1)
+                $(error ENABLE_FEAT_RME_GDI requires ENABLE_RME)
 	endif
 endif
 
@@ -197,14 +207,6 @@ ifneq (${ARCH},aarch64)
         $(error ENABLE_FEAT_PAUTH_LR requires AArch64)
 endif
 
-# Currently, FEAT_PAUTH_LR is only supported by arm/clang compilers
-# TODO implement for GCC when support is added
-ifeq ($($(ARCH)-cc-id),arm-clang)
-        arch-features	:= $(arch-features)+pauth-lr
-else
-        $(error Error: ENABLE_FEAT_PAUTH_LR not supported for GCC compiler)
-endif
-
 endif # ${ENABLE_FEAT_PAUTH_LR}
 
 ifeq ($(FEATURE_DETECTION),1)
@@ -238,6 +240,13 @@ endif #(DECRYPTION_SUPPORT)
 ifeq (${ARCH},aarch32)
         ifneq (${ENABLE_LTO},0)
                 $(error "ENABLE_LTO is not supported with ARCH=aarch32")
+        endif
+        ifneq (${EL3_EXCEPTION_HANDLING},0)
+                $(error "EL3_EXCEPTION_HANDLING is not supported outside BL31")
+        endif
+
+        ifeq (${CRASH_REPORTING},1)
+                $(error "CRASH_REPORTING is not supported with ARCH=aarch32")
         endif
 
 	# SME/SVE only supported on AArch64
@@ -274,6 +283,12 @@ ifeq (${ARCH},aarch32)
 	ifneq (${ENABLE_FEAT_GCIE},0)
                 $(error "ENABLE_FEAT_GCIE cannot be used with ARCH=aarch32")
 	endif
+	ifneq (${ENABLE_FEAT_CPA2},0)
+                $(error "ENABLE_FEAT_CPA2 cannot be used with ARCH=aarch32")
+	endif
+	ifneq (${PLATFORM_NODE_COUNT},1)
+                $(error "NUMA AWARE PER CPU is not supported with ARCH=aarch32")
+	endif
 endif #(ARCH=aarch32)
 
 ifneq (${ENABLE_FEAT_FPMR},0)
@@ -284,6 +299,12 @@ ifneq (${ENABLE_FEAT_FPMR},0)
                 $(error "ENABLE_FEAT_FPMR requires ENABLE_FEAT_HCX")
 	endif
 endif #(ENABLE_FEAT_FPMR)
+
+ifneq (${ENABLE_FEAT_CPA2},0)
+	ifeq (${ENABLE_FEAT_SCTLR2},0)
+                $(error "Error: ENABLE_FEAT_CPA2 cannot be used without ENABLE_FEAT_SCTLR2")
+	endif
+endif #${ENABLE_FEAT_CPA2}
 
 ifneq (${ENABLE_SME_FOR_NS},0)
 	ifeq (${ENABLE_SVE_FOR_NS},0)
@@ -374,12 +395,6 @@ ifeq (${TRANSFER_LIST},1)
         $(info TRANSFER_LIST is an experimental feature)
 endif
 
-ifeq (${ENABLE_RME},1)
-	ifneq (${SEPARATE_CODE_AND_RODATA},1)
-                $(error `ENABLE_RME=1` requires `SEPARATE_CODE_AND_RODATA=1`)
-	endif
-endif
-
 ifeq ($(PSA_CRYPTO),1)
         $(info PSA_CRYPTO is an experimental feature)
 endif
@@ -391,3 +406,29 @@ endif
 ifeq (${LFA_SUPPORT},1)
         $(warning LFA_SUPPORT is an experimental feature)
 endif #(LFA_SUPPORT)
+
+ifneq (${ENABLE_FEAT_MPAM_PE_BW_CTRL},0)
+        ifeq (${ENABLE_FEAT_MPAM},0)
+                $(error "ENABLE_FEAT_MPAM_PW_BW_CTRL requires ENABLE_FEAT_MPAM")
+        endif
+endif #(ENABLE_FEAT_MPAM_PE_BW_CTRL)
+
+ifneq (${DYNAMIC_WORKAROUND_CVE_2018_3639},0)
+        ifeq (${WORKAROUND_CVE_2018_3639},0)
+                $(error Error: WORKAROUND_CVE_2018_3639 must be 1 if DYNAMIC_WORKAROUND_CVE_2018_3639 is 1)
+        endif
+endif
+
+# Handle all deprecated build options.
+ifeq (${ERROR_DEPRECATED}, 1)
+    ifneq (${NS_TIMER_SWITCH},0)
+        $(error "NS_TIMER_SWITCH breaks Linux preemption model, hence deprecated")
+    endif
+    ifneq (${SPM_MM},0)
+        $(error "SPM_MM build option is deprecated")
+    endif
+endif
+
+ifneq (${ENABLE_FEAT_IDTE3},0)
+        $(info FEAT_IDTE3 is an experimental feature)
+endif #(ENABLE_FEAT_IDTE3)

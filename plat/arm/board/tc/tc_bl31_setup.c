@@ -82,7 +82,6 @@ const dsu_driver_data_t plat_dsu_data = {
 	.clusterpwrctlr_funcret = CLUSTERPWRCTLR_FUNCRET_RESET
 };
 
-#if (TARGET_PLATFORM == 3) || (TARGET_PLATFORM == 4)
 static void enable_ns_mcn_pmu(void)
 {
 	/*
@@ -94,7 +93,6 @@ static void enable_ns_mcn_pmu(void)
 		mmio_setbits_32(mcn_scr, 1 << MCN_SCR_PMU_BIT);
 	}
 }
-#endif	/* (TARGET_PLATFORM == 3) || (TARGET_PLATFORM == 4) */
 
 #if TARGET_PLATFORM == 3
 static void set_mcn_slc_alloc_mode(void)
@@ -127,9 +125,7 @@ void bl31_platform_setup(void)
 	psa_status_t status;
 
 	tc_bl31_common_platform_setup();
-#if (TARGET_PLATFORM == 3) || (TARGET_PLATFORM == 4)
 	enable_ns_mcn_pmu();
-#endif	/* (TARGET_PLATFORM == 3) || (TARGET_PLATFORM == 4) */
 #if TARGET_PLATFORM == 3
 	set_mcn_slc_alloc_mode();
 	plat_arm_ni_setup(NCI_BASE_ADDR);
@@ -190,6 +186,8 @@ static __dead2 void tc_run_platform_tests(void)
 void tc_bl31_common_platform_setup(void)
 {
 	arm_bl31_platform_setup();
+
+	gic_set_gicr_frames(arm_gicr_base_addrs);
 
 #ifdef PLATFORM_TESTS
 	tc_run_platform_tests();

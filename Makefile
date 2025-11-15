@@ -31,6 +31,11 @@ include ${MAKE_HELPERS_DIRECTORY}common.mk
 ################################################################################
 
 include ${MAKE_HELPERS_DIRECTORY}defaults.mk
+# Include the CPU specific operations makefile, which provides default
+# values for all CPU errata workarounds and CPU specific optimisations.
+# This can be overridden by the platform.
+include lib/cpus/cpu-ops.mk
+
 PLAT				:= ${DEFAULT_PLAT}
 include ${MAKE_HELPERS_DIRECTORY}plat_helpers.mk
 
@@ -59,7 +64,7 @@ INC_DRV_DIRS_TO_CHECK	:=	$(sort $(filter-out			\
 					include/drivers/arm,		\
 					$(wildcard include/drivers/*)))
 INC_LIB_DIRS_TO_CHECK	:=	$(sort $(filter-out			\
-					include/lib/libfdt		\
+					lib/libfdt		\
 					include/lib/libc,		\
 					$(wildcard include/lib/*)))
 INC_DIRS_TO_CHECK	:=	$(sort $(filter-out			\
@@ -317,22 +322,15 @@ ifneq (${ENABLE_PAUTH},0)
 # Pauth support. As it's not secure, it must be reimplemented for real platforms
 	BL_COMMON_SOURCES	+=	lib/extensions/pauth/pauth.c
 endif
-#
-ifneq (${ENABLE_FEAT_PAUTH_LR},0)
-# Currently, FEAT_PAUTH_LR is only supported by arm/clang compilers
-# TODO implement for GCC when support is added
-ifeq ($($(ARCH)-cc-id),arm-clang)
-	arch-features	:= $(arch-features)+pauth-lr
-else
-	$(error Error: ENABLE_FEAT_PAUTH_LR not supported for GCC compiler)
-endif
-endif
 
 ################################################################################
 # RME dependent flags configuration, Enable optional features for RME.
 ################################################################################
 # FEAT_RME
 ifeq (${ENABLE_RME},1)
+	# RMM relies on SMCCC_ARCH_FEATURE_AVAILABILITY to discover EL3 enablement
+	ARCH_FEATURE_AVAILABILITY := 1
+
 	# RME requires el2 context to be saved for now.
 	CTX_INCLUDE_EL2_REGS := 1
 	CTX_INCLUDE_AARCH32_REGS := 0
@@ -386,10 +384,12 @@ else
 	FFH_SUPPORT := 0
 endif
 
-# Include the CPU specific operations makefile, which provides default
-# values for all CPU errata workarounds and CPU specific optimisations.
-# This can be overridden by the platform.
-include lib/cpus/cpu-ops.mk
+ifneq ($(filter 1,${ERRATA_A53_1530924} ${ERRATA_A55_1530923}	\
+        ${ERRATA_A57_1319537} ${ERRATA_A72_1319367} ${ERRATA_A76_1165522}),)
+ERRATA_SPECULATIVE_AT	:= 1
+else
+ERRATA_SPECULATIVE_AT	:= 0
+endif
 
 ################################################################################
 # Build `AARCH32_SP` as BL32 image for AArch32
@@ -428,8 +428,9 @@ include ${MAKE_HELPERS_DIRECTORY}constraints.mk
 # The cert_create tool cannot generate certificates individually, so we use the
 # target 'certificates' to create them all
 ifneq (${GENERATE_COT},0)
-        FIP_DEPS += certificates
-        FWU_FIP_DEPS += fwu_certificates
+    FIP_DEPS += certificates
+    FWU_FIP_DEPS += fwu_certificates
+    BL2_FIP_DEPS += bl2_certificates
 endif
 
 ifneq (${DECRYPTION_SUPPORT},none)
@@ -438,27 +439,8 @@ ifneq (${DECRYPTION_SUPPORT},none)
 	ENC_ARGS += -n ${ENC_NONCE}
 	FIP_DEPS += enctool
 	FWU_FIP_DEPS += enctool
+	BL2_FIP_DEPS += enctool
 endif #(DECRYPTION_SUPPORT)
-
-ifeq ($(MEASURED_BOOT)-$(TRUSTED_BOARD_BOOT),1-1)
-# Support authentication verification and hash calculation
-	CRYPTO_SUPPORT := 3
-else ifeq ($(DRTM_SUPPORT)-$(TRUSTED_BOARD_BOOT),1-1)
-# Support authentication verification and hash calculation
-	CRYPTO_SUPPORT := 3
-else ifneq ($(filter 1,${MEASURED_BOOT} ${DRTM_SUPPORT}),)
-# Support hash calculation only
-	CRYPTO_SUPPORT := 2
-else ifeq (${TRUSTED_BOARD_BOOT},1)
-# Support authentication verification only
-	CRYPTO_SUPPORT := 1
-else
-	CRYPTO_SUPPORT := 0
-endif #($(MEASURED_BOOT)-$(TRUSTED_BOARD_BOOT))
-
-ifneq ($(filter 1 2 3,$(CRYPTO_SUPPORT)),)
-CRYPTO_LIB := $(BUILD_PLAT)/lib/libmbedtls.a
-endif
 
 ################################################################################
 # Process platform overrideable behaviour
@@ -510,19 +492,21 @@ endif #(ARCH=aarch64)
 
 # Process TBB related flags
 ifneq (${GENERATE_COT},0)
-	# Common cert_create options
-	ifneq (${CREATE_KEYS},0)
-                $(eval CRT_ARGS += -n)
-                $(eval FWU_CRT_ARGS += -n)
-		ifneq (${SAVE_KEYS},0)
-                        $(eval CRT_ARGS += -k)
-                        $(eval FWU_CRT_ARGS += -k)
-		endif
-	endif
-	# Include TBBR makefile (unless the platform indicates otherwise)
-	ifeq (${INCLUDE_TBBR_MK},1)
-                include make_helpers/tbbr/tbbr_tools.mk
-	endif
+    # Common cert_create options
+    ifneq (${CREATE_KEYS},0)
+        $(eval CRT_ARGS += -n)
+        $(eval FWU_CRT_ARGS += -n)
+        $(eval BL2_CRT_ARGS += -n)
+        ifneq (${SAVE_KEYS},0)
+            $(eval CRT_ARGS += -k)
+            $(eval FWU_CRT_ARGS += -k)
+            $(eval BL2_CRT_ARGS += -k)
+        endif
+    endif
+    # Include TBBR makefile (unless the platform indicates otherwise)
+    ifeq (${INCLUDE_TBBR_MK},1)
+        include make_helpers/tbbr/tbbr_tools.mk
+    endif
 endif #(GENERATE_COT)
 
 ifneq (${FIP_ALIGN},0)
@@ -569,6 +553,7 @@ $(eval $(call assert_booleans,\
 	ALLOW_RO_XLAT_TABLES \
 	BL2_ENABLE_SP_LOAD \
 	COLD_BOOT_SINGLE_CPU \
+	$(CPU_FLAG_LIST) \
 	CREATE_KEYS \
 	CTX_INCLUDE_AARCH32_REGS \
 	CTX_INCLUDE_FPREGS \
@@ -606,6 +591,7 @@ $(eval $(call assert_booleans,\
 	NS_TIMER_SWITCH \
 	OVERRIDE_LIBC \
 	PL011_GENERIC_UART \
+	PLAT_EXTRA_LD_SCRIPT \
 	PROGRAMMABLE_RESET_ADDRESS \
 	PSCI_EXTENDED_STATE_ID \
 	PSCI_OS_INIT_MODE \
@@ -672,30 +658,35 @@ $(eval $(call assert_numerics,\
 	BRANCH_PROTECTION \
 	CTX_INCLUDE_PAUTH_REGS \
 	CTX_INCLUDE_NEVE_REGS \
-	CRYPTO_SUPPORT \
 	DISABLE_MTPMU \
 	ENABLE_BRBE_FOR_NS \
 	ENABLE_TRBE_FOR_NS \
 	ENABLE_BTI \
 	ENABLE_PAUTH \
 	ENABLE_FEAT_PAUTH_LR \
+	ENABLE_FEAT_AIE \
 	ENABLE_FEAT_AMU \
 	ENABLE_FEAT_AMUv1p1 \
+	ENABLE_FEAT_CLRBHB \
+	ENABLE_FEAT_CPA2 \
 	ENABLE_FEAT_CSV2_2 \
 	ENABLE_FEAT_CSV2_3 \
 	ENABLE_FEAT_DEBUGV8P9 \
 	ENABLE_FEAT_DIT \
 	ENABLE_FEAT_ECV \
+	ENABLE_FEAT_EBEP \
 	ENABLE_FEAT_FGT \
 	ENABLE_FEAT_FGT2 \
 	ENABLE_FEAT_FGWTE3 \
 	ENABLE_FEAT_FPMR \
 	ENABLE_FEAT_HCX \
+	ENABLE_FEAT_IDTE3 \
 	ENABLE_FEAT_LS64_ACCDATA \
 	ENABLE_FEAT_MEC \
 	ENABLE_FEAT_MOPS \
 	ENABLE_FEAT_MTE2 \
 	ENABLE_FEAT_PAN \
+	ENABLE_FEAT_PFAR \
 	ENABLE_FEAT_RNG \
 	ENABLE_FEAT_RNG_TRAP \
 	ENABLE_FEAT_SEL2 \
@@ -708,9 +699,11 @@ $(eval $(call assert_numerics,\
 	ENABLE_FEAT_S1POE \
 	ENABLE_FEAT_SCTLR2 \
 	ENABLE_FEAT_D128 \
+	ENABLE_FEAT_RME_GDI \
 	ENABLE_FEAT_GCS \
 	ENABLE_FEAT_VHE \
 	ENABLE_FEAT_MPAM \
+	ENABLE_FEAT_MPAM_PE_BW_CTRL \
 	ENABLE_RME \
 	ENABLE_SPE_FOR_NS \
 	ENABLE_SYS_REG_TRACE_FOR_NS \
@@ -721,6 +714,7 @@ $(eval $(call assert_numerics,\
 	FW_ENC_STATUS \
 	NR_OF_FW_BANKS \
 	NR_OF_IMAGES_IN_FW_BANK \
+	SPMC_AT_EL3_PARTITION_MAX_UUIDS \
 	TWED_DELAY \
 	ENABLE_FEAT_TWED \
 	SVE_VECTOR_LEN \
@@ -749,6 +743,7 @@ $(eval $(call add_defines,\
 	ARM_ARCH_MINOR \
 	BL2_ENABLE_SP_LOAD \
 	COLD_BOOT_SINGLE_CPU \
+	$(CPU_FLAG_LIST) \
 	CTX_INCLUDE_AARCH32_REGS \
 	CTX_INCLUDE_FPREGS \
 	CTX_INCLUDE_SVE_REGS \
@@ -766,7 +761,9 @@ $(eval $(call add_defines,\
 	ENABLE_ASSERTIONS \
 	ENABLE_BTI \
 	ENABLE_FEAT_DEBUGV8P9 \
+	ENABLE_FEAT_IDTE3 \
 	ENABLE_FEAT_MPAM \
+	ENABLE_FEAT_MPAM_PE_BW_CTRL \
 	ENABLE_PAUTH \
 	ENABLE_FEAT_PAUTH_LR \
 	ENABLE_PIE \
@@ -797,7 +794,9 @@ $(eval $(call add_defines,\
 	DICE_PROTECTION_ENVIRONMENT \
 	DRTM_SUPPORT \
 	NS_TIMER_SWITCH \
+	PLATFORM_NODE_COUNT \
 	PL011_GENERIC_UART \
+	PLAT_EXTRA_LD_SCRIPT \
 	PLAT_${PLAT} \
 	PROGRAMMABLE_RESET_ADDRESS \
 	PSCI_EXTENDED_STATE_ID \
@@ -807,6 +806,7 @@ $(eval $(call add_defines,\
 	RME_GPT_BITLOCK_BLOCK \
 	RME_GPT_MAX_BLOCK \
 	SEPARATE_CODE_AND_RODATA \
+	SEPARATE_BL2_FIP \
 	SEPARATE_BL2_NOLOAD_REGION \
 	SEPARATE_NOBITS_REGION \
 	SEPARATE_RWDATA_REGION \
@@ -816,11 +816,11 @@ $(eval $(call add_defines,\
 	SPIN_ON_BL1_EXIT \
 	SPM_MM \
 	SPMC_AT_EL3 \
+	SPMC_AT_EL3_PARTITION_MAX_UUIDS \
 	SPMC_AT_EL3_SEL0_SP \
 	SPMD_SPM_AT_SEL2 \
 	TRANSFER_LIST \
 	TRUSTED_BOARD_BOOT \
-	CRYPTO_SUPPORT \
 	TRNG_SUPPORT \
 	ERRATA_ABI_SUPPORT \
 	ERRATA_NON_ARM_INTERCONNECT \
@@ -855,6 +855,7 @@ $(eval $(call add_defines,\
 	ENABLE_TRBE_FOR_NS \
 	ENABLE_SYS_REG_TRACE_FOR_NS \
 	ENABLE_TRF_FOR_NS \
+	ENABLE_FEAT_AIE \
 	ENABLE_FEAT_HCX \
 	ENABLE_MPMM \
 	ENABLE_FEAT_FGT \
@@ -862,9 +863,12 @@ $(eval $(call add_defines,\
 	ENABLE_FEAT_FGWTE3 \
 	ENABLE_FEAT_FPMR \
 	ENABLE_FEAT_ECV \
+	ENABLE_FEAT_EBEP \
 	ENABLE_FEAT_AMUv1p1 \
 	ENABLE_FEAT_SEL2 \
 	ENABLE_FEAT_VHE \
+	ENABLE_FEAT_CLRBHB \
+	ENABLE_FEAT_CPA2 \
 	ENABLE_FEAT_CSV2_2 \
 	ENABLE_FEAT_CSV2_3 \
 	ENABLE_FEAT_LS64_ACCDATA \
@@ -878,10 +882,12 @@ $(eval $(call add_defines,\
 	ENABLE_FEAT_S1POE \
 	ENABLE_FEAT_SCTLR2 \
 	ENABLE_FEAT_D128 \
+	ENABLE_FEAT_RME_GDI \
 	ENABLE_FEAT_GCS \
 	ENABLE_FEAT_MOPS \
 	ENABLE_FEAT_GCIE \
 	ENABLE_FEAT_MTE2 \
+	ENABLE_FEAT_PFAR \
 	FEATURE_DETECTION \
 	TWED_DELAY \
 	ENABLE_FEAT_TWED \
@@ -896,6 +902,7 @@ $(eval $(call add_defines,\
 	EARLY_CONSOLE \
 	PRESERVE_DSU_PMU_REGS \
 	HOB_LIST \
+	HW_CONFIG_BASE \
 	LFA_SUPPORT \
 )))
 
@@ -976,8 +983,13 @@ endif
 
 BL2_SOURCES := $(sort ${BL2_SOURCES})
 
-$(if ${BL2}, $(eval $(call TOOL_ADD_IMG,bl2,--${FIP_BL2_ARGS})),\
+ifeq (${SEPARATE_BL2_FIP},1)
+$(if ${BL2}, $(eval $(call TOOL_ADD_IMG,bl2,--${FIP_BL2_ARGS},BL2_)), \
+	$(eval $(call MAKE_BL,bl2,${FIP_BL2_ARGS},BL2_)))
+else
+$(if ${BL2}, $(eval $(call TOOL_ADD_IMG,bl2,--${FIP_BL2_ARGS})), \
 	$(eval $(call MAKE_BL,bl2,${FIP_BL2_ARGS})))
+endif #(SEPARATE_BL2_FIP)
 
 endif #(NEED_BL2)
 
@@ -1132,7 +1144,7 @@ checkpatch:		locate-checkpatch
 
 certtool: ${CRTTOOL}
 
-${CRTTOOL}: FORCE
+${CRTTOOL}: FORCE | $$(@D)/
 	$(q)${MAKE} PLAT=${PLAT} BUILD_PLAT=$(abspath ${BUILD_PLAT}) USE_TBBR_DEFS=${USE_TBBR_DEFS} COT=${COT} OPENSSL_DIR=${OPENSSL_DIR} DEBUG=${DEBUG} --no-print-directory -C ${CRTTOOLPATH} all
 	$(q)ln -sf ${CRTTOOL} ${CRTTOOLPATH}/cert_create
 	$(s)echo
@@ -1148,7 +1160,17 @@ certificates: ${CRT_DEPS} ${CRTTOOL} ${DTBS}
 	$(s)echo
 endif #(GENERATE_COT)
 
-${BUILD_PLAT}/${FIP_NAME}: ${FIP_DEPS} ${FIPTOOL}
+ifeq (${SEPARATE_BL2_FIP},1)
+${BUILD_PLAT}/${BL2_FIP_NAME}: ${BL2_FIP_DEPS} ${FIPTOOL} | $$(@D)/
+	$(eval ${CHECK_BL2_FIP_CMD})
+	$(q)${FIPTOOL} create ${BL2_FIP_ARGS} $@
+	$(q)${FIPTOOL} info $@
+	$(s)echo
+	$(s)echo "Built $@ successfully"
+	$(s)echo
+endif #(SEPARATE_BL2_FIP)
+
+${BUILD_PLAT}/${FIP_NAME}: ${FIP_DEPS} ${FIPTOOL} | $$(@D)/
 	$(eval ${CHECK_FIP_CMD})
 	$(q)${FIPTOOL} create ${FIP_ARGS} $@
 	$(q)${FIPTOOL} info $@
@@ -1165,7 +1187,16 @@ fwu_certificates: ${FWU_CRT_DEPS} ${CRTTOOL}
 	$(s)echo
 endif #(GENERATE_COT)
 
-${BUILD_PLAT}/${FWU_FIP_NAME}: ${FWU_FIP_DEPS} ${FIPTOOL}
+ifneq (${GENERATE_COT},0)
+bl2_certificates: ${BUILD_PLAT}/${FIP_NAME} ${BL2_CRT_DEPS} ${CRTTOOL} | ${BUILD_PLAT}/
+	$(q)${CRTTOOL} ${BL2_CRT_ARGS}
+	$(s)echo
+	$(s)echo "Built $@ successfully"
+	$(s)echo "BL2 certificates can be found in ${BUILD_PLAT}"
+	$(s)echo
+endif #(GENERATE_COT)
+
+${BUILD_PLAT}/${FWU_FIP_NAME}: ${FWU_FIP_DEPS} ${FIPTOOL} | $$(@D)/
 	$(eval ${CHECK_FWU_FIP_CMD})
 	$(q)${FIPTOOL} create ${FWU_FIP_ARGS} $@
 	$(q)${FIPTOOL} info $@
@@ -1174,23 +1205,28 @@ ${BUILD_PLAT}/${FWU_FIP_NAME}: ${FWU_FIP_DEPS} ${FIPTOOL}
 	$(s)echo
 
 fiptool: ${FIPTOOL}
+ifeq (${SEPARATE_BL2_FIP},1)
+bl2_fip: ${BUILD_PLAT}/${BL2_FIP_NAME}
+fip: bl2_fip
+else
 fip: ${BUILD_PLAT}/${FIP_NAME}
+endif #(SEPARATE_BL2_FIP)
 fwu_fip: ${BUILD_PLAT}/${FWU_FIP_NAME}
 
 # symlink for compatibility before tools were in the build directory
-${FIPTOOL}: FORCE
+${FIPTOOL}: FORCE | $$(@D)/
 	$(q)${MAKE} PLAT=${PLAT} BUILD_PLAT=$(abspath ${BUILD_PLAT}) CPPFLAGS="-DVERSION='\"${VERSION_STRING}\"'" OPENSSL_DIR=${OPENSSL_DIR} DEBUG=${DEBUG} --no-print-directory -C ${FIPTOOLPATH} all
 	$(q)ln -sf ${FIPTOOL} ${FIPTOOLPATH}/fiptool
 
-$(BUILD_PLAT)/romlib/romlib.bin $(BUILD_PLAT)/lib/libwrappers.a $&: $(BUILD_PLAT)/lib/libfdt.a $(BUILD_PLAT)/lib/libc.a $(CRYPTO_LIB)
-	$(q)${MAKE} PLAT_DIR=${PLAT_DIR} BUILD_PLAT=${BUILD_PLAT} ENABLE_BTI=${ENABLE_BTI} CRYPTO_SUPPORT=${CRYPTO_SUPPORT} ARM_ARCH_MINOR=${ARM_ARCH_MINOR} INCLUDES=$(call escape-shell,$(INCLUDES)) DEFINES=$(call escape-shell,$(DEFINES)) --no-print-directory -C ${ROMLIBPATH} all
+$(BUILD_PLAT)/romlib/romlib.bin $(BUILD_PLAT)/lib/libwrappers.a $&: $(BUILD_PLAT)/lib/libfdt.a $(BUILD_PLAT)/lib/libc.a $(CRYPTO_LIB) | $$(@D)/
+	$(q)${MAKE} PLAT_DIR=${PLAT_DIR} BUILD_PLAT=${BUILD_PLAT} ENABLE_BTI=${ENABLE_BTI} CRYPTO_LIB=$(CRYPTO_LIB) ARM_ARCH_MINOR=${ARM_ARCH_MINOR} INCLUDES=$(call escape-shell,$(INCLUDES)) DEFINES=$(call escape-shell,$(DEFINES)) --no-print-directory -C ${ROMLIBPATH} all
 
 memmap: all
 	$(if $(host-poetry),$(q)poetry -q install --no-root)
 	$(q)$(if $(host-poetry),poetry run )memory --root ${BUILD_PLAT} symbols
 
 tl: ${BUILD_PLAT}/tl.bin
-${BUILD_PLAT}/tl.bin: ${HW_CONFIG}
+${BUILD_PLAT}/tl.bin: ${HW_CONFIG} | $$(@D)/
 	$(if $(host-poetry),$(q)poetry -q install --no-root)
 	$(q)$(if $(host-poetry),poetry run )tlc create --fdt $< -s ${FW_HANDOFF_SIZE} $@
 
@@ -1201,7 +1237,7 @@ doc:
 
 enctool: ${ENCTOOL}
 
-${ENCTOOL}: FORCE
+${ENCTOOL}: FORCE | $$(@D)/
 	$(q)${MAKE} PLAT=${PLAT} BUILD_PLAT=$(abspath ${BUILD_PLAT}) BUILD_INFO=0 OPENSSL_DIR=${OPENSSL_DIR} DEBUG=${DEBUG} --no-print-directory -C ${ENCTOOLPATH} all
 	$(s)echo
 	$(s)echo "Built $@ successfully"

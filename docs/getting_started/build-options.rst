@@ -284,32 +284,6 @@ Common build options
    builds, but this behaviour can be overridden in each platform's Makefile or
    in the build command line.
 
--  ``ENABLE_FEAT``
-   The Arm architecture defines several architecture extension features,
-   named FEAT_xxx in the architecure manual. Some of those features require
-   setup code in higher exception levels, other features might be used by TF-A
-   code itself.
-   Most of the feature flags defined in the TF-A build system permit to take
-   the values 0, 1 or 2, with the following meaning:
-
-   ::
-
-     ENABLE_FEAT_* = 0: Feature is disabled statically at compile time.
-     ENABLE_FEAT_* = 1: Feature is enabled unconditionally at compile time.
-     ENABLE_FEAT_* = 2: Feature is enabled, but checked at runtime.
-
-   When setting the flag to 0, the feature is disabled during compilation,
-   and the compiler's optimisation stage and the linker will try to remove
-   as much of this code as possible.
-   If it is defined to 1, the code will use the feature unconditionally, so the
-   CPU is expected to support that feature. The FEATURE_DETECTION debug
-   feature, if enabled, will verify this.
-   If the feature flag is set to 2, support for the feature will be compiled
-   in, but its existence will be checked at runtime, so it works on CPUs with
-   or without the feature. This is mostly useful for platforms which either
-   support multiple different CPUs, or where the CPU is configured at runtime,
-   like in emulators.
-
 -  ``ENABLE_FEAT_AMU``: Numeric value to enable Activity Monitor Unit
    extensions. This flag can take the values 0 to 2, to align with the
    ``ENABLE_FEAT`` mechanism. This is an optional architectural feature
@@ -321,6 +295,20 @@ Common build options
    extension. ``FEAT_AMUv1p1`` is an optional feature available on Arm v8.6
    onwards. This flag can take the values 0 to 2, to align with the
    ``ENABLE_FEAT`` mechanism. Default value is ``0``.
+
+-  ``ENABLE_FEAT_CLRBHB``: Numeric value to enable the CLRBHB instruction.
+    Clear Branch History clears the branch history for the current context to
+    the extent that branch history information created before the CLRBHB instruction
+    cannot be used by code. This is an optional architectural feature available on v8.0
+    onwards and is a mandatory feature from v8.9 onwards.
+    This flag can take the values of 0 to 2, to align with the ``ENABLE_FEAT`` mechanism.
+    Default value is ``0``.
+
+-  ``ENABLE_FEAT_CPA2``: Numeric value to enable the ``FEAT_CPA2`` extension.
+   It enables checked pointer arithmetic in EL3, which will result in address
+   faults in the event that a pointer arithmetic overflow error occurs. This is
+   an optional feature starting from Arm v9.4 and This flag can take values 0 to
+   2, to align with the ``ENABLE_FEAT`` mechanism. Default value is ``0``.
 
 -  ``ENABLE_FEAT_CSV2_2``: Numeric value to enable the ``FEAT_CSV2_2``
    extension. It allows access to the SCXTNUM_EL2 (Software Context Number)
@@ -398,6 +386,19 @@ Common build options
    mandatory architectural feature and is enabled from v8.7 and upwards. This
    flag can take the values 0 to 2, to align  with the ``ENABLE_FEAT``
    mechanism. Default value is ``0``.
+
+-  ``ENABLE_FEAT_IDTE3``: Numeric value to set SCR_EL3.TID3/TID5 bits which
+   enables trapping of ID register reads by lower ELs to EL3. This allows EL3
+   to control the feature visibility to lower ELs by returning a sanitized value
+   based on current feature enablement status. Hypervisors are expected to
+   cache ID register during their boot stage. This flag can take the
+   values 0 to 2, to align with the ``ENABLE_FEAT`` mechanism.
+   Default value is ``0``. This feature is EXPERIMENTAL.
+
+   .. note::
+      This feature traps all lower EL accesses to Group 3 and Group 5
+      ID registers to EL3. This can incur a performance impact and platforms
+      should enable them only if they have a specific need.
 
 - ``ENABLE_FEAT_MOPS``: Numeric value to enable FEAT_MOPS (Standardization
    of memory operations) when INIT_UNUSED_NS_EL2=1.
@@ -529,8 +530,10 @@ Common build options
    mechanism. Default value is ``0``.
 
 -  ``ENABLE_LTO``: Boolean option to enable Link Time Optimization (LTO)
-   support in GCC for TF-A. This option is currently only supported for
-   AArch64. Default is 0.
+   support. This option is currently only supported for AArch64. On GCC it only
+   applies to TF-A proper, and not its libraries. If LTO on libraries (except
+   the libc) is desired a platform can pass `-flto -ffat-lto-objects` as long as
+   GCC >= 14 is in use.  Default is 0.
 
 -  ``ENABLE_FEAT_MPAM``: Numeric value to enable lower ELs to use MPAM
    feature. MPAM is an optional Armv8.4 extension that enables various memory
@@ -547,9 +550,24 @@ Common build options
    The flag is automatically disabled when the target
    architecture is AArch32.
 
+-  ``ENABLE_FEAT_MPAM_PE_BW_CTRL``: This option enables Armv9.3 MPAM
+   PE-side bandwidth controls and disables traps to EL3/EL2 (when
+   ``INIT_UNUSED_NS_EL2`` = 1). The flag accepts values from 0 to 2, in
+   line with the ``ENABLE_FEAT`` mechanism, and defaults to ``0``.
+
 -  ``ENABLE_FEAT_LS64_ACCDATA``: Numeric value to enable access and save and
    restore the ACCDATA_EL1 system register, at EL2 and below. This flag can
    take the values 0 to 2, to align  with the ``ENABLE_FEAT`` mechanism.
+   Default value is ``0``.
+
+-  ``ENABLE_FEAT_AIE``: Numeric value to enable access to the (A)MAIR2 system
+   registers from non-secure world. This flag can take the values 0 to 2, to
+   align  with the ``ENABLE_FEAT`` mechanism.
+   Default value is ``0``.
+
+-  ``ENABLE_FEAT_PFAR``: Numeric value to enable access to the PFAR system
+   registers from non-secure world. This flag can take the values 0 to 2, to
+   align  with the ``ENABLE_FEAT`` mechanism.
    Default value is ``0``.
 
 -  ``ENABLE_MPMM``: Boolean option to enable support for the Maximum Power
@@ -789,6 +807,9 @@ Common build options
    algorithm. It accepts 3 values: ``sha256``, ``sha384`` and ``sha512``.
    The default value of this flag is ``sha256``.
 
+- ``HW_CONFIG_BASE``: This option specifies the location in memory where the DTB
+   should either be loaded by BL2 or can be found by later stages.
+
 -  ``LDFLAGS``: Extra user options appended to the linkers' command line in
    addition to the one set by the build system.
 
@@ -857,10 +878,11 @@ Common build options
    optional. It is only needed if the platform makefile specifies that it
    is required in order to build the ``fwu_fip`` target.
 
--  ``NS_TIMER_SWITCH``: Enable save and restore for non-secure timer register
-   contents upon world switch. It can take either 0 (don't save and restore) or
-   1 (do save and restore). 0 is the default. An SPD may set this to 1 if it
-   wants the timer registers to be saved and restored.
+-  ``NS_TIMER_SWITCH``: (deprecated) Enable save and restore for non-secure
+   timer register contents upon world switch. It can take either 0 (don't save
+   and restore) or 1 (do save and restore). 0 is the default. An SPD may set
+   this to 1 if it wants the timer registers to be saved and restored. This
+   option has been deprecated since it breaks Linux preemption model.
 
 -  ``OVERRIDE_LIBC``: This option allows platforms to override the default libc
    for the BL image. It can be either 0 (include) or 1 (remove). The default
@@ -881,6 +903,10 @@ Common build options
    each core as well as the global context. The data includes the memory used
    by each world and each privileged exception level. This build option is
    applicable only for ``ARCH=aarch64`` builds. The default value is 0.
+
+- ``PLAT_EXTRA_LD_SCRIPT``: Allows the platform to include a custom LD script
+   snippet for any custom sections that cannot be expressed otherwise. Defaults
+   to 0.
 
 -  ``PRELOADED_BL33_BASE``: This option enables booting a preloaded BL33 image
    instead of the normal boot flow. When defined, it must specify the entry
@@ -998,6 +1024,10 @@ Common build options
    provide definitions of ``BL2_NOLOAD_START`` and ``BL2_NOLOAD_LIMIT``. This
    flag is disabled by default and NOLOAD sections are placed in RAM immediately
    following the loaded firmware image.
+
+-  ``SEPARATE_BL2_FIP``: This option enables the separation of the BL2 FIP image
+   from the main FIP image. When this option is enabled, the BL2 FIP image is built
+   as a separate FIP image. The default value is 0.
 
 -  ``SEPARATE_SIMD_SECTION``: Setting this option to ``1`` allows the SIMD context
     data structures to be put in a dedicated memory region as decided by platform
@@ -1140,8 +1170,8 @@ Common build options
 
 -  ``USE_DSU_DRIVER``: This flag enables DSU (DynamIQ Shared Unit) driver.
    The DSU driver allows save/restore of DSU PMU registers through
-   ``PRESERVE_DSU_PMU_REGS`` build option and allows platforms to
-   configure powerdown and power settings of DSU.
+   ``PRESERVE_DSU_PMU_REGS`` build option, provides access to PMU registers at
+   EL1 and allows platforms to configure powerdown and power settings of DSU.
 
 -  ``ARM_IO_IN_DTB``: This flag determines whether to use IO based on the
    firmware configuration framework. This will move the io_policies into a

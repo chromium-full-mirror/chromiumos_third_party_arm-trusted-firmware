@@ -5,6 +5,9 @@
 
 include common/fdt_wrappers.mk
 
+# TARGET_PLATFORM must be defined as a pre-requisite
+$(eval $(call assert_numerics,TARGET_PLATFORM))
+
 TARGET_FLAVOUR			:=	fvp
 # DPU with SCMI may not necessarily work, so allow its independence
 TC_DPU_USE_SCMI_CLK		:=	1
@@ -123,15 +126,15 @@ endif
 
 # CPU libraries for TARGET_PLATFORM=4
 ifeq (${TARGET_PLATFORM}, 4)
+
 # prevent CME related wakups
 ERRATA_SME_POWER_DOWN := 1
-TC_CPU_SOURCES	+=	lib/cpus/aarch64/cortex_gelas.S \
-			lib/cpus/aarch64/nevis.S \
-			lib/cpus/aarch64/travis.S
+TC_CPU_SOURCES	+=	lib/cpus/aarch64/c1_pro.S \
+			lib/cpus/aarch64/c1_nano.S \
+			lib/cpus/aarch64/c1_ultra.S
 endif
 
-INTERCONNECT_SOURCES	:=	${TC_BASE}/tc_interconnect.c \
-				plat/arm/common/arm_ni.c
+INTERCONNECT_SOURCES	:=	plat/arm/common/arm_ni.c
 
 PLAT_BL_COMMON_SOURCES	+=	${TC_BASE}/tc_plat.c	\
 				${TC_BASE}/include/tc_helpers.S

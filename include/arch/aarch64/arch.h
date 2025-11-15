@@ -190,6 +190,26 @@
 
 #define ID_REG_FIELD_MASK			ULL(0xf)
 
+/*******************************************************************************
+ * PFR0_EL1 - Definitions for AArch32 Processor Feature Register 0
+ ******************************************************************************/
+#define ID_PFR0_EL1				S3_0_C0_C1_0
+
+/*******************************************************************************
+ * PFR2_EL1 - Definitions for AArch32 Processor Feature Register 2
+ ******************************************************************************/
+#define ID_PFR2_EL1				S3_0_C0_C3_4
+
+/*******************************************************************************
+ * ID_ISAR6_EL1 - Definition for AArch32 Instruction Set Attribute Register 6
+ ******************************************************************************/
+#define ID_ISAR6_EL1				S3_0_C0_C2_7
+
+/*******************************************************************************
+ * ID_DFR1_EL1 - Definition for AArch32 Debug Feature Register 1
+ ******************************************************************************/
+#define ID_DFR1_EL1				S3_0_C0_C3_5
+
 /* ID_AA64PFR0_EL1 definitions */
 #define ID_AA64PFR0_EL0_SHIFT			U(0)
 #define ID_AA64PFR0_EL1_SHIFT			U(4)
@@ -202,6 +222,10 @@
 #define ID_AA64PFR0_AMU_V1P1			U(0x2)
 
 #define ID_AA64PFR0_ELX_MASK			ULL(0xf)
+#define ID_AA64PFR0_EL0_MASK			ID_AA64PFR0_ELX_MASK
+#define ID_AA64PFR0_EL1_MASK			ID_AA64PFR0_ELX_MASK
+#define ID_AA64PFR0_EL2_MASK			ID_AA64PFR0_ELX_MASK
+#define ID_AA64PFR0_EL3_MASK			ID_AA64PFR0_ELX_MASK
 
 #define ID_AA64PFR0_GIC_SHIFT			U(24)
 #define ID_AA64PFR0_GIC_WIDTH			U(4)
@@ -233,6 +257,7 @@
 #define ID_AA64PFR0_FEAT_RME_MASK		ULL(0xf)
 #define ID_AA64PFR0_FEAT_RME_LENGTH		U(4)
 #define RME_NOT_IMPLEMENTED			ULL(0)
+#define RME_GPC2_IMPLEMENTED			ULL(0x2)
 
 #define ID_AA64PFR0_RAS_SHIFT			U(28)
 #define ID_AA64PFR0_RAS_MASK			ULL(0xf)
@@ -297,6 +322,14 @@
 #define ID_AA64DFR1_EBEP_MASK		ULL(0xf)
 #define EBEP_IMPLEMENTED		ULL(1)
 
+#define ID_AA64DFR1_BRP_SHIFT		U(8)
+#define ID_AA64DFR1_BRP_WIDTH		U(8)
+
+#define ID_AA64ZFR0_EL1			S3_0_C0_C4_4
+#define ID_AA64FPFR0_EL1		S3_0_C0_C4_7
+#define ID_AA64DFR2_EL1			S3_0_C0_C5_2
+#define GMID_EL1			S3_1_C0_C0_4
+
 /* ID_AA64ISAR0_EL1 definitions */
 #define ID_AA64ISAR0_RNDR_SHIFT	U(60)
 #define ID_AA64ISAR0_RNDR_MASK	ULL(0xf)
@@ -339,8 +372,18 @@
 #define ID_AA64ISAR2_APA3_SHIFT		U(12)
 #define ID_AA64ISAR2_APA3_MASK		ULL(0xf)
 
+#define ID_AA64ISAR2_CLRBHB_SHIFT	U(28)
+#define ID_AA64ISAR2_CLRBHB_MASK	ULL(0xf)
+
 #define ID_AA64ISAR2_SYSREG128_SHIFT	U(32)
 #define ID_AA64ISAR2_SYSREG128_MASK	ULL(0xf)
+
+/* ID_AA64ISAR3_EL1 definitions */
+#define ID_AA64ISAR3_EL1		S3_0_C0_C6_3
+#define ID_AA64ISAR3_EL1_CPA_SHIFT	U(0)
+#define ID_AA64ISAR3_EL1_CPA_MASK	ULL(0xf)
+
+#define CPA2_IMPLEMENTED		ULL(0x2)
 
 /* ID_AA64MMFR0_EL1 definitions */
 #define ID_AA64MMFR0_EL1_PARANGE_SHIFT	U(0)
@@ -397,6 +440,9 @@
 /* ID_AA64MMFR2_EL1 definitions */
 #define ID_AA64MMFR2_EL1			S3_0_C0_C7_2
 
+#define ID_AA64MMFR2_EL1_IDS_SHIFT		U(36)
+#define ID_AA64MMFR2_EL1_IDS_MASK		ULL(0xf)
+
 #define ID_AA64MMFR2_EL1_ST_SHIFT		U(28)
 #define ID_AA64MMFR2_EL1_ST_MASK		ULL(0xf)
 
@@ -424,6 +470,9 @@
 #define ID_AA64MMFR3_EL1_MEC_SHIFT		U(28)
 #define ID_AA64MMFR3_EL1_MEC_MASK		ULL(0xf)
 
+#define ID_AA64MMFR3_EL1_AIE_SHIFT		U(24)
+#define ID_AA64MMFR3_EL1_AIE_MASK		ULL(0xf)
+
 #define ID_AA64MMFR3_EL1_S2POE_SHIFT		U(20)
 #define ID_AA64MMFR3_EL1_S2POE_MASK		ULL(0xf)
 
@@ -450,6 +499,11 @@
 #define ID_AA64MMFR4_EL1_FGWTE3_MASK		ULL(0xf)
 #define FGWTE3_IMPLEMENTED			ULL(0x1)
 
+#define ID_AA64MMFR4_EL1_RME_GDI_SHIFT		U(28)
+#define ID_AA64MMFR4_EL1_RME_GDI_MASK		ULL(0xf)
+#define ID_AA64MMFR4_EL1_RME_GDI_LENGTH		U(4)
+#define RME_GDI_IMPLEMENTED			ULL(0x1)
+
 /* ID_AA64PFR1_EL1 definitions */
 
 #define ID_AA64PFR1_EL1_BT_SHIFT	U(0)
@@ -465,6 +519,7 @@
 
 #define ID_AA64PFR1_EL1_RNDR_TRAP_SHIFT	U(28)
 #define ID_AA64PFR1_EL1_RNDR_TRAP_MASK	U(0xf)
+#define RNG_TRAP_IMPLEMENTED		ULL(0x1)
 
 #define ID_AA64PFR1_EL1_NMI_SHIFT	U(36)
 #define ID_AA64PFR1_EL1_NMI_MASK	ULL(0xf)
@@ -478,7 +533,9 @@
 #define ID_AA64PFR1_EL1_THE_MASK	ULL(0xf)
 #define THE_IMPLEMENTED			ULL(1)
 
-#define RNG_TRAP_IMPLEMENTED		ULL(0x1)
+#define ID_AA64PFR1_EL1_PFAR_SHIFT	U(60)
+#define ID_AA64PFR1_EL1_PFAR_MASK	ULL(0xf)
+
 
 /* ID_AA64PFR2_EL1 definitions */
 #define ID_AA64PFR2_EL1				S3_0_C0_C4_2
@@ -630,6 +687,8 @@
 #define SCTLR_RESET_VAL		SCTLR_EL3_RES1
 
 #define SCTLR2_EnPACM_BIT	(ULL(1) << 7)
+#define SCTLR2_CPTA_BIT		(ULL(1) << 9)
+#define SCTLR2_CPTM_BIT		(ULL(1) << 11)
 
 /* SCTLR2 currently has no RES1 fields so reset to 0 */
 #define SCTLR2_RESET_VAL	ULL(0)
@@ -649,12 +708,14 @@
 #define SCR_RES1_BITS		((U(1) << 4) | (U(1) << 5))
 #endif
 #define SCR_NSE_SHIFT		U(62)
-#define SCR_FGTEN2_BIT		(UL(1) << 59)
 #define SCR_NSE_BIT		(ULL(1) << SCR_NSE_SHIFT)
+#define SCR_FGTEN2_BIT		(UL(1) << 59)
+#define SCR_PFAREn_BIT		(UL(1) << 53)
 #define SCR_EnFPM_BIT		(ULL(1) << 50)
 #define SCR_MECEn_BIT		(UL(1) << 49)
 #define SCR_GPF_BIT		(UL(1) << 48)
 #define SCR_D128En_BIT		(UL(1) << 47)
+#define SCR_AIEn_BIT		(UL(1) << 46)
 #define SCR_TWEDEL_SHIFT	U(30)
 #define SCR_TWEDEL_MASK		ULL(0xf)
 #define SCR_PIEN_BIT		(UL(1) << 45)
@@ -675,6 +736,8 @@
 #define SCR_FGTEN_BIT		(UL(1) << 27)
 #define SCR_ATA_BIT		(UL(1) << 26)
 #define SCR_EnSCXT_BIT		(UL(1) << 25)
+#define SCR_TID5_BIT		(UL(1) << 23)
+#define SCR_TID3_BIT		(UL(1) << 22)
 #define SCR_FIEN_BIT		(UL(1) << 21)
 #define SCR_EEL2_BIT		(UL(1) << 18)
 #define SCR_API_BIT		(UL(1) << 17)
@@ -697,6 +760,8 @@
 /* MDCR_EL3 definitions */
 #define MDCR_EBWE_BIT		(ULL(1) << 43)
 #define MDCR_EnPMS3_BIT		(ULL(1) << 42)
+#define MDCR_PMEE(x)		((x) << 40)
+#define MDCR_PMEE_CTRL_EL2	ULL(0x1)
 #define MDCR_E3BREC_BIT		(ULL(1) << 38)
 #define MDCR_E3BREW_BIT		(ULL(1) << 37)
 #define MDCR_EnPMSN_BIT		(ULL(1) << 36)
@@ -815,8 +880,9 @@
 #define ESM_BIT			(U(1) << 12)
 #define TFP_BIT			(U(1) << 10)
 #define CPTR_EZ_BIT		(U(1) << 8)
-#define CPTR_EL3_RESET_VAL	((TCPAC_BIT | TAM_BIT | TTA_BIT | TFP_BIT) & \
-				~(CPTR_EZ_BIT | ESM_BIT))
+/* TCPAC is always set by default as the register is always present */
+#define CPTR_EL3_RESET_VAL	((TAM_BIT | TTA_BIT) & \
+				~(CPTR_EZ_BIT | ESM_BIT | TFP_BIT | TCPAC_BIT))
 
 /* CPTR_EL2 definitions */
 #define CPTR_EL2_RES1		((U(1) << 13) | (U(1) << 12) | (U(0x3ff)))
@@ -826,9 +892,11 @@
 #define CPTR_EL2_SMEN_MASK	ULL(0x3)
 #define CPTR_EL2_SMEN_SHIFT	U(24)
 #define CPTR_EL2_TTA_BIT	(U(1) << 20)
+#define CPTR_EL2_ZEN_MASK	ULL(0x3)
+#define CPTR_EL2_ZEN_SHIFT	U(16)
 #define CPTR_EL2_TSM_BIT	(U(1) << 12)
 #define CPTR_EL2_TFP_BIT	(ULL(1) << 10)
-#define CPTR_EL2_TZ_BIT		(U(1) << 8)
+#define CPTR_EL2_TZ_BIT		(ULL(1) << 8)
 #define CPTR_EL2_RESET_VAL	CPTR_EL2_RES1
 
 /* VTCR_EL2 definitions */
@@ -1383,7 +1451,24 @@
 #define MPAM2_EL2_TRAPMPAM0EL1		(ULL(1) << 49)
 #define MPAM2_EL2_TRAPMPAM1EL1		(ULL(1) << 48)
 
+#define MPAMIDR_HAS_BW_CTRL_BIT		(ULL(1) << 56)
 #define MPAMIDR_HAS_HCR_BIT		(ULL(1) << 17)
+
+/* MPAM_PE_BW_CTRL register definitions */
+#define MPAMBW2_EL2				S3_4_C10_C5_4
+#define MPAMBW2_EL2_HW_SCALE_ENABLE_BIT		(ULL(1) << 63)
+#define MPAMBW2_EL2_ENABLED_BIT			(ULL(1) << 62)
+#define MPAMBW2_EL2_HARDLIM_BIT			(ULL(1) << 61)
+#define MPAMBW2_EL2_NTRAP_MPAMBWIDR_EL1_BIT	(ULL(1) << 52)
+#define MPAMBW2_EL2_NTRAP_MPAMBW0_EL1_BIT	(ULL(1) << 51)
+#define MPAMBW2_EL2_NTRAP_MPAMBW1_EL1_BIT	(ULL(1) << 50)
+#define MPAMBW2_EL2_NTRAP_MPAMBWSM_EL1_BIT	(ULL(1) << 49)
+
+#define MPAMBW3_EL3				S3_6_C10_C5_4
+#define MPAMBW3_EL3_HW_SCALE_ENABLE_BIT		(ULL(1) << 63)
+#define MPAMBW3_EL3_ENABLED_BIT			(ULL(1) << 62)
+#define MPAMBW3_EL3_HARDLIM_BIT			(ULL(1) << 61)
+#define MPAMBW3_EL3_NTRAPLOWER_BIT		(ULL(1) << 49)
 
 /*******************************************************************************
  * Definitions for system register interface to AMU for FEAT_AMUv1p1
@@ -1612,6 +1697,9 @@
 #define DSU_CLUSTER_PWR_MASK	U(1)
 #define DSU_CLUSTER_MEM_RET	BIT(1)
 
+/* CLUSTERPMMDCR register definitions */
+#define CLUSTERPMMDCR_SPME	U(1)
+
 /*******************************************************************************
  * Definitions for CPU Power/Performance Management registers
  ******************************************************************************/
@@ -1633,6 +1721,7 @@
 #define CLUSTERPMSELR_EL1		S3_0_C15_C5_5
 #define CLUSTERPMXEVTYPER_EL1		S3_0_C15_C6_1
 #define CLUSTERPMXEVCNTR_EL1		S3_0_C15_C6_2
+#define CLUSTERPMMDCR_EL3		S3_6_C15_C6_3
 
 #define CLUSTERPMCR_E_BIT		BIT(0)
 #define CLUSTERPMCR_N_SHIFT		U(11)

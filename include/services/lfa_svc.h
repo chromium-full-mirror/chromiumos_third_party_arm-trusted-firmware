@@ -59,6 +59,8 @@
 
 #define LFA_SKIP_CPU_RENDEZVOUS_BIT		BIT(0)
 
+#define LFA_CALL_AGAIN				ULL(1)
+
 /* List of errors as per the specification */
 enum lfa_retc {
 	LFA_SUCCESS			=  0,
@@ -82,5 +84,6 @@ uint64_t lfa_smc_handler(uint32_t smc_fid, u_register_t x1, u_register_t x2,
 			 u_register_t x3, u_register_t x4, void *cookie,
 			 void *handle, u_register_t flags);
 void lfa_reset_activation(void);
+bool lfa_is_prime_complete(uint32_t lfa_component_id);
 
 #endif /* LFA_SVC_H */

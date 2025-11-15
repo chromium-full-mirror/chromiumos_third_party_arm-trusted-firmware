@@ -35,10 +35,9 @@ void cm_prepare_el3_exit(size_t security_state);
 void cm_prepare_el3_exit_ns(void);
 
 #ifdef __aarch64__
-#if IMAGE_BL31
 void cm_manage_extensions_el3(unsigned int my_idx);
 void cm_manage_extensions_per_world(void);
-#endif
+void cm_init_percpu_once_regs(void);
 
 #if (CTX_INCLUDE_EL2_REGS && IMAGE_BL31)
 void cm_el2_sysregs_context_save(uint32_t security_state);
@@ -89,6 +88,8 @@ static inline void cm_set_next_context(void *context)
 void *cm_get_next_context(void);
 void cm_set_next_context(void *context);
 static inline void cm_manage_extensions_el3(unsigned int cpu_idx) {}
+static inline void cm_manage_extensions_per_world(void) {}
+static inline void cm_init_percpu_once_regs(void) {}
 #endif /* __aarch64__ */
 
 #endif /* CONTEXT_MGMT_H */

@@ -98,6 +98,9 @@
  */
 #define DIV_ROUND_UP_2EVAL(n, d)	(((n) + (d) - 1) / (d))
 
+/* round `n` up to a multiple of `r` */
+#define ROUND_UP_2EVAL(n, r)		((((n) + (r) - 1) / (r)) * (r))
+
 #define div_round_up(val, div) __extension__ ({	\
 	__typeof__(div) _div = (div);		\
 	((val) + _div - (__typeof__(div)) 1) / _div;		\
@@ -135,10 +138,10 @@
  * round_down() is similar but rounds the value down instead.
  */
 #define round_boundary(value, boundary)		\
-	((__typeof__(value))((boundary) - 1))
+	((__typeof__(value))((boundary) - ((__typeof__(value))1U)))
 
 #define round_up(value, boundary)		\
-	((((value) - 1) | round_boundary(value, boundary)) + 1)
+	((((value) - ((__typeof__(value))1U)) | round_boundary(value, boundary)) + ((__typeof__(value))1U))
 
 #define round_down(value, boundary)		\
 	((value) & ~round_boundary(value, boundary))

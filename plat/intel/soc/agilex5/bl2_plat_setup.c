@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2021, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2019-2025, Arm Limited and Contributors. All rights reserved.
  * Copyright (c) 2019-2023, Intel Corporation. All rights reserved.
  * Copyright (c) 2024-2025, Altera Corporation. All rights reserved.
  *
@@ -48,7 +48,7 @@
 static struct mmc_device_info mmc_info;
 
 /* Declare cadence idmac descriptor */
-extern struct cdns_idmac_desc cdns_desc[8] __aligned(32);
+extern struct cdns_idmac_desc cdns_desc[CONFIG_CDNS_DESC_COUNT] __aligned(8);
 
 const mmap_region_t agilex_plat_mmap[] = {
 	MAP_REGION_FLAT(DRAM_BASE, DRAM_SIZE,
@@ -162,7 +162,6 @@ void bl2_el3_early_platform_setup(u_register_t x0 __unused,
 
 	/* Configure USB 3.1 in system manager */
 	reg_val = mmio_read_32(SOCFPGA_SYSMGR(USB3_MISC_CTRL_REG0));
-	reg_val |= SYSMGR_USB3_MISC0_RST_PUL_OVRD; /* set reset pulse override bit */
 	reg_val |= SYSMGR_USB3_MISC0_PORT_OVR_CURR_PIPE_PWR; /* set pipe power present bit */
 	mmio_write_32(SOCFPGA_SYSMGR(USB3_MISC_CTRL_REG0), reg_val);
 	VERBOSE("USB3_MISC_CTRL_REG0 = 0x%X\n", mmio_read_32(SOCFPGA_SYSMGR(USB3_MISC_CTRL_REG0)));
@@ -170,14 +169,16 @@ void bl2_el3_early_platform_setup(u_register_t x0 __unused,
 
 void bl2_el3_plat_arch_setup(void)
 {
-	handoff reverse_handoff_ptr;
 	unsigned long offset = 0;
 
 	struct cdns_sdmmc_params params = EMMC_INIT_PARAMS((uintptr_t) &cdns_desc,
-							   clkmgr_get_rate(CLKMGR_SDMMC_CLK_ID));
+							   SDEMMC_SDCLK);
 
+	params.sdmclk = clkmgr_get_rate(CLKMGR_SDMMC_CLK_ID);
 	mmc_info.mmc_dev_type = MMC_DEVICE_TYPE;
 	mmc_info.ocr_voltage = OCR_3_3_3_4 | OCR_3_2_3_3;
+
+	INFO("SDMMC/NAND clock is %u\n", clkmgr_get_rate(CLKMGR_SDMMC_CLK_ID));
 
 	/* Request ownership and direct access to QSPI */
 	mailbox_hps_qspi_enable();
@@ -202,7 +203,7 @@ void bl2_el3_plat_arch_setup(void)
 
 	case BOOT_SOURCE_NAND:
 		NOTICE("SOCFPGA: NAND boot\n");
-		nand_init(&reverse_handoff_ptr);
+		nand_init();
 		socfpga_io_setup(boot_source, PLAT_NAND_DATA_BASE);
 		break;
 

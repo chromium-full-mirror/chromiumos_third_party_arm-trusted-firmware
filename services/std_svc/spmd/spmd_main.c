@@ -20,6 +20,7 @@
 #include <lib/el3_runtime/context_mgmt.h>
 #include <lib/fconf/fconf.h>
 #include <lib/fconf/fconf_dyn_cfg_getter.h>
+#include <lib/per_cpu/per_cpu.h>
 #include <lib/smccc.h>
 #include <lib/spinlock.h>
 #include <lib/utils.h>
@@ -33,11 +34,14 @@
 #include <services/spmd_svc.h>
 #include <smccc_helpers.h>
 #include "spmd_private.h"
+#if TRANSFER_LIST
+#include <transfer_list.h>
+#endif
 
 /*******************************************************************************
  * SPM Core context information.
  ******************************************************************************/
-static spmd_spm_core_context_t spm_core_context[PLATFORM_CORE_COUNT];
+static PER_CPU_DEFINE(spmd_spm_core_context_t, spm_core_context);
 
 /*******************************************************************************
  * SPM Core attribute information is read from its manifest if the SPMC is not
@@ -71,7 +75,7 @@ static entry_point_info_t *spmc_ep_info;
  ******************************************************************************/
 spmd_spm_core_context_t *spmd_get_context(void)
 {
-	return &spm_core_context[plat_my_core_pos()];
+	return PER_CPU_CUR(spm_core_context);
 }
 
 /*******************************************************************************
@@ -172,6 +176,24 @@ __dead2 void spmd_spm_core_sync_exit(uint64_t rc)
 	spmd_spm_core_exit(ctx->c_rt_ctx, rc);
 
 	panic();
+}
+
+void spmd_setup_context(unsigned int core_id)
+{
+	cpu_context_t *cpu_ctx;
+
+	PER_CPU_CUR(spm_core_context)->state = SPMC_STATE_OFF;
+
+	/* Setup an initial cpu context for the SPMC. */
+	cpu_ctx = &(PER_CPU_CUR(spm_core_context)->cpu_ctx);
+	cm_setup_context(cpu_ctx, spmc_ep_info);
+
+	/*
+	 * Pass the core linear ID to the SPMC through x4.
+	 * (TF-A implementation defined behavior helping
+	 * a legacy TOS migration to adopt FF-A).
+	 */
+	write_ctx_reg(get_gpregs_ctx(cpu_ctx), CTX_GPREG_X4, core_id);
 }
 
 /*******************************************************************************
@@ -455,8 +477,6 @@ static void spmd_do_sec_cpy(uintptr_t root_base_addr, uintptr_t sec_base_addr,
  ******************************************************************************/
 static int spmd_spmc_init(void *pm_addr)
 {
-	cpu_context_t *cpu_ctx;
-	unsigned int core_id;
 	uint32_t ep_attr, flags;
 	int rc;
 	const struct dyn_cfg_dtb_info_t *image_info __unused;
@@ -570,21 +590,7 @@ static int spmd_spmc_init(void *pm_addr)
 	spmc_ep_info->args.arg0 = image_info->secondary_config_addr;
 #endif /* ENABLE_RME && SPMD_SPM_AT_SEL2 && !RESET_TO_BL31 */
 
-	/* Set an initial SPMC context state for all cores. */
-	for (core_id = 0U; core_id < PLATFORM_CORE_COUNT; core_id++) {
-		spm_core_context[core_id].state = SPMC_STATE_OFF;
-
-		/* Setup an initial cpu context for the SPMC. */
-		cpu_ctx = &spm_core_context[core_id].cpu_ctx;
-		cm_setup_context(cpu_ctx, spmc_ep_info);
-
-		/*
-		 * Pass the core linear ID to the SPMC through x4.
-		 * (TF-A implementation defined behavior helping
-		 * a legacy TOS migration to adopt FF-A).
-		 */
-		write_ctx_reg(get_gpregs_ctx(cpu_ctx), CTX_GPREG_X4, core_id);
-	}
+	spmd_setup_context(plat_my_core_pos());
 
 	/* Register power management hooks with PSCI */
 	psci_register_spd_pm_hook(&spmd_pm);
@@ -644,6 +650,8 @@ int spmd_setup(void)
 {
 	int rc;
 	void *spmc_manifest;
+	struct transfer_list_header *tl __maybe_unused;
+	struct transfer_list_entry *te __maybe_unused;
 
 	/*
 	 * If the SPMC is at EL3, then just initialise it directly. The
@@ -669,11 +677,31 @@ int spmd_setup(void)
 	/* Under no circumstances will this parameter be 0 */
 	assert(spmc_ep_info->pc != 0ULL);
 
+
+#if TRANSFER_LIST && !RESET_TO_BL31
+	tl = (struct transfer_list_header *)spmc_ep_info->args.arg3;
+	te = transfer_list_find(tl, TL_TAG_DT_SPMC_MANIFEST);
+	if (te == NULL) {
+		WARN("SPM Core manifest absent in TRANSFER_LIST.\n");
+		return -ENOENT;
+	}
+
+	spmc_manifest = (void *)transfer_list_entry_data(te);
+
+	/* Change the DT in the handoff */
+	if (sizeof(spmc_ep_info->args.arg0) == sizeof(uint64_t)) {
+		spmc_ep_info->args.arg0 = (uintptr_t)spmc_manifest;
+	} else {
+		spmc_ep_info->args.arg3 = (uintptr_t)spmc_manifest;
+	}
+#else
 	/*
 	 * Check if BL32 ep_info has a reference to 'tos_fw_config'. This will
 	 * be used as a manifest for the SPM Core at the next lower EL/mode.
 	 */
 	spmc_manifest = (void *)spmc_ep_info->args.arg0;
+#endif
+
 	if (spmc_manifest == NULL) {
 		WARN("Invalid or absent SPM Core manifest.\n");
 		return 0;
@@ -1260,6 +1288,7 @@ uint64_t spmd_smc_handler(uint32_t smc_fid,
 	case FFA_NOTIFICATION_INFO_GET_SMC64:
 	case FFA_MSG_SEND2:
 	case FFA_RX_ACQUIRE:
+	case FFA_NS_RES_INFO_GET_SMC64:
 #endif
 	case FFA_MSG_RUN:
 		/*
@@ -1371,6 +1400,18 @@ uint64_t spmd_smc_handler(uint32_t smc_fid,
 		} else {
 			return spmd_ffa_error_return(handle, FFA_ERROR_NOT_SUPPORTED);
 		}
+	case FFA_ABORT_SMC32:
+	case FFA_ABORT_SMC64:
+		/* This interface must be invoked only by the Secure world */
+		if (!secure_origin) {
+			return spmd_ffa_error_return(handle, FFA_ERROR_NOT_SUPPORTED);
+		}
+
+		ERROR("SPMC encountered a fatal error. Aborting now\n");
+		panic();
+
+		/* Not reached. */
+		SMC_RET0(handle);
 	default:
 		WARN("SPM: Unsupported call 0x%08x\n", smc_fid);
 		return spmd_ffa_error_return(handle, FFA_ERROR_NOT_SUPPORTED);

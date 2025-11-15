@@ -112,15 +112,20 @@ $(eval $(call assert_boolean,ARM_LINUX_KERNEL_AS_BL33))
 $(eval $(call add_define,ARM_LINUX_KERNEL_AS_BL33))
 
 ifeq (${ARM_LINUX_KERNEL_AS_BL33},1)
+  USE_KERNEL_DT_CONVENTION  := 1
+
   ifneq (${ARCH},aarch64)
     ifneq (${RESET_TO_SP_MIN},1)
       $(error ARM_LINUX_KERNEL_AS_BL33 is only available if RESET_TO_SP_MIN=1.)
     endif
   endif
-  ifeq (${RESET_TO_BL31},1)
+  ifndef HW_CONFIG_BASE
     ifndef ARM_PRELOADED_DTB_BASE
-      $(error ARM_PRELOADED_DTB_BASE must be set if ARM_LINUX_KERNEL_AS_BL33 is used with RESET_TO_BL31.)
+      $(error If ARM_LINUX_KERNEL_AS_BL33 is used, either HW_CONFIG_BASE or \
+          ARM_PRELOADED_DTB_BASE must be set. )
     endif
+
+    HW_CONFIG_BASE := ${ARM_PRELOADED_DTB_BASE}
     $(eval $(call add_define,ARM_PRELOADED_DTB_BASE))
   endif
 endif
@@ -295,7 +300,7 @@ endif
 ifeq (${JUNO_AARCH32_EL3_RUNTIME},1)
 BL2_SOURCES		+=	plat/arm/common/aarch32/arm_bl2_mem_params_desc.c
 else
-ifeq ($(filter $(PLAT), corstone1000 rd1ae),)
+ifeq ($(filter $(PLAT), corstone1000 rd1ae rdaspen),)
 BL2_SOURCES		+=	plat/arm/common/${ARCH}/arm_bl2_mem_params_desc.c
 endif
 endif
@@ -364,12 +369,6 @@ BL31_SOURCES		+=	plat/arm/common/aarch64/arm_sdei.c
 ifeq (${SDEI_IN_FCONF},1)
 BL31_SOURCES		+=	plat/arm/common/fconf/fconf_sdei_getter.c
 endif
-endif
-
-# RAS sources
-ifeq (${ENABLE_FEAT_RAS}-${HANDLE_EA_EL3_FIRST_NS},1-1)
-BL31_SOURCES		+=	lib/extensions/ras/std_err_record.c		\
-				lib/extensions/ras/ras_common.c
 endif
 
 # Pointer Authentication sources
@@ -472,15 +471,21 @@ ifneq ($(filter 1,${MEASURED_BOOT} ${DRTM_SUPPORT}),)
     include ${MEASURED_BOOT_MK}
 
     ifeq (${MEASURED_BOOT},1)
-         BL1_SOURCES		+= 	${EVENT_LOG_SOURCES}
-         BL2_SOURCES		+= 	${EVENT_LOG_SOURCES}
+        BL1_LIBS += $(LIBEVLOG_LIBS)
+        BL1_INCLUDE_DIRS += $(LIBEVLOG_INCLUDE_DIRS)
+
+        BL2_LIBS += $(LIBEVLOG_LIBS)
+        BL2_INCLUDE_DIRS += $(LIBEVLOG_INCLUDE_DIRS)
+
          ifeq (${SPD_tspd},1)
-             BL32_SOURCES		+= 	${EVENT_LOG_SOURCES}
+            BL32_LIBS += $(LIBEVLOG_LIBS)
+            BL32_INCLUDE_DIRS += $(LIBEVLOG_INCLUDE_DIRS)
          endif
     endif
 
     ifeq (${DRTM_SUPPORT},1)
-         BL31_SOURCES	        += 	${EVENT_LOG_SOURCES}
+        BL31_LIBS += $(LIBEVLOG_LIBS)
+        BL31_INCLUDE_DIRS += $(LIBEVLOG_INCLUDE_DIRS)
     endif
 endif
 

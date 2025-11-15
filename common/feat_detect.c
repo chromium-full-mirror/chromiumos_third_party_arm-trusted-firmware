@@ -190,6 +190,16 @@ static unsigned int read_feat_ls64_id_field(void)
 	return ISOLATE_FIELD(read_id_aa64isar1_el1(), ID_AA64ISAR1_LS64_SHIFT,
 			     ID_AA64ISAR1_LS64_MASK);
 }
+static unsigned int read_feat_aie_id_field(void)
+{
+	return ISOLATE_FIELD(read_id_aa64mmfr3_el1(), ID_AA64MMFR3_EL1_AIE_SHIFT,
+			     ID_AA64MMFR3_EL1_AIE_MASK);
+}
+static unsigned int read_feat_pfar_id_field(void)
+{
+	return ISOLATE_FIELD(read_id_aa64pfr1_el1(), ID_AA64PFR1_EL1_PFAR_SHIFT,
+			     ID_AA64PFR1_EL1_PFAR_MASK);
+}
 static unsigned int read_feat_tcr2_id_field(void)
 {
 	return ISOLATE_FIELD(read_id_aa64mmfr3_el1(), ID_AA64MMFR3_EL1_TCRX_SHIFT,
@@ -278,6 +288,12 @@ static unsigned int read_feat_gcie_id_field(void)
 			     ID_AA64PFR2_EL1_GCIE_MASK);
 }
 
+static unsigned int read_feat_ebep_id_field(void)
+{
+	return ISOLATE_FIELD(read_id_aa64dfr1_el1(), ID_AA64DFR1_EBEP_SHIFT,
+			     ID_AA64DFR1_EBEP_MASK);
+}
+
 static unsigned int read_feat_fpmr_id_field(void)
 {
 	return ISOLATE_FIELD(read_id_aa64pfr2_el1(), ID_AA64PFR2_EL1_FPMR_SHIFT,
@@ -294,6 +310,32 @@ static unsigned int read_feat_fgwte3_id_field(void)
 {
 	return ISOLATE_FIELD(read_id_aa64mmfr4_el1(), ID_AA64MMFR4_EL1_FGWTE3_SHIFT,
 			     ID_AA64MMFR4_EL1_FGWTE3_MASK);
+}
+
+static unsigned int read_feat_cpa_id_field(void)
+{
+	return ISOLATE_FIELD(read_id_aa64isar3_el1(),
+			     ID_AA64ISAR3_EL1_CPA_SHIFT,
+			     ID_AA64ISAR3_EL1_CPA_MASK);
+}
+
+static unsigned int read_feat_clrbhb_id_field(void)
+{
+	return ISOLATE_FIELD(read_id_aa64isar2_el1(), ID_AA64ISAR2_CLRBHB_SHIFT,
+			     ID_AA64ISAR2_CLRBHB_MASK);
+}
+
+static unsigned int read_feat_rme_gdi_id_field(void)
+{
+	return ISOLATE_FIELD(read_id_aa64mmfr4_el1(),
+			     ID_AA64MMFR4_EL1_RME_GDI_SHIFT,
+			     ID_AA64MMFR4_EL1_RME_GDI_MASK);
+}
+
+static unsigned int read_feat_idte3_id_field(void)
+{
+	return ISOLATE_FIELD(read_id_aa64mmfr2_el1(), ID_AA64MMFR2_EL1_IDS_SHIFT,
+			     ID_AA64MMFR2_EL1_IDS_MASK);
 }
 
 /***********************************************************************************
@@ -333,6 +375,8 @@ void detect_arch_features(unsigned int core_pos)
 				 "SB", 1, 1);
 	tainted |= check_feature(ENABLE_FEAT_CSV2_2, read_feat_csv2_id_field(),
 				 "CSV2_2", 2, 3);
+	tainted |= check_feature(ENABLE_FEAT_CLRBHB, read_feat_clrbhb_id_field(),
+				 "CLRBHB", 1, 1);
 	/*
 	 * Even though the PMUv3 is an OPTIONAL feature, it is always
 	 * implemented and Arm prescribes so. So assume it will be there and do
@@ -430,6 +474,10 @@ void detect_arch_features(unsigned int core_pos)
 				 "THE", 1, 1);
 	tainted |= check_feature(ENABLE_FEAT_SCTLR2, read_feat_sctlr2_id_field(),
 				 "SCTLR2", 1, 1);
+	tainted |= check_feature(ENABLE_FEAT_AIE, read_feat_aie_id_field(),
+				 "AIE", 1, 1);
+	tainted |= check_feature(ENABLE_FEAT_PFAR, read_feat_pfar_id_field(),
+				 "PFAR", 1, 1);
 
 	/* v9.0 features */
 	tainted |= check_feature(ENABLE_BRBE_FOR_NS, read_feat_brbe_id_field(),
@@ -450,16 +498,27 @@ void detect_arch_features(unsigned int core_pos)
 				 "D128", 1, 1);
 	tainted |= check_feature(ENABLE_FEAT_GCIE, read_feat_gcie_id_field(),
 				 "GCIE", 1, 1);
+	tainted |= check_feature(ENABLE_FEAT_MPAM_PE_BW_CTRL,
+				is_feat_mpam_pe_bw_ctrl_present(),
+				"MPAM_PE_BW_CTRL", 1, 1);
+	tainted |= check_feature(ENABLE_FEAT_EBEP, read_feat_ebep_id_field(),
+				 "EBEP", 1, 1);
 
 	/* v9.4 features */
 	tainted |= check_feature(ENABLE_FEAT_GCS, read_feat_gcs_id_field(),
 				 "GCS", 1, 1);
 	tainted |= check_feature(ENABLE_RME, read_feat_rme_id_field(),
-				 "RME", 1, 1);
+				 "RME", 1, 2);
 	tainted |= check_feature(ENABLE_FEAT_PAUTH_LR, is_feat_pauth_lr_present(),
 				 "PAUTH_LR", 1, 1);
 	tainted |= check_feature(ENABLE_FEAT_FGWTE3, read_feat_fgwte3_id_field(),
 				 "FGWTE3", 1, 1);
+	tainted |= check_feature(ENABLE_FEAT_CPA2, read_feat_cpa_id_field(),
+				 "CPA2", 2, 2);
+	tainted |= check_feature(ENABLE_FEAT_RME_GDI, read_feat_rme_gdi_id_field(),
+				 "RME_GDI", 1, 1);
+	tainted |= check_feature(ENABLE_FEAT_IDTE3, read_feat_idte3_id_field(),
+				 "IDTE3", 2, 2);
 
 	if (tainted) {
 		panic();
