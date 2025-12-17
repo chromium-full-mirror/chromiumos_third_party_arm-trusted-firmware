@@ -70,11 +70,18 @@ workaround_reset_start cortex_a720, CVE(2022, 23960), WORKAROUND_CVE_2022_23960
 #endif /* IMAGE_BL31 */
 workaround_reset_end cortex_a720, CVE(2022, 23960)
 
+workaround_runtime_start cortex_a720, ERRATUM(3456091), ERRATA_A720_3456091
+	speculation_barrier
+workaround_runtime_end cortex_a720, ERRATUM(3456091)
+
+check_erratum_ls cortex_a720, ERRATUM(3456091), CPU_REV(0, 2)
+
 check_erratum_chosen cortex_a720, CVE(2022, 23960), WORKAROUND_CVE_2022_23960
 
 cpu_reset_func_start cortex_a720
 	/* Disable speculative loads */
 	msr	SSBS, xzr
+	apply_erratum cortex_a720, ERRATUM(3456091), ERRATA_A720_3456091
 cpu_reset_func_end cortex_a720
 
 	/* ----------------------------------------------------
