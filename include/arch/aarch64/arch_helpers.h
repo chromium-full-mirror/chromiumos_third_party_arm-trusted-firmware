@@ -764,6 +764,18 @@ static inline uint64_t el_implemented(unsigned int el)
 	}
 }
 
+static inline void enable_fpregs_traps_el3(void)
+{
+	write_cptr_el3(read_cptr_el3() | TFP_BIT);
+	isb();
+}
+
+static inline void disable_fpregs_traps_el3(void)
+{
+	write_cptr_el3(read_cptr_el3() & ~(TFP_BIT));
+	isb();
+}
+
 /*
  * TLBI PAALLOS instruction
  * (TLB Invalidate GPT Information by PA, All Entries, Outer Shareable)
