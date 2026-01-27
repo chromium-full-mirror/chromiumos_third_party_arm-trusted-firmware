@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  * Copyright (c) 2020-2022, NVIDIA Corporation. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -331,8 +331,10 @@
 #define GMID_EL1			S3_1_C0_C0_4
 
 /* ID_AA64ISAR0_EL1 definitions */
-#define ID_AA64ISAR0_RNDR_SHIFT	U(60)
-#define ID_AA64ISAR0_RNDR_MASK	ULL(0xf)
+#define ID_AA64ISAR0_ATOMIC_SHIFT	U(20)
+#define ID_AA64ISAR0_ATOMIC_MASK	ULL(0xf)
+#define ID_AA64ISAR0_RNDR_SHIFT		U(60)
+#define ID_AA64ISAR0_RNDR_MASK		ULL(0xf)
 
 /* ID_AA64ISAR1_EL1 definitions */
 #define ID_AA64ISAR1_EL1		S3_0_C0_C6_1
@@ -536,6 +538,12 @@
 #define ID_AA64PFR1_EL1_PFAR_SHIFT	U(60)
 #define ID_AA64PFR1_EL1_PFAR_MASK	ULL(0xf)
 
+/* ID_AA64PFR1_EL1.CE field: Morello architecture presence (bits [23:20]) */
+#define ID_AA64PFR1_EL1_CE_SHIFT	U(20)
+#define ID_AA64PFR1_EL1_CE_MASK		ULL(0xf)
+/* 0b0000 means Morello arch is not present, 0b0001 means it is present */
+#define MORELLO_EXTENSION_IMPLEMENTED	ULL(0x1)
+#define CSCR_EL3_SETTAG			ULL(0x1)
 
 /* ID_AA64PFR2_EL1 definitions */
 #define ID_AA64PFR2_EL1				S3_0_C0_C4_2
@@ -548,6 +556,10 @@
 
 #define ID_AA64PFR2_EL1_MTEFAR_SHIFT		U(8)
 #define ID_AA64PFR2_EL1_MTEFAR_MASK		ULL(0xf)
+
+#define ID_AA64PFR2_EL1_UINJ_SHIFT		U(16)
+#define ID_AA64PFR2_EL1_UINJ_MASK		ULL(0xf)
+#define UINJ_IMPLEMENTED			ULL(0x1)
 
 #define ID_AA64PFR2_EL1_FPMR_SHIFT		U(32)
 #define ID_AA64PFR2_EL1_FPMR_MASK		ULL(0xf)
@@ -739,7 +751,8 @@
 #define SCR_TID5_BIT		(UL(1) << 23)
 #define SCR_TID3_BIT		(UL(1) << 22)
 #define SCR_FIEN_BIT		(UL(1) << 21)
-#define SCR_EEL2_BIT		(UL(1) << 18)
+#define SCR_EEL2_SHIFT          U(18)
+#define SCR_EEL2_BIT		(UL(1) << SCR_EEL2_SHIFT)
 #define SCR_API_BIT		(UL(1) << 17)
 #define SCR_APK_BIT		(UL(1) << 16)
 #define SCR_TERR_BIT		(UL(1) << 15)
@@ -880,9 +893,21 @@
 #define ESM_BIT			(U(1) << 12)
 #define TFP_BIT			(U(1) << 10)
 #define CPTR_EZ_BIT		(U(1) << 8)
+
+#if ENABLE_FEAT_MORELLO
+#define EC_BIT			(U(1) << 9)
+/*
+ * Even though the morello spec doesnot have TAM_BIT defined it is included
+ * to keep the definition as close to other hardware as possible. Since bit 30
+ * is reserved in Morello it should not have any effect anyways.
+ */
+#define CPTR_EL3_RESET_VAL	((TAM_BIT | TTA_BIT | EC_BIT) & \
+				~(CPTR_EZ_BIT | ESM_BIT | TFP_BIT | TCPAC_BIT))
+#else
 /* TCPAC is always set by default as the register is always present */
 #define CPTR_EL3_RESET_VAL	((TAM_BIT | TTA_BIT) & \
 				~(CPTR_EZ_BIT | ESM_BIT | TFP_BIT | TCPAC_BIT))
+#endif
 
 /* CPTR_EL2 definitions */
 #define CPTR_EL2_RES1		((U(1) << 13) | (U(1) << 12) | (U(0x3ff)))
@@ -930,6 +955,7 @@
 
 #define SPSR_M_SHIFT		U(4)
 #define SPSR_M_MASK		U(0x1)
+#define SPSR_M_WIDTH		U(1)
 #define SPSR_M_AARCH64		U(0x0)
 #define SPSR_M_AARCH32		U(0x1)
 #define SPSR_M_EL1H		U(0x5)
@@ -956,6 +982,7 @@
 #define SPSR_EXLOCK_BIT_AARCH64	BIT_64(34)
 #define SPSR_NZCV		(SPSR_V_BIT | SPSR_C_BIT | SPSR_Z_BIT | SPSR_N_BIT)
 #define SPSR_PACM_BIT_AARCH64	BIT_64(35)
+#define SPSR_UINJ_BIT		BIT_64(36)
 
 /*
  * SPSR_EL2
@@ -1055,6 +1082,12 @@
 #define TCR_TG0_64K		(ULL(1) << TCR_TG0_SHIFT)
 #define TCR_TG0_16K		(ULL(2) << TCR_TG0_SHIFT)
 
+#define TCR_HPD_BIT		(ULL(1) << 24)
+#define TCR_HWU59_BIT		(ULL(1) << 25)
+#define TCR_HWU60_BIT		(ULL(1) << 26)
+#define TCR_HWU61_BIT		(ULL(1) << 27)
+#define TCR_HWU62_BIT		(ULL(1) << 28)
+
 #define TCR_TG1_SHIFT		U(30)
 #define TCR_TG1_MASK		ULL(3)
 #define TCR_TG1_16K		(ULL(1) << TCR_TG1_SHIFT)
@@ -1152,6 +1185,7 @@
 #define ESR_EC_SHIFT			U(26)
 #define ESR_EC_MASK			U(0x3f)
 #define ESR_EC_LENGTH			U(6)
+#define ESR_EC_WIDTH			U(6)
 #define ESR_ISS_SHIFT			U(0)
 #define ESR_ISS_LENGTH			U(25)
 #define ESR_IL_BIT			(U(1) << 25)
@@ -1415,16 +1449,18 @@
 #define AMEVTYPER1F_EL0		S3_3_C13_C15_7
 
 /* AMCNTENSET0_EL0 definitions */
-#define AMCNTENSET0_EL0_Pn_SHIFT	U(0)
-#define AMCNTENSET0_EL0_Pn_MASK		ULL(0xffff)
+#define AMCNTENSET0_EL0_Pn_ALWAYS_ON	ULL(0x3)
+#define AMCNTENSET0_EL0_Pn_CONTEXTED	ULL(0xc)
+#define AMCNTENSET0_EL0_Pn_ALL		ULL(0xf)
 
 /* AMCNTENSET1_EL0 definitions */
 #define AMCNTENSET1_EL0_Pn_SHIFT	U(0)
 #define AMCNTENSET1_EL0_Pn_MASK		ULL(0xffff)
 
 /* AMCNTENCLR0_EL0 definitions */
-#define AMCNTENCLR0_EL0_Pn_SHIFT	U(0)
-#define AMCNTENCLR0_EL0_Pn_MASK		ULL(0xffff)
+#define AMCNTENCLR0_EL0_Pn_ALWAYS_ON	ULL(0x3)
+#define AMCNTENCLR0_EL0_Pn_CONTEXTED	ULL(0xc)
+#define AMCNTENCLR0_EL0_Pn_ALL		ULL(0xf)
 
 /* AMCNTENCLR1_EL0 definitions */
 #define AMCNTENCLR1_EL0_Pn_SHIFT	U(0)

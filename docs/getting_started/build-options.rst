@@ -440,11 +440,12 @@ Common build options
    Default value is ``0``. ``FEAT_RNG_TRAP`` is an optional feature from
    Armv8.5 onwards.
 
--  ``ENABLE_FEAT_SB``: Boolean option to let the TF-A code use the ``FEAT_SB``
+-  ``ENABLE_FEAT_SB``: Numeric option to let the TF-A code use the ``FEAT_SB``
    (Speculation Barrier) instruction ``FEAT_SB`` is an optional feature and
    defaults to ``0`` for pre-Armv8.5 CPUs, but is mandatory for Armv8.5 or
    later CPUs. It is enabled from v8.5 and upwards and if needed can be
-   overidden from platforms explicitly.
+   overidden from platforms explicitly. This flag can take values 0 to 2, to
+   align with the ``ENABLE_FEAT`` mechanism.  Default value is ``0``.
 
 -  ``ENABLE_FEAT_SEL2``: Numeric value to enable the ``FEAT_SEL2`` (Secure EL2)
    extension. ``FEAT_SEL2`` is a mandatory feature available on Arm v8.4.
@@ -529,11 +530,20 @@ Common build options
    This flag can take the values 0 to 2, to align  with the ``ENABLE_FEAT``
    mechanism. Default value is ``0``.
 
+-  ``ENABLE_FEAT_UINJ``: Numerical value to enable FEAT_UINJ support which
+   is hardware based injection of undefined instruction exceptions.
+   The objective of this feature is to provide higher privilege software with a
+   future proofed mechanism to inject an Undefined Instruction exception into
+   lower privilege software. It is an optional architectural feature from v9.0
+   and mandatory from v9.6. This flag can take value of 0 to 2,
+   to align with the ``FEATURE_DETECTION`` mechanism. Default value is ``0``.
+
 -  ``ENABLE_LTO``: Boolean option to enable Link Time Optimization (LTO)
    support. This option is currently only supported for AArch64. On GCC it only
    applies to TF-A proper, and not its libraries. If LTO on libraries (except
    the libc) is desired a platform can pass `-flto -ffat-lto-objects` as long as
-   GCC >= 14 is in use.  Default is 0.
+   GCC >= 14 is in use. ``ENABLE_LTO`` is enabled by default on release builds.
+   Default is 0.
 
 -  ``ENABLE_FEAT_MPAM``: Numeric value to enable lower ELs to use MPAM
    feature. MPAM is an optional Armv8.4 extension that enables various memory
@@ -638,6 +648,13 @@ Common build options
    they should be explicitly enabled depending on each platform's needs. Not
    recommended for release builds. This option is default set to 0.
 
+-  ``ENABLE_FEAT_MORELLO`` : Numeric option to enable the Morello capability aware
+   firmware. This flag can take the values 0 to 2, to align with the
+   ``ENABLE_FEAT`` mechanism. This option is experimental and supported only with
+   LLVM CLANG toolchain and not with GCC toolchain. Capability awareness is
+   currently enabled only in BL31 firmware and not in other firmware types of
+   trusted firmware. Enabling this on regular AARCH64 system might not work.
+
 -  ``ENCRYPT_BL31``: Binary flag to enable encryption of BL31 firmware. This
    flag depends on ``DECRYPTION_SUPPORT`` build flag.
 
@@ -678,10 +695,6 @@ Common build options
    occuring during normal world execution, are trapped to EL3. Any exception
    trapped during secure world execution are trapped to the SPMC. This is
    supported only for AArch64 builds.
-
--  ``EVENT_LOG_LEVEL``: Chooses the log level to use for Measured Boot when
-   ``MEASURED_BOOT`` is enabled. For a list of valid values, see ``LOG_LEVEL``.
-   Default value is 40 (LOG_LEVEL_INFO).
 
 -  ``FAULT_INJECTION_SUPPORT``: ARMv8.4 extensions introduced support for fault
    injection from lower ELs, and this build option enables lower ELs to use
@@ -828,6 +841,12 @@ Common build options
    All log output up to and including the selected log level is compiled into
    the build. The default value is 40 in debug builds and 20 in release builds.
 
+   ``LOG_DEBUG``: Boolean option to enable support for module level internal
+   logs. There can be situation where a module has detail internal debugging
+   logs, these debugging logs may not be required to print even when log level
+   is VERBOSE. Such logs can be put under this flag. This is a file
+   level build flag. By default this should be disabled (``0``) in each file.
+
 -  ``MEASURED_BOOT``: Boolean flag to include support for the Measured Boot
    feature. This flag can be enabled with ``TRUSTED_BOARD_BOOT`` in order to
    provide trust that the code taking the measurements and recording them has
@@ -946,12 +965,13 @@ Common build options
    interacts with IMPDEF_SYSREG_TRAP and software emulation. This option
    defaults to 0.
 
--  ``ENABLE_FEAT_RAS``: Boolean flag to enable Armv8.2 RAS features. RAS features
-   are an optional extension for pre-Armv8.2 CPUs, but are mandatory for Armv8.2
-   or later CPUs. This flag can take the values 0 or 1. The default value is 0.
-   NOTE: This flag enables use of IESB capability to reduce entry latency into
-   EL3 even when RAS error handling is not performed on the platform. Hence this
-   flag is recommended to be turned on Armv8.2 and later CPUs.
+-  ``ENABLE_FEAT_RAS``: Numeric flag to enable Armv8.2 RAS features. RAS
+   features are an optional extension for pre-Armv8.2 CPUs, but are mandatory
+   for Armv8.2 or later CPUs. NOTE: This flag enables use of IESB capability to
+   reduce entry latency into EL3 even when RAS error handling is not performed
+   on the platform. Hence this flag is recommended to be turned on Armv8.2 and
+   later CPUs. This flag can take the values 0 to 2, to align with the
+   ``ENABLE_FEAT`` mechanism. The default is 0.
 
 -  ``RESET_TO_BL31``: Enable BL31 entrypoint as the CPU reset vector instead
    of the BL1 entrypoint. It can take the value 0 (CPU reset to BL1
@@ -1272,6 +1292,8 @@ Common build options
    +---------+--------------+-------------------------+
    | 1319367 |  Cortex-A72  |  ``ERRATA_A72_1319367`` |
    +---------+--------------+-------------------------+
+   | 1541130 |  Cortex-A65  |  ``ERRATA_A65_1541130`` |
+   +---------+--------------+-------------------------+
    | 1319537 |  Cortex-A57  |  ``ERRATA_A57_1319537`` |
    +---------+--------------+-------------------------+
    | 1530923 |  Cortex-A55  |  ``ERRATA_A55_1530923`` |
@@ -1286,7 +1308,7 @@ Common build options
       implement this workaround due to the behaviour of the errata mentioned
       in new SDEN document which will get published soon.
 
-- ``ERRATA_SME_POWER_DOWN``: Boolean option to disable SME (PSTATE.{ZA,SM}=0)
+- ``ERRATA_SME_POWER_DOWN``: Boolean option to disconnect the SME unit (PSTATE.{ZA,SM}=0)
   before power down and downgrade a suspend to power down request to a normal
   suspend request. This is necessary when software running at lower ELs requests
   power down without first clearing these bits. On affected cores, the CME
@@ -1317,6 +1339,15 @@ Common build options
   feature for AArch64. This flag can take the values  0 to 2, to align with the
   ``ENABLE_FEAT`` mechanism. The default is 0 and it is automatically
   disabled when the target architecture is AArch32.
+
+- ``USE_SPINLOCK_CAS``: Numeric value to use FEAT_LSE atomics instead of
+  load/store exclusive instructions with spinlocks. FEAT_LSE is a mandatory
+  feature from v8.1, however it is only architecturally guaranteed to work on
+  "conventional memory" which may not apply to tightly coupled memory (eg. SRAM,
+  TF-A's usual place). Platforms must check if TF-A's memory can be targetted
+  by atomics before enabling this feature. Expected to increase performance on
+  systems with many cores. This flag can take the values 0 to 2, to align with
+  the ``ENABLE_FEAT`` mechanism. The default is 0.
 
 - ``ENABLE_SYS_REG_TRACE_FOR_NS``: Numeric value to enable trace system
   registers access from NS ELs, NS-EL2 or NS-EL1 (when NS-EL2 is implemented
@@ -1608,7 +1639,7 @@ Firmware update options
 
 --------------
 
-*Copyright (c) 2019-2025, Arm Limited. All rights reserved.*
+*Copyright (c) 2019-2026, Arm Limited. All rights reserved.*
 
 .. _DEN0115: https://developer.arm.com/docs/den0115/latest
 .. _PSA FW update specification: https://developer.arm.com/documentation/den0118/latest/

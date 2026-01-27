@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2019-2025, Arm Limited and Contributors. All rights reserved.
  * Copyright (c) 2019-2023, Intel Corporation. All rights reserved.
@@ -17,6 +18,7 @@
 #include "socfpga_fcs.h"
 #include "socfpga_mailbox.h"
 #include "socfpga_plat_def.h"
+#include "socfpga_private.h"
 #include "socfpga_reset_manager.h"
 #include "socfpga_sip_svc.h"
 #include "socfpga_system_manager.h"
@@ -369,6 +371,21 @@ static int is_out_of_sec_range(uint64_t reg_addr)
 	return 0;
 #endif
 
+#if PLATFORM_MODEL == PLAT_SOCFPGA_AGILEX5
+	if (is_agilex5_A5F4() == true) {
+		switch (reg_addr) {
+		/* TSN stream control registers — only accessible on Agilex5 B0 */
+		case SOCFPGA_SYSMGR(TSN_TBU_STREAM_CTRL_REG_3_TSN0):
+		case SOCFPGA_SYSMGR(TSN_TBU_STREAM_CTRL_REG_3_TSN1):
+		case SOCFPGA_SYSMGR(TSN_TBU_STREAM_CTRL_REG_3_TSN2):
+			return 0;
+
+		default:
+			break;
+		}
+	}
+#endif
+
 #if PLATFORM_MODEL != PLAT_SOCFPGA_AGILEX5
 	switch (reg_addr) {
 	case(0xF8011100):	/* ECCCTRL1 */
@@ -394,7 +411,6 @@ static int is_out_of_sec_range(uint64_t reg_addr)
 	case(0xFA028038):	/* SMMU CB8_PRRR_MIR0 */
 	case(0xFA02803C):	/* SMMU CB8_PRRR_MIR1 */
 	case(0xFA028010):	/* SMMU_CB8)TCR2 */
-	case(0xFFD080A4):	/* SDM SMMU STREAM ID REG */
 	case(0xFA001820):	/* SMMU_CBA2R8 */
 	case(0xFA000074):	/* SMMU_STLBGSTATUS */
 	case(0xFA0287F4):	/* SMMU_CB8_TLBSTATUS */
@@ -792,7 +808,7 @@ void intel_smmu_hps_remapper_init(uint64_t *mem)
 int intel_smmu_hps_remapper_config(uint32_t remapper_bypass)
 {
 	/* Read out the JTAG-ID from boot scratch register */
-	if (is_agilex5_A5F0() || is_agilex5_A5F4()) {
+	if (is_agilex5_A5C0() || is_agilex5_A5C4()) {
 		if (remapper_bypass == 0x01) {
 			g_remapper_bypass = remapper_bypass;
 			mmio_write_32(SOCFPGA_SYSMGR(SDM_BE_ARADDR_REMAP), 0);

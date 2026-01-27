@@ -73,6 +73,35 @@ reflected back to lower EL (KFH) or handled in EL3 itself (FFH).
 
 |Image 1|
 
+Limitation in KFH Mode
+----------------------
+
+When handling asynchronous External Aborts (EAs) synchronized at EL3 entry in Kernel First Handling
+(KFH) mode, there is a limitation in the current implementation:
+
+* The handler reflects pending async EAs back to the lower EL if the EA routing model is KFH
+* However, if the asynchronous EA is masked at the target exception level, or if its priority
+  relative to an EL3/secure interrupt is lower, repeated back-and-forth transitions between
+  lower EL and EL3 can occur.
+
+To prevent infinite cycling between EL3 and lower EL, a loop counter (``CTX_NESTED_EA_FLAG``) and
+the previously saved ELR (``CTX_SAVED_ELR_EL3``) are used to detect this condition. If a loop is
+detected, EL3 will trigger a panic (label ``check_loop_ctr``) to indicate a problem.
+
+Future Plan: Delegated SError Injection (FEAT_E3DSE)
+----------------------------------------------------
+
+In future revisions, this limitation can be mitigated by utilizing **FEAT_E3DSE** — the
+**Delegated SError exception injection** feature introduced for EL3.
+
+FEAT_E3DSE provides a mechanism for EL3 to inject a virtual SError into lower exception levels.
+Once this capability is supported in TF-A, EL3 will be able to handle the original exception
+and then inject the delegated SError to the appropriate lower EL before returning, thereby
+eliminating the need for panic handling in this scenario.
+
+This planned enhancement will improve robustness and correctness of asynchronous error handling
+in KFH mode.
+
 TF-A build options
 ==================
 
@@ -306,7 +335,10 @@ The RAS support in |TF-A| introduces a default implementation of
 is set to ``1``, it'll first call ``ras_ea_handler()`` function, which is the
 top-level RAS exception handler. ``ras_ea_handler`` is responsible for iterating
 to through platform-supplied error records, probe them, and when an error is
-identified, look up and invoke the corresponding error handler.
+identified, look up and invoke the corresponding error handler. When
+``ENABLE_FEAT_RAS`` is set to ``2`` the handler will also be built but it will
+not be called if ``FEAT_RAS`` is not present in hardware. The checks to do so
+will incur a performance penalty.
 
 Note that, if the platform chooses to override the ``plat_ea_handler`` function
 and intend to use the RAS framework, it must explicitly call
@@ -338,7 +370,7 @@ for non-interrupt exceptions, they're explicit using :ref:`EHF APIs
 
 --------------
 
-*Copyright (c) 2018-2023, Arm Limited and Contributors. All rights reserved.*
+*Copyright (c) 2018-2026, Arm Limited and Contributors. All rights reserved.*
 
 .. _RAS Supplement: https://developer.arm.com/documentation/ddi0587/latest
 .. _RAS Test group: https://git.trustedfirmware.org/ci/tf-a-ci-scripts.git/tree/group/tf-l3-boot-tests-ras?h=refs/heads/master

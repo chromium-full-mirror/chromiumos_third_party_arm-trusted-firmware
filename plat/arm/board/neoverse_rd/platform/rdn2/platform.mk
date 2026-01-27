@@ -35,6 +35,9 @@ RDN2_BASE		=	plat/arm/board/neoverse_rd/platform/rdn2
 PLAT_INCLUDES		+=	-I${NRD_COMMON_BASE}/include/nrd2/	\
 				-I${RDN2_BASE}/include/
 
+ARM_ARCH_MAJOR		:=	9
+ARM_ARCH_MINOR		:=	0
+
 NRD_CPU_SOURCES		:=	lib/cpus/aarch64/neoverse_n2.S \
 				lib/cpus/aarch64/neoverse_v2.S
 
@@ -70,7 +73,7 @@ BL31_SOURCES	+=	drivers/arm/gic/v3/gic600_multichip.c
 BL31_CFLAGS		+=	-DPLAT_XLAT_TABLES_DYNAMIC
 endif
 
-ifeq (${ENABLE_FEAT_RAS}-${HANDLE_EA_EL3_FIRST_NS},1-1)
+ifeq (${HANDLE_EA_EL3_FIRST_NS},1)
 BL31_SOURCES		+=	${RDN2_BASE}/rdn2_ras.c			\
 				${NRD_COMMON_BASE}/ras/nrd_ras_common.c	\
 				${NRD_COMMON_BASE}/ras/nrd_ras_sram.c	\

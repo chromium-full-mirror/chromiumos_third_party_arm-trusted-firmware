@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025, Arm Limited. All rights reserved.
+# Copyright (c) 2025-2026, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -130,7 +130,11 @@ ifeq (${ARM_ARCH_MAJOR},7)
 include make_helpers/armv7-a-cpus.mk
 endif
 
-cflags-common		+=	$(march-directive)
+ifneq ($(ENABLE_FEAT_MORELLO),0)
+        TF_CFLAGS	+=	-march=morello
+else
+        cflags-common	+=	$(march-directive)
+endif
 
 ifneq ($(PIE_FOUND),)
         cflags-common	+=	-fno-PIE
@@ -168,7 +172,11 @@ ifeq ($($(ARCH)-ld-id),arm-link)
 
 # LD = gcc or clang
 else
-        ldflags-common		:=	$(call ld_option,--no-warn-rwx-segments)
+        ifeq ($($(ARCH)-ld-id),llvm-clang)
+                ldflags-common	:=	-fuse-ld=lld
+        endif
+
+        ldflags-common		+=	$(call ld_option,--no-warn-rwx-segments)
         # ld.lld reports section type mismatch warnings,
         # so don't add --fatal-warnings to it.
         ifneq ($($(ARCH)-ld-id),$(filter $($(ARCH)-ld-id),llvm-clang llvm-lld))
@@ -185,10 +193,6 @@ else
         endif #(ENABLE_LTO)
 
         ldflags-common		+= 	-nostdlib
-
-        ifeq ($($(ARCH)-ld-id),llvm-clang)
-                ldflags-common		+=	-fuse-ld=lld
-        endif
 
         ifneq ($(call bool,$(USE_ROMLIB)),)
                 ldflags-common	+= @${BUILD_PLAT}/romlib/romlib.ldflags

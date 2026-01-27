@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2025, Renesas Electronics Corporation. All rights reserved.
+# Copyright (c) 2018-2026, Renesas Electronics Corporation. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -12,6 +12,7 @@ RESET_TO_BL31			:= 1
 GENERATE_COT			:= 1
 RESET_TO_BL2			:= 1
 ENABLE_SVE_FOR_NS		:= 0
+INIT_UNUSED_NS_EL2		:= 1
 
 CRASH_REPORTING			:= 1
 HANDLE_EA_EL3_FIRST_NS		:= 1
@@ -100,8 +101,8 @@ BL2_SOURCES	+=	${RCAR_GIC_SOURCES}				\
 			plat/renesas/common/bl2_plat_mem_params_desc.c	\
 			plat/renesas/common/plat_image_load.c		\
 			plat/renesas/common/bl2_cpg_init.c		\
-			drivers/renesas/common/console/rcar_printf.c	\
-			drivers/renesas/common/scif/scif.S		\
+			drivers/renesas/common/scif/scif-common.c	\
+			drivers/renesas/common/scif/scif.c		\
 			drivers/renesas/common/scif/scif_helpers.S	\
 			drivers/renesas/common/common.c			\
 			drivers/renesas/common/io/io_emmcdrv.c		\

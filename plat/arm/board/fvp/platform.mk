@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -36,12 +36,21 @@ USE_KERNEL_DT_CONVENTION	:= 1
 # By default dont build CPUs with no FVP model.
 BUILD_CPUS_WITH_NO_FVP_MODEL	?= 0
 
+# Enable CRC instructions via extension for ARMv8-A CPUs.
+# For ARMv8.1-A, and onwards CRC instructions are default enabled.
+ifeq (${ARM_ARCH_MAJOR},8)
+ifeq (${ARM_ARCH_MINOR},0)
+      ARM_ARCH_FEATURE		:= crc
+endif
+endif
 ENABLE_FEAT_AMU			:= 2
 ENABLE_FEAT_AMUv1p1		:= 2
 ENABLE_FEAT_HCX			:= 2
 ENABLE_FEAT_RNG			:= 2
 ENABLE_FEAT_TWED		:= 2
 ENABLE_FEAT_GCS			:= 2
+ENABLE_FEAT_RAS			:= 2
+ENABLE_FEAT_SB			:= 2
 
 ifeq (${ARCH}, aarch64)
 
@@ -64,6 +73,7 @@ endif
       ENABLE_FEAT_FGWTE3		:= 2
       ENABLE_FEAT_MPAM_PE_BW_CTRL	:= 2
       ENABLE_FEAT_CPA2			:= 2
+      ENABLE_FEAT_UINJ			:= 2
 endif
 
 ENABLE_SYS_REG_TRACE_FOR_NS	:= 2
@@ -115,6 +125,10 @@ $(eval $(call add_define,FVP_GICR_REGION_PROTECTION))
 
 # Pass FVP_TRUSTED_SRAM_SIZE to the build system.
 $(eval $(call add_define,FVP_TRUSTED_SRAM_SIZE))
+
+ifeq (${DRTM_SUPPORT},1)
+MBOOT_EL_HASH_ALG	:=	sha256
+endif
 
 # Sanity check the cluster count and if FVP_CLUSTER_COUNT <= 2,
 # choose the CCI driver , else the CCN driver
@@ -255,9 +269,12 @@ ifeq (${BUILD_CPUS_WITH_NO_FVP_MODEL},1)
 				lib/cpus/aarch64/c1_premium.S		\
 				lib/cpus/aarch64/canyon.S		\
 				lib/cpus/aarch64/caddo.S		\
+				lib/cpus/aarch64/rosillo.S		\
 				lib/cpus/aarch64/veymont.S		\
 				lib/cpus/aarch64/dionysus.S		\
-				lib/cpus/aarch64/venom.S
+				lib/cpus/aarch64/venom.S		\
+				lib/cpus/aarch64/lsc25_p_core.S		\
+				lib/cpus/aarch64/lsc25_e_core.S
 endif
 
 else
@@ -447,6 +464,21 @@ FW_HANDOFF_SIZE			:=	20000
 TRANSFER_LIST_DTB_OFFSET	:=	0x20
 $(eval $(call add_define,TRANSFER_LIST_DTB_OFFSET))
 endif
+
+#
+# To load SP_PKGs with TRANSFER_LIST, FVP_TB_FW_CONFIG is required.
+#
+ifeq (${BL2_ENABLE_SP_LOAD}, 1)
+    FDT_SOURCES		+=	$(addprefix plat/arm/board/fvp/fdts/,	\
+    					${PLAT}_tb_fw_config.dts	\
+    				)
+
+    FVP_TB_FW_CONFIG	:=	${BUILD_PLAT}/fdts/${PLAT}_tb_fw_config.dtb
+
+    # Add the TB_FW_CONFIG to FIP and specify the same to certtool
+    $(eval $(call TOOL_ADD_PAYLOAD,${FVP_TB_FW_CONFIG},--tb-fw-config,${FVP_TB_FW_CONFIG}))
+endif
+
 endif
 
 ifeq (${HOB_LIST}, 1)
@@ -515,11 +547,13 @@ include plat/arm/common/arm_common.mk
 ifeq (${MEASURED_BOOT},1)
 BL1_SOURCES		+=	plat/arm/board/fvp/fvp_common_measured_boot.c	\
 				plat/arm/board/fvp/fvp_bl1_measured_boot.c	\
-				lib/psa/measured_boot.c
+				lib/psa/measured_boot.c	\
+				common/measured_boot_helpers.c
 
 BL2_SOURCES		+=	plat/arm/board/fvp/fvp_common_measured_boot.c	\
 				plat/arm/board/fvp/fvp_bl2_measured_boot.c	\
-				lib/psa/measured_boot.c
+				lib/psa/measured_boot.c	\
+				common/measured_boot_helpers.c
 endif
 
 ifeq (${DRTM_SUPPORT}, 1)

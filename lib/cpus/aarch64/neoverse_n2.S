@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2025, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2026, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -10,6 +10,7 @@
 #include <dsu_macros.S>
 #include <neoverse_n2.h>
 #include "wa_cve_2022_23960_bhb_vector.S"
+#include <wa_cve_2025_0647_cpprctx.h>
 
 /* Hardware handled coherency */
 #if HW_ASSISTED_COHERENCY == 0
@@ -79,6 +80,12 @@ workaround_reset_end neoverse_n2, ERRATUM(2067956)
 
 check_erratum_ls neoverse_n2, ERRATUM(2067956), CPU_REV(0, 0)
 
+workaround_runtime_start neoverse_n2, ERRATUM(2138953), ERRATA_N2_2138953
+	sysreg_bit_set NEOVERSE_N2_CPUACTLR2_EL1, BIT(29)
+workaround_runtime_end neoverse_n2, ERRATUM(2138953)
+
+check_erratum_ls neoverse_n2, ERRATUM(2138953), CPU_REV(0, 3)
+
 workaround_reset_start neoverse_n2, ERRATUM(2138956), ERRATA_N2_2138956
 	/* Apply instruction patching sequence */
 	ldr	x0,=0x3
@@ -100,7 +107,6 @@ workaround_reset_start neoverse_n2, ERRATUM(2138956), ERRATA_N2_2138956
 workaround_reset_end neoverse_n2, ERRATUM(2138956)
 
 check_erratum_ls neoverse_n2, ERRATUM(2138956), CPU_REV(0, 0)
-
 
 workaround_reset_start neoverse_n2, ERRATUM(2138958), ERRATA_N2_2138958
 	/* Apply instruction patching sequence */
@@ -219,9 +225,27 @@ workaround_reset_end neoverse_n2, ERRATUM(2779511)
 
 check_erratum_ls neoverse_n2, ERRATUM(2779511), CPU_REV(0, 2)
 
+workaround_runtime_start neoverse_n2, ERRATUM(3324339), ERRATA_N2_3324339
+	speculation_barrier
+workaround_runtime_end neoverse_n2, ERRATUM(3324339)
+
+check_erratum_ls neoverse_n2, ERRATUM(3324339), CPU_REV(0, 3)
+
 add_erratum_entry neoverse_n2, ERRATUM(3701773), ERRATA_N2_3701773
 
 check_erratum_ls neoverse_n2, ERRATUM(3701773), CPU_REV(0, 3)
+
+workaround_reset_start neoverse_n2, ERRATUM(3888123), ERRATA_N2_3888123
+	sysreg_bit_set NEOVERSE_N2_CPUACTLR2_EL1, BIT(22)
+workaround_reset_end neoverse_n2, ERRATUM(3888123)
+
+check_erratum_ls neoverse_n2, ERRATUM(3888123), CPU_REV(0, 3)
+
+workaround_reset_start neoverse_n2, ERRATUM(4302970), ERRATA_N2_4302970
+	sysreg_bit_set NEOVERSE_N2_CPUACTLR5_EL1, BIT(50)
+workaround_reset_end neoverse_n2, ERRATUM(4302970)
+
+check_erratum_ls neoverse_n2, ERRATUM(4302970), CPU_REV(0, 3)
 
 workaround_reset_start neoverse_n2, CVE(2022,23960), WORKAROUND_CVE_2022_23960
 #if IMAGE_BL31
@@ -242,6 +266,29 @@ workaround_reset_end neoverse_n2, CVE(2024, 5660)
 
 check_erratum_ls neoverse_n2, CVE(2024, 5660), CPU_REV(0, 3)
 
+	/*
+	 * Instruction patch sequence to trap 'cpp rctx' instructions to EL3.
+	 * Enables mitigation for CVE-2025-0647.
+	 */
+workaround_reset_start neoverse_n2, CVE(2025, 647), WORKAROUND_CVE_2025_0647
+	mov	x0, #(WA_USE_T32_OPCODE | WA_PATCH_SLOT(0))
+	bl	wa_cve_2025_0647_instruction_patch
+workaround_reset_end neoverse_n2, CVE(2025, 647)
+
+check_erratum_chosen neoverse_n2, CVE(2025, 647), WORKAROUND_CVE_2025_0647
+
+#if WORKAROUND_CVE_2025_0647
+func neoverse_n2_impl_defined_el3_handler
+	mov	x0, #WA_LS_RCG_EN
+
+	/* See if this call came from trap handler. */
+	cmp	x1, #EC_IMP_DEF_EL3
+	bne	wa_cve_2025_0647_do_cpp_wa
+	orr	x0, x0, #WA_IS_TRAP_HANDLER
+	b	wa_cve_2025_0647_do_cpp_wa
+endfunc neoverse_n2_impl_defined_el3_handler
+#endif
+
 	/* -------------------------------------------
 	 * The CPU Ops reset function for Neoverse N2.
 	 * -------------------------------------------
@@ -255,6 +302,8 @@ cpu_reset_func_start neoverse_n2
 
 	/* Disable speculative loads */
 	msr	SSBS, xzr
+	apply_erratum neoverse_n2, ERRATUM(3324339), ERRATA_N2_3324339
+
 1:
 	/* Force all cacheable atomic instructions to be near */
 	sysreg_bit_set NEOVERSE_N2_CPUACTLR2_EL1, NEOVERSE_N2_CPUACTLR2_EL1_BIT_2
@@ -273,6 +322,7 @@ cpu_reset_func_start neoverse_n2
 #endif
 #if NEOVERSE_N2_PREFETCHER_DISABLE
 	/* Disable region prefetcher for L2 cache perf measurement */
+	apply_erratum neoverse_n2, ERRATUM(2138953), ERRATA_N2_2138953
 	sysreg_bit_set NEOVERSE_N2_CPUECTLR_EL1, NEOVERSE_N2_CPUECTLR_EL1_PFDIS_BIT
 #endif
 cpu_reset_func_end neoverse_n2
@@ -313,6 +363,13 @@ func neoverse_n2_cpu_reg_dump
 	ret
 endfunc neoverse_n2_cpu_reg_dump
 
+#if WORKAROUND_CVE_2025_0647
+declare_cpu_ops_eh neoverse_n2, NEOVERSE_N2_MIDR, \
+	neoverse_n2_reset_func, \
+	neoverse_n2_impl_defined_el3_handler, \
+	neoverse_n2_core_pwr_dwn
+#else
 declare_cpu_ops neoverse_n2, NEOVERSE_N2_MIDR, \
 	neoverse_n2_reset_func, \
 	neoverse_n2_core_pwr_dwn
+#endif

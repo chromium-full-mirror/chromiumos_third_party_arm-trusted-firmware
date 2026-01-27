@@ -9,13 +9,24 @@ ifeq ($(filter ${TARGET_PLATFORM}, fpga fvp),)
         $(error TARGET_PLATFORM must be fpga or fvp)
 endif
 
+ifeq ($(CORSTONE1000_CORTEX_A320), 1)
+CORSTONE1000_CPU_LIBS	+=lib/cpus/aarch64/cortex_a320.S
+$(eval $(call add_define,CORSTONE1000_CORTEX_A320))
+GIC_ENABLE_V4_EXTN		:= 1
+GICV3_SUPPORT_GIC600		:= 1
+else
 CORSTONE1000_CPU_LIBS	+=lib/cpus/aarch64/cortex_a35.S
+endif
+
+# FEAT_CRC32 is impelemented in the armv8.0 core
+ARM_ARCH_FEATURE	:=	crc
 
 PLAT_INCLUDES		:=	-Iplat/arm/board/corstone1000/common/include	\
 				-Iplat/arm/board/corstone1000/include		\
 				-Iinclude/plat/arm/common			\
 				-Iinclude/plat/arm/css/common/aarch64
 
+override ARM_PLAT_PROVIDES_BL2_MEM_PARAMS	:=	1
 
 CORSTONE1000_FW_NVCTR_VAL	:=	255
 TFW_NVCTR_VAL		:=	${CORSTONE1000_FW_NVCTR_VAL}
@@ -43,7 +54,11 @@ $(eval $(call add_define,CORSTONE1000_FVP_MULTICORE))
 endif
 endif
 
+ifeq ($(CORSTONE1000_CORTEX_A320), 1)
+USE_GIC_DRIVER			:=	3
+else
 USE_GIC_DRIVER			:=	2
+endif
 
 BL2_SOURCES		+=	plat/arm/board/corstone1000/common/corstone1000_security.c		\
 				plat/arm/board/corstone1000/common/corstone1000_err.c		\

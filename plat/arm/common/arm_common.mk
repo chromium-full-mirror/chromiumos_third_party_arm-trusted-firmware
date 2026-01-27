@@ -133,10 +133,18 @@ endif
 # Add the build options to pack Trusted OS Extra1 and Trusted OS Extra2 images
 # in the FIP if the platform requires.
 ifneq ($(BL32_EXTRA1),)
+ifneq (${DECRYPTION_SUPPORT},none)
+$(eval $(call TOOL_ADD_IMG,bl32_extra1,--tos-fw-extra1,,$(ENCRYPT_BL32)))
+else
 $(eval $(call TOOL_ADD_IMG,bl32_extra1,--tos-fw-extra1))
 endif
+endif
 ifneq ($(BL32_EXTRA2),)
+ifneq (${DECRYPTION_SUPPORT},none)
+$(eval $(call TOOL_ADD_IMG,bl32_extra2,--tos-fw-extra2,,$(ENCRYPT_BL32)))
+else
 $(eval $(call TOOL_ADD_IMG,bl32_extra2,--tos-fw-extra2))
+endif
 endif
 
 # Enable PSCI_STAT_COUNT/RESIDENCY APIs on ARM platforms
@@ -203,15 +211,6 @@ $(eval $(call add_define,ARM_GPT_SUPPORT))
 ifeq (${ARM_GPT_SUPPORT}, 1)
   BL2_SOURCES	+=	drivers/partition/gpt.c		\
 			drivers/partition/partition.c
-endif
-
-# Enable CRC instructions via extension for ARMv8-A CPUs.
-# For ARMv8.1-A, and onwards CRC instructions are default enabled.
-# Enable HW computed CRC support unconditionally in BL2 component.
-ifeq (${ARM_ARCH_MAJOR},8)
-    ifeq (${ARM_ARCH_MINOR},0)
-        BL2_CPPFLAGS += -march=armv8-a+crc
-    endif
 endif
 
 ifeq ($(PSA_FWU_SUPPORT),1)
@@ -295,12 +294,15 @@ ifeq (${RESET_TO_BL2},1)
 BL2_SOURCES		+=	plat/arm/common/arm_bl2_el3_setup.c
 endif
 
+# The Arm platforms use the default BL2 mem params desc.
+ARM_PLAT_PROVIDES_BL2_MEM_PARAMS	:=  0
+
 # Because BL1/BL2 execute in AArch64 mode but BL32 in AArch32 we need to use
 # the AArch32 descriptors.
 ifeq (${JUNO_AARCH32_EL3_RUNTIME},1)
 BL2_SOURCES		+=	plat/arm/common/aarch32/arm_bl2_mem_params_desc.c
 else
-ifeq ($(filter $(PLAT), corstone1000 rd1ae rdaspen),)
+ifeq ($(ARM_PLAT_PROVIDES_BL2_MEM_PARAMS),0)
 BL2_SOURCES		+=	plat/arm/common/${ARCH}/arm_bl2_mem_params_desc.c
 endif
 endif
@@ -330,6 +332,11 @@ include lib/transfer_list/transfer_list.mk
 BL1_SOURCES += plat/arm/common/arm_transfer_list.c
 BL2_SOURCES += plat/arm/common/arm_transfer_list.c
 BL31_SOURCES += plat/arm/common/arm_transfer_list.c
+endif
+
+ifneq (${DECRYPTION_SUPPORT},none)
+BL1_SOURCES		+=	drivers/io/io_encrypted.c
+BL2_SOURCES		+=	drivers/io/io_encrypted.c
 endif
 
 ifneq ($(filter 1,${ENABLE_PMF} ${ETHOSN_NPU_DRIVER}),)
@@ -470,13 +477,13 @@ ifneq ($(filter 1,${MEASURED_BOOT} ${DRTM_SUPPORT}),)
     $(info Including ${MEASURED_BOOT_MK})
     include ${MEASURED_BOOT_MK}
 
-    ifeq (${MEASURED_BOOT},1)
         BL1_LIBS += $(LIBEVLOG_LIBS)
         BL1_INCLUDE_DIRS += $(LIBEVLOG_INCLUDE_DIRS)
 
         BL2_LIBS += $(LIBEVLOG_LIBS)
         BL2_INCLUDE_DIRS += $(LIBEVLOG_INCLUDE_DIRS)
 
+    ifeq (${MEASURED_BOOT},1)
          ifeq (${SPD_tspd},1)
             BL32_LIBS += $(LIBEVLOG_LIBS)
             BL32_INCLUDE_DIRS += $(LIBEVLOG_INCLUDE_DIRS)

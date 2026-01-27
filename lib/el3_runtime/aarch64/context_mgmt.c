@@ -49,6 +49,7 @@ CASSERT(((TWED_DELAY & ~SCR_TWEDEL_MASK) == 0U), assert_twed_delay_value_check);
 #endif /* ENABLE_FEAT_TWED */
 
 per_world_context_t per_world_context[CPU_CONTEXT_NUM];
+PER_CPU_DEFINE(world_amu_regs_t, world_amu_ctx[CPU_CONTEXT_NUM]);
 
 static void manage_extensions_nonsecure(cpu_context_t *ctx);
 static void manage_extensions_secure(cpu_context_t *ctx);
@@ -378,6 +379,21 @@ static void setup_ns_context(cpu_context_t *ctx, const struct entry_point_info *
 	manage_extensions_nonsecure(ctx);
 }
 
+static inline ddc_cap_t read_ddc_el0 (void)
+{
+	ddc_cap_t val = NULL;
+#if ENABLE_FEAT_MORELLO
+	__asm__ volatile ("msr spsel, #1 \n"
+			 "mrs %0, ddc \n"
+			 "msr spsel, #0 \n"
+			 : "=C"(val)
+			 :
+			 : "memory"
+	);
+#endif
+	return val;
+}
+
 /*******************************************************************************
  * The following function performs initialization of the cpu_context 'ctx'
  * for first use that is common to all security states, and sets the
@@ -451,6 +467,17 @@ static void setup_context_common(cpu_context_t *ctx, const entry_point_info_t *e
 	}
 
 	/*
+	 * SCR_EL3.HCE: Enable HVC instructions if next execution state is
+	 * AArch64 and next EL is EL2, or if next execution state is AArch32 and
+	 * next mode is Hyp.
+	 */
+	if (((GET_RW(ep->spsr) == MODE_RW_64) && (GET_EL(ep->spsr) == MODE_EL2))
+	    || ((GET_RW(ep->spsr) != MODE_RW_64)
+		&& (GET_M32(ep->spsr) == MODE32_hyp))) {
+		scr_el3 |= SCR_HCE_BIT;
+	}
+
+	/*
 	 * SCR_EL3.ST: Traps Secure EL1 accesses to the Counter-timer Physical
 	 * Secure timer registers to EL3, from AArch64 state only, if specified
 	 * by the entrypoint attributes. If SEL2 is present and enabled, the ST
@@ -512,36 +539,19 @@ static void setup_context_common(cpu_context_t *ctx, const entry_point_info_t *e
 		scr_el3 |= SCR_PIEN_BIT;
 	}
 
-	/*
-	 * SCR_EL3.GCSEn: Enable GCS registers for AArch64 if present.
-	 */
-	if ((is_feat_gcs_supported()) && (GET_RW(ep->spsr) == MODE_RW_64)) {
+	/* SCR_EL3.GCSEn: Enable GCS registers. */
+	if (is_feat_gcs_supported()) {
 		scr_el3 |= SCR_GCSEn_BIT;
 	}
 
-	/*
-	 * SCR_EL3.HCE: Enable HVC instructions if next execution state is
-	 * AArch64 and next EL is EL2, or if next execution state is AArch32 and
-	 * next mode is Hyp.
-	 * SCR_EL3.FGTEn: Enable Fine Grained Virtualization Traps under the
-	 * same conditions as HVC instructions and when the processor supports
-	 * ARMv8.6-FGT.
-	 * SCR_EL3.ECVEn: Enable Enhanced Counter Virtualization (ECV)
-	 * CNTPOFF_EL2 register under the same conditions as HVC instructions
-	 * and when the processor supports ECV.
-	 */
-	if (((GET_RW(ep->spsr) == MODE_RW_64) && (GET_EL(ep->spsr) == MODE_EL2))
-	    || ((GET_RW(ep->spsr) != MODE_RW_64)
-		&& (GET_M32(ep->spsr) == MODE32_hyp))) {
-		scr_el3 |= SCR_HCE_BIT;
+	/* SCR_EL3.FGTEn: Enable Fine Grained Virtualization Traps */
+	if (is_feat_fgt_supported()) {
+		scr_el3 |= SCR_FGTEN_BIT;
+	}
 
-		if (is_feat_fgt_supported()) {
-			scr_el3 |= SCR_FGTEN_BIT;
-		}
-
-		if (is_feat_ecv_supported()) {
-			scr_el3 |= SCR_ECVEN_BIT;
-		}
+	/* SCR_EL3.ECVEn: Do not trap the CNTPOFF_EL2 register */
+	if (is_feat_ecv_supported()) {
+		scr_el3 |= SCR_ECVEN_BIT;
 	}
 
 	/* Enable WFE trap delay in SCR_EL3 if supported and configured */
@@ -595,8 +605,8 @@ static void setup_context_common(cpu_context_t *ctx, const entry_point_info_t *e
 	 *  debug registers, other than those registers that are controlled by
 	 *  MDCR_EL3.TDOSA.
 	 */
-	mdcr_el3 |= ((MDCR_SDD_BIT | MDCR_SPD32(MDCR_SPD32_DISABLE))
-			& ~(MDCR_TDA_BIT | MDCR_TDOSA_BIT)) ;
+	mdcr_el3 |= MDCR_SDD_BIT | MDCR_SPD32(MDCR_SPD32_DISABLE);
+	mdcr_el3 &= ~(MDCR_TDA_BIT | MDCR_TDOSA_BIT);
 	write_ctx_reg(state, CTX_MDCR_EL3, mdcr_el3);
 
 #if IMAGE_BL31
@@ -622,6 +632,10 @@ static void setup_context_common(cpu_context_t *ctx, const entry_point_info_t *e
 	write_el2_ctx_common(get_el2_sysregs_ctx(ctx), sctlr_el2, SCTLR_EL2_RES1);
 #endif /* CTX_INCLUDE_EL2_REGS */
 #endif /* IMAGE_BL31 */
+
+	if (is_feat_morello_supported()) {
+		ctx->ddc_el0 = read_ddc_el0();
+	}
 
 	/*
 	 * Store the X0-X7 value from the entrypoint into the context
@@ -715,10 +729,6 @@ void __no_pauth cm_manage_extensions_el3(unsigned int my_idx)
 		sme_init_el3();
 	}
 
-	if (is_feat_fgwte3_supported()) {
-		write_fgwte3_el3(FGWTE3_EL3_EARLY_INIT_VAL);
-	}
-
 	if (is_feat_mpam_supported()) {
 		mpam_init_el3();
 	}
@@ -728,6 +738,11 @@ void __no_pauth cm_manage_extensions_el3(unsigned int my_idx)
 	}
 
 	pmuv3_init_el3();
+
+	/* NOTE: must be done last, makes the configuration immutable */
+	if (is_feat_fgwte3_supported()) {
+		write_fgwte3_el3(FGWTE3_EL3_EARLY_INIT_VAL);
+	}
 #endif /* IMAGE_BL31 */
 }
 
@@ -1227,6 +1242,23 @@ void cm_prepare_el3_exit(size_t security_state)
 	cm_set_next_eret_context(security_state);
 }
 
+/* Assumes prepare_el3_entry() has disabled counters 2 and 3 */
+void cm_sysregs_context_save_amu(unsigned int security_state)
+{
+	world_amu_regs_t *ctx = PER_CPU_CUR(world_amu_ctx[get_cpu_context_index(security_state)]);
+
+	ctx->amevcntr02_el0 = read_amevcntr02_el0();
+	ctx->amevcntr03_el0 = read_amevcntr03_el0();
+}
+
+void cm_sysregs_context_restore_amu(unsigned int security_state)
+{
+	world_amu_regs_t *ctx = PER_CPU_CUR(world_amu_ctx[get_cpu_context_index(security_state)]);
+
+	write_amevcntr02_el0(ctx->amevcntr02_el0);
+	write_amevcntr03_el0(ctx->amevcntr03_el0);
+}
+
 #if (CTX_INCLUDE_EL2_REGS && IMAGE_BL31)
 
 static void el2_sysregs_context_save_fgt(el2_sysregs_t *ctx)
@@ -1608,6 +1640,10 @@ void cm_el2_sysregs_context_save(uint32_t security_state)
 	if (is_feat_sctlr2_supported()) {
 		write_el2_ctx_sctlr2(el2_sysregs_ctx, sctlr2_el2, read_sctlr2_el2());
 	}
+
+	if (is_feat_amu_supported()) {
+		cm_sysregs_context_save_amu(security_state);
+	}
 }
 
 /*******************************************************************************
@@ -1703,6 +1739,10 @@ void cm_el2_sysregs_context_restore(uint32_t security_state)
 	if (is_feat_brbe_supported()) {
 		write_brbcr_el2(read_el2_ctx_brbe(el2_sysregs_ctx, brbcr_el2));
 	}
+
+	if (is_feat_amu_supported()) {
+		cm_sysregs_context_restore_amu(security_state);
+	}
 }
 #endif /* (CTX_INCLUDE_EL2_REGS && IMAGE_BL31) */
 
@@ -1731,6 +1771,10 @@ void cm_prepare_el3_exit_ns(void)
 #else
 	cm_prepare_el3_exit(NON_SECURE);
 #endif /* (CTX_INCLUDE_EL2_REGS && IMAGE_BL31) */
+
+	if (is_feat_amu_supported()) {
+		cm_sysregs_context_restore_amu(NON_SECURE);
+	}
 }
 
 #if ((IMAGE_BL1) || (IMAGE_BL31 && (!CTX_INCLUDE_EL2_REGS)))
@@ -1971,6 +2015,10 @@ void cm_el1_sysregs_context_save(uint32_t security_state)
 	el1_sysregs_context_save(get_el1_sysregs_ctx(ctx));
 
 #if IMAGE_BL31
+	if (is_feat_amu_supported()) {
+		cm_sysregs_context_save_amu(security_state);
+	}
+
 	if (security_state == SECURE) {
 		PUBLISH_EVENT(cm_exited_secure_world);
 	} else {
@@ -1989,6 +2037,10 @@ void cm_el1_sysregs_context_restore(uint32_t security_state)
 	el1_sysregs_context_restore(get_el1_sysregs_ctx(ctx));
 
 #if IMAGE_BL31
+	if (is_feat_amu_supported()) {
+		cm_sysregs_context_restore_amu(security_state);
+	}
+
 	if (security_state == SECURE) {
 		PUBLISH_EVENT(cm_entering_secure_world);
 	} else {

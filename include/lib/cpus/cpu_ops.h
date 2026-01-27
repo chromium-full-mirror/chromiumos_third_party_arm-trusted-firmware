@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2023-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -89,17 +89,20 @@
 #define CPU_ERRATA_LIST_END	CPU_ERRATA_LIST_START + CPU_ERRATA_LIST_START_SIZE
 #define CPU_CPU_STR		CPU_ERRATA_LIST_END + CPU_ERRATA_LIST_END_SIZE
 #define CPU_ERRATA_LOCK		CPU_CPU_STR + CPU_CPU_STR_SIZE
-#define CPU_ERRATA_PRINTED	CPU_ERRATA_LOCK + CPU_ERRATA_LOCK_SIZE
 #if __aarch64__
-#define CPU_REG_DUMP		CPU_ERRATA_PRINTED + CPU_ERRATA_PRINTED_SIZE
+#define CPU_REG_DUMP		CPU_ERRATA_LOCK + CPU_ERRATA_LOCK_SIZE
 #define CPU_OPS_SIZE		CPU_REG_DUMP + CPU_REG_DUMP_SIZE
 #else
-#define CPU_OPS_SIZE		CPU_ERRATA_PRINTED + CPU_ERRATA_PRINTED_SIZE
+#define CPU_OPS_SIZE		CPU_ERRATA_LOCK + CPU_ERRATA_LOCK_SIZE
 #endif /* __aarch64__ */
 
 #ifndef __ASSEMBLER__
+#include <arch_helpers.h>
 #include <lib/cassert.h>
 #include <lib/spinlock.h>
+typedef void (*e_handler_t)(long);
+
+typedef u_register_t(*cpu_ops_pwr_dwn_op_t)(void);
 
 struct cpu_ops {
 	unsigned long midr;
@@ -110,15 +113,14 @@ struct cpu_ops {
 	void (*e_handler_func)(long es);
 #endif /* __aarch64__ */
 #if (defined(IMAGE_BL31) || defined(IMAGE_BL32)) && CPU_MAX_PWR_DWN_OPS
-	u_register_t (*pwr_dwn_ops[CPU_MAX_PWR_DWN_OPS])();
+	cpu_ops_pwr_dwn_op_t pwr_dwn_ops[CPU_MAX_PWR_DWN_OPS];
 #endif /* (defined(IMAGE_BL31) || defined(IMAGE_BL32)) && CPU_MAX_PWR_DWN_OPS */
 	void *errata_list_start;
 	void *errata_list_end;
 #if REPORT_ERRATA
 	char *cpu_str;
 #if defined(IMAGE_BL31) || defined(IMAGE_BL32)
-	spinlock_t *errata_lock;
-	unsigned int *errata_reported;
+	spinlock_t *errata_reported;
 #endif /* defined(IMAGE_BL31) || defined(IMAGE_BL32) */
 #endif /* REPORT_ERRATA */
 #if defined(IMAGE_BL31) && CRASH_REPORTING
@@ -131,6 +133,16 @@ CASSERT(sizeof(struct cpu_ops) == CPU_OPS_SIZE,
 
 long cpu_get_rev_var(void);
 void *get_cpu_ops_ptr(void);
+
+static inline int midr_match(unsigned int cpu_midr)
+{
+	unsigned int midr, midr_mask;
+
+	midr = (unsigned int)read_midr();
+	midr_mask = (MIDR_IMPL_MASK << MIDR_IMPL_SHIFT) |
+		(MIDR_PN_MASK << MIDR_PN_SHIFT);
+	return ((midr & midr_mask) == (cpu_midr & midr_mask));
+}
 
 #endif /* __ASSEMBLER__ */
 #endif /* CPU_OPS_H */

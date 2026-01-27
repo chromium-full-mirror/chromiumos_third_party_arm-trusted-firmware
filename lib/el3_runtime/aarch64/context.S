@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -28,7 +28,7 @@
 #endif /* ERRATA_SPECULATIVE_AT */
 
 	.global	prepare_el3_entry
-	.global	restore_gp_pmcr_pauth_regs
+	.global	restore_el3_runtime_regs
 	.global	el3_exit
 
 /* Following macros will be used if any of CTX_INCLUDE_FPREGS or CTX_INCLUDE_SVE_REGS is enabled */
@@ -340,7 +340,13 @@ no_mpam:
  * registers and swap the FEAT_PAUTH keys with BL31's keys in
  * cpu_data. It also checks if the Secure Cycle Counter (PMCCNTR_EL0)
  * is disabled in EL3/Secure (ARMv8.5-PMU), wherein PMCCNTR_EL0 needs
- * not to be saved/restored during world switch.
+ * not to be saved/restored during world switch. It also disables
+ * ISNT_RETIRED and STALL_BACKEND_MEM counters. They are not used for
+ * critical perfromance modelling but may provide a side channel for
+ * sensitive timing information, especially in secure world.
+ * CPU_CYCLES and CNT_CYCLES are essential for performance, fiddling
+ * with them could produce system jitter.  They do not provide any
+ * novel timing information so they are always kept on.
  *
  * Ideally we would only save and restore the callee saved registers
  * when a world switch occurs but that type of implementation is more
@@ -349,7 +355,7 @@ no_mpam:
  * clobbers: x18
  * ------------------------------------------------------------------
  */
-	.macro save_gp_pmcr_pauth_regs
+	.macro save_el3_runtime_regs
 	stp	x0, x1, [sp, #CTX_GPREGS_OFFSET + CTX_GPREG_X0]
 	stp	x2, x3, [sp, #CTX_GPREGS_OFFSET + CTX_GPREG_X2]
 	stp	x4, x5, [sp, #CTX_GPREGS_OFFSET + CTX_GPREG_X4]
@@ -367,6 +373,17 @@ no_mpam:
 	stp	x28, x29, [sp, #CTX_GPREGS_OFFSET + CTX_GPREG_X28]
 	mrs	x18, sp_el0
 	str	x18, [sp, #CTX_GPREGS_OFFSET + CTX_GPREG_SP_EL0]
+
+#if ENABLE_FEAT_AMU
+#if ENABLE_FEAT_AMU == 2
+	is_feat_amu_present_asm x9
+	beq	no_amu_save_\@
+#endif
+	/* Rely on the isb in setup_el3_execution_context. */
+	mov_imm	x9, AMCNTENCLR0_EL0_Pn_CONTEXTED
+	msr	AMCNTENCLR0_EL0, x9
+no_amu_save_\@:
+#endif
 
 	/* PMUv3 is presumed to be always present */
 	mrs	x9, pmcr_el0
@@ -420,7 +437,21 @@ no_mpam:
 no_pauth_\@:
 #endif /* ENABLE_PAUTH */
 #endif /* CTX_INCLUDE_PAUTH_REGS */
-	.endm /* save_gp_pmcr_pauth_regs */
+
+	/* write ddc_el3 to ddc_el0 so it can be used with sp_el0 */
+#if ENABLE_FEAT_MORELLO
+#if ENABLE_FEAT_MORELLO == 2
+	is_feat_morello_present_asm    x10
+	cbz	x10, 1f
+#endif /* ENABLE_FEAT_MORELLO == 2 */
+	/* Save DDC_EL0 */
+	mrs	c24, ddc_el0
+	str	c24, [sp, #CTX_DDC_OFFSET + CTX_DDC_EL0]
+	mrs	c26, ddc /* ddc_el3 */
+	msr	ddc_el0, c26
+1:
+#endif /* ENABLE_FEAT_MORELLO */
+	.endm /* save_el3_runtime_regs */
 
 /* -----------------------------------------------------------------
  * This function saves the context and sets the PSTATE to a known
@@ -430,7 +461,8 @@ no_pauth_\@:
  * Then set any of the PSTATE bits that are not set by hardware
  * according to the Aarch64.TakeException pseudocode in the Arm
  * Architecture Reference Manual to a default value for EL3.
- * clobbers: x17
+ * clobbers: all registers. Will save lower EL's register contents.
+ * returns: a pointer to the current context structure (from sp_el3)
  * -----------------------------------------------------------------
  */
 func prepare_el3_entry
@@ -446,18 +478,39 @@ func prepare_el3_entry
 	tsb_csync
 #endif
 	isb
-	save_gp_pmcr_pauth_regs
+	save_el3_runtime_regs
 	setup_el3_execution_context
+
+	/* x0 will point to the context structure (SP_EL3) */
+	mov	x0, sp
+
+	/* Save the SPSR_EL3 and ELR_EL3 so that el3_exit works */
+	mrs	x28, spsr_el3
+	mrs	x29, elr_el3
+	stp	x28, x29, [x0, #CTX_EL3STATE_OFFSET + CTX_SPSR_EL3]
+
+	/*
+	 * Restore the saved C runtime stack value which will become the new
+	 * SP_EL0 i.e. EL3 runtime stack. It was saved in the 'cpu_context'
+	 * structure prior to the last ERET from EL3.
+	 */
+	ldr	x27, [x0, #CTX_EL3STATE_OFFSET + CTX_RUNTIME_SP]
+
+	/* Switch to SP_EL0 */
+	msr	spsel, #MODE_SP_EL0
+	mov	sp, x27
+
 	ret
 endfunc prepare_el3_entry
 
 /* ------------------------------------------------------------------
  * This function restores ARMv8.3-PAuth (if enabled) and all general
- * purpose registers except x30 from the CPU context.
+ * purpose registers except x30 from the CPU context. It also turns on
+ * all AMU counters that were stopped on save.
  * x30 register must be explicitly restored by the caller.
  * ------------------------------------------------------------------
  */
-func restore_gp_pmcr_pauth_regs
+func restore_el3_runtime_regs
 #if CTX_INCLUDE_PAUTH_REGS
 #if CTX_INCLUDE_PAUTH_REGS == 2
 	/* Skip if not present in hardware */
@@ -486,6 +539,30 @@ func restore_gp_pmcr_pauth_regs
 no_pauth:
 #endif /* CTX_INCLUDE_PAUTH_REGS */
 
+#if ENABLE_FEAT_MORELLO
+#if ENABLE_FEAT_MORELLO == 2
+	is_feat_morello_present_asm    x10
+	cbz	x10, 1f
+#endif /* ENABLE_FEAT_MORELLO == 2 */
+	/* Restore the saved DDC_EL0 value. */
+	ldr	c24, [sp, #CTX_DDC_OFFSET + CTX_DDC_EL0]
+	msr	ddc_el0, c24
+1:
+#endif /* ENABLE_FEAT_MORELLO */
+
+#if ENABLE_FEAT_AMU
+#if ENABLE_FEAT_AMU == 2
+	is_feat_amu_present_asm x9
+	beq	no_amu_restore
+#endif
+	/* enable all group 0 counters. On an SMC this will be the counters we
+	 * disabled, on warmboot it will be all counters. Cold boot enabled them
+	 * early. */
+	mov_imm	x9, AMCNTENSET0_EL0_Pn_ALL
+	msr	AMCNTENSET0_EL0, x9
+	/* no isb, rely on the eret that follows soon */
+no_amu_restore:
+#endif
 	/* PMUv3 is presumed to be always present */
 	ldr	x0, [sp, #CTX_EL3STATE_OFFSET + CTX_PMCR_EL0]
 	msr	pmcr_el0, x0
@@ -507,7 +584,7 @@ no_pauth:
 	msr	sp_el0, x28
 	ldp	x28, x29, [sp, #CTX_GPREGS_OFFSET + CTX_GPREG_X28]
 	ret
-endfunc restore_gp_pmcr_pauth_regs
+endfunc restore_el3_runtime_regs
 
 #if ERRATA_SPECULATIVE_AT
 /* --------------------------------------------------------------------
@@ -635,7 +712,7 @@ func el3_exit
 	ldr	x18, [sp, #CTX_EL3STATE_OFFSET + CTX_SCR_EL3]
 	ldr	x19, [sp, #CTX_EL3STATE_OFFSET + CTX_MDCR_EL3]
 	msr	spsr_el3, x16
-	msr	elr_el3, x17
+	msr_wide_reg	elr_el3, 17
 	msr	scr_el3, x18
 	msr	mdcr_el3, x19
 
@@ -647,7 +724,7 @@ func el3_exit
 	 * Exit EL3 via ERET to a lower exception level.
  	 * ----------------------------------------------------------
  	 */
-	bl	restore_gp_pmcr_pauth_regs
+	bl	restore_el3_runtime_regs
 	ldr	x30, [sp, #CTX_GPREGS_OFFSET + CTX_GPREG_LR]
 
 #ifdef IMAGE_BL31

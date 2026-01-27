@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -8,7 +8,7 @@
 # Trusted Firmware Version
 #
 VERSION_MAJOR			:= 2
-VERSION_MINOR			:= 13
+VERSION_MINOR			:= 14
 # VERSION_PATCH is only used for LTS releases
 VERSION_PATCH			:= 0
 VERSION				:= ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
@@ -141,6 +141,12 @@ else
 	BUILD_TYPE	:=	release
 	# Use LOG_LEVEL_NOTICE by default for release builds
 	LOG_LEVEL	:=	20
+        # Enable link-time optimization (AKA "inter-procedural optimization")
+        ifeq (${ARCH},aarch64)
+                ifeq ($($(ARCH)-ld-id),$($(ARCH)-cc-id))
+                        ENABLE_LTO :=	1
+                endif
+        endif
 endif #(Debug)
 
 # Default build string (git branch and commit)
@@ -187,6 +193,7 @@ BL_COMMON_SOURCES	+=	common/bl_common.c			\
 				lib/${ARCH}/cache_helpers.S		\
 				lib/${ARCH}/misc_helpers.S		\
 				lib/extensions/pmuv3/${ARCH}/pmuv3.c	\
+				lib/locks/exclusive/${ARCH}/spinlock.c	\
 				plat/common/plat_bl_common.c		\
 				plat/common/plat_log_common.c		\
 				plat/common/${ARCH}/plat_common.c	\
@@ -339,6 +346,10 @@ ifeq (${ENABLE_RME},1)
 	ifneq ($(ENABLE_FEAT_MPAM), 0)
 		CTX_INCLUDE_MPAM_REGS := 1
 	endif
+	# bitlocks are only useful with atomics
+	ifneq ($(RME_GPT_BITLOCK_BLOCK), 0)
+		USE_SPINLOCK_CAS := 1
+	endif
 
 	# RME enables CSV2_2 extension by default.
 	ENABLE_FEAT_CSV2_2 = 1
@@ -385,7 +396,8 @@ else
 endif
 
 ifneq ($(filter 1,${ERRATA_A53_1530924} ${ERRATA_A55_1530923}	\
-        ${ERRATA_A57_1319537} ${ERRATA_A72_1319367} ${ERRATA_A76_1165522}),)
+        ${ERRATA_A57_1319537} ${ERRATA_A65_1541130} ${ERRATA_A72_1319367}	\
+		${ERRATA_A76_1165522}),)
 ERRATA_SPECULATIVE_AT	:= 1
 else
 ERRATA_SPECULATIVE_AT	:= 0
@@ -573,7 +585,6 @@ $(eval $(call assert_booleans,\
 	ENABLE_SME_FOR_SWD \
 	ENABLE_SVE_FOR_SWD \
 	ENABLE_FEAT_GCIE \
-	ENABLE_FEAT_RAS	\
 	FFH_SUPPORT	\
 	ERROR_DEPRECATED \
 	FAULT_INJECTION_SUPPORT \
@@ -623,7 +634,6 @@ $(eval $(call assert_booleans,\
 	RESET_TO_BL2 \
 	BL2_IN_XIP_MEM \
 	BL2_INV_DCACHE \
-	USE_SPINLOCK_CAS \
 	ENCRYPT_BL31 \
 	ENCRYPT_BL32 \
 	ERRATA_SPECULATIVE_AT \
@@ -677,6 +687,7 @@ $(eval $(call assert_numerics,\
 	ENABLE_FEAT_EBEP \
 	ENABLE_FEAT_FGT \
 	ENABLE_FEAT_FGT2 \
+	ENABLE_FEAT_UINJ \
 	ENABLE_FEAT_FGWTE3 \
 	ENABLE_FEAT_FPMR \
 	ENABLE_FEAT_HCX \
@@ -684,6 +695,7 @@ $(eval $(call assert_numerics,\
 	ENABLE_FEAT_LS64_ACCDATA \
 	ENABLE_FEAT_MEC \
 	ENABLE_FEAT_MOPS \
+	ENABLE_FEAT_MORELLO \
 	ENABLE_FEAT_MTE2 \
 	ENABLE_FEAT_PAN \
 	ENABLE_FEAT_PFAR \
@@ -704,6 +716,7 @@ $(eval $(call assert_numerics,\
 	ENABLE_FEAT_VHE \
 	ENABLE_FEAT_MPAM \
 	ENABLE_FEAT_MPAM_PE_BW_CTRL \
+	ENABLE_FEAT_RAS	\
 	ENABLE_RME \
 	ENABLE_SPE_FOR_NS \
 	ENABLE_SYS_REG_TRACE_FOR_NS \
@@ -718,6 +731,7 @@ $(eval $(call assert_numerics,\
 	TWED_DELAY \
 	ENABLE_FEAT_TWED \
 	SVE_VECTOR_LEN \
+	USE_SPINLOCK_CAS \
 	IMPDEF_SYSREG_TRAP \
 	W \
 )))
@@ -860,6 +874,7 @@ $(eval $(call add_defines,\
 	ENABLE_MPMM \
 	ENABLE_FEAT_FGT \
 	ENABLE_FEAT_FGT2 \
+	ENABLE_FEAT_UINJ \
 	ENABLE_FEAT_FGWTE3 \
 	ENABLE_FEAT_FPMR \
 	ENABLE_FEAT_ECV \
@@ -873,6 +888,7 @@ $(eval $(call add_defines,\
 	ENABLE_FEAT_CSV2_3 \
 	ENABLE_FEAT_LS64_ACCDATA \
 	ENABLE_FEAT_MEC \
+	ENABLE_FEAT_MORELLO \
 	ENABLE_FEAT_PAN \
 	ENABLE_FEAT_TCR2 \
 	ENABLE_FEAT_THE \

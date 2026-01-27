@@ -173,6 +173,17 @@
 #endif /* CTX_INCLUDE_PAUTH_REGS */
 
 /*******************************************************************************
+ * Registers related to Morello.
+ ******************************************************************************/
+#define CTX_DDC_OFFSET	(CTX_PAUTH_REGS_OFFSET + CTX_PAUTH_REGS_END)
+#if ENABLE_FEAT_MORELLO
+#define CTX_DDC_EL0	U(0x0)
+#define CTX_DDC_END	U(0x10) /* Align to the next 16 byte boundary */
+#else
+#define CTX_DDC_END	U(0)
+#endif /* ENABLE_FEAT_MORELLO */
+
+/*******************************************************************************
  * Registers initialised in a per-world context.
  ******************************************************************************/
 #define CTX_CPTR_EL3			U(0x0)
@@ -215,6 +226,8 @@
 # define CTX_PAUTH_REGS_ALL	(CTX_PAUTH_REGS_END >> DWORD_SHIFT)
 #endif
 
+#define CTX_DDC_ALL (CTX_DDC_END >> DWORD_SHIFT)
+
 /*
  * AArch64 general purpose register context structure. Usually x0-x18,
  * lr are saved as the compiler is expected to preserve the remaining
@@ -243,6 +256,9 @@ DEFINE_REG_STRUCT(errata_speculative_at, CTX_ERRATA_SPEC_AT_ALL);
 DEFINE_REG_STRUCT(pauth, CTX_PAUTH_REGS_ALL);
 #endif
 
+/* Registers associated with Morello */
+typedef void *__capability ddc_cap_t;
+
 /*
  * Macros to access members of any of the above structures using their
  * offsets
@@ -269,6 +285,11 @@ typedef struct perworld_idreg {
 } perworld_idregs_t;
 #endif
 
+typedef struct world_amu_regs {
+	uint64_t amevcntr02_el0;
+	uint64_t amevcntr03_el0;
+} world_amu_regs_t;
+
 /*
  * Top-level context structure which is used by EL3 firmware to preserve
  * the state of a core at the next lower EL in a given security state and
@@ -290,6 +311,8 @@ typedef struct cpu_context {
 #if CTX_INCLUDE_PAUTH_REGS
 	pauth_t pauth_ctx;
 #endif
+
+	ddc_cap_t ddc_el0;
 
 #if (CTX_INCLUDE_EL2_REGS && IMAGE_BL31)
 	el2_sysregs_t el2_sysregs_ctx;
@@ -354,6 +377,8 @@ extern per_world_context_t per_world_context[CPU_CONTEXT_NUM];
 
 #if CTX_INCLUDE_PAUTH_REGS
 # define get_pauth_ctx(h)	(&((cpu_context_t *) h)->pauth_ctx)
+#else
+# define get_pauth_ctx(h)	NULL
 #endif
 
 /*
@@ -380,42 +405,6 @@ CASSERT(CTX_ERRATA_SPEC_AT_OFFSET == __builtin_offsetof(cpu_context_t, errata_sp
 CASSERT(CTX_PAUTH_REGS_OFFSET == __builtin_offsetof(cpu_context_t, pauth_ctx),
 	assert_core_context_pauth_offset_mismatch);
 #endif /* CTX_INCLUDE_PAUTH_REGS */
-
-/*
- * Helper macro to set the general purpose registers that correspond to
- * parameters in an aapcs_64 call i.e. x0-x7
- */
-#define set_aapcs_args0(ctx, x0)				do {	\
-		write_ctx_reg(get_gpregs_ctx(ctx), CTX_GPREG_X0, x0);	\
-	} while (0)
-#define set_aapcs_args1(ctx, x0, x1)				do {	\
-		write_ctx_reg(get_gpregs_ctx(ctx), CTX_GPREG_X1, x1);	\
-		set_aapcs_args0(ctx, x0);				\
-	} while (0)
-#define set_aapcs_args2(ctx, x0, x1, x2)			do {	\
-		write_ctx_reg(get_gpregs_ctx(ctx), CTX_GPREG_X2, x2);	\
-		set_aapcs_args1(ctx, x0, x1);				\
-	} while (0)
-#define set_aapcs_args3(ctx, x0, x1, x2, x3)			do {	\
-		write_ctx_reg(get_gpregs_ctx(ctx), CTX_GPREG_X3, x3);	\
-		set_aapcs_args2(ctx, x0, x1, x2);			\
-	} while (0)
-#define set_aapcs_args4(ctx, x0, x1, x2, x3, x4)		do {	\
-		write_ctx_reg(get_gpregs_ctx(ctx), CTX_GPREG_X4, x4);	\
-		set_aapcs_args3(ctx, x0, x1, x2, x3);			\
-	} while (0)
-#define set_aapcs_args5(ctx, x0, x1, x2, x3, x4, x5)		do {	\
-		write_ctx_reg(get_gpregs_ctx(ctx), CTX_GPREG_X5, x5);	\
-		set_aapcs_args4(ctx, x0, x1, x2, x3, x4);		\
-	} while (0)
-#define set_aapcs_args6(ctx, x0, x1, x2, x3, x4, x5, x6)	do {	\
-		write_ctx_reg(get_gpregs_ctx(ctx), CTX_GPREG_X6, x6);	\
-		set_aapcs_args5(ctx, x0, x1, x2, x3, x4, x5);		\
-	} while (0)
-#define set_aapcs_args7(ctx, x0, x1, x2, x3, x4, x5, x6, x7)	do {	\
-		write_ctx_reg(get_gpregs_ctx(ctx), CTX_GPREG_X7, x7);	\
-		set_aapcs_args6(ctx, x0, x1, x2, x3, x4, x5, x6);	\
-	} while (0)
 
 /*******************************************************************************
  * Function prototypes

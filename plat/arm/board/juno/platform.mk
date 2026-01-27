@@ -125,13 +125,18 @@ ifeq (${TRUSTED_BOARD_BOOT}, 1)
 endif
 
 ifeq (${MEASURED_BOOT},1)
+MBEDTLS_CONFIG_FILE	?=	"<plat_juno_mbedtls_config.h>"
+MBOOT_TPM_HASH_ALG	?=	${HASH_ALG}
+
 PLAT_INCLUDES		+=	-Iinclude/lib/psa
 
 BL1_SOURCES		+=	plat/arm/board/juno/juno_common_measured_boot.c	\
-				plat/arm/board/juno/juno_bl1_measured_boot.c
+				plat/arm/board/juno/juno_bl1_measured_boot.c	\
+				common/measured_boot_helpers.c
 
 BL2_SOURCES		+=	plat/arm/board/juno/juno_common_measured_boot.c	\
-				plat/arm/board/juno/juno_bl2_measured_boot.c
+				plat/arm/board/juno/juno_bl2_measured_boot.c	\
+				common/measured_boot_helpers.c
 endif
 
 endif
@@ -201,11 +206,8 @@ ifeq (${ALLOW_RO_XLAT_TABLES}, 1)
     endif
 endif
 
-BL1_CPPFLAGS += -march=armv8-a+crc
-BL2_CPPFLAGS += -march=armv8-a+crc
-BL2U_CPPFLAGS += -march=armv8-a+crc
-BL31_CPPFLAGS += -march=armv8-a+crc
-BL32_CPPFLAGS += -march=armv8-a+crc
+# FEAT_CRC32 is impelemented in the armv8.0 core
+ARM_ARCH_FEATURE	:=	crc
 
 # Add the FDT_SOURCES and options for Dynamic Config
 FDT_SOURCES		+=	plat/arm/board/juno/fdts/${PLAT}_fw_config.dts	\

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -91,7 +91,9 @@ CASSERT(BL31_BASE >= ARM_FW_CONFIG_LIMIT, assert_bl31_base_overflows);
 #define MAP_BL31_TOTAL		MAP_REGION_FLAT(			\
 					BL31_START,			\
 					BL31_END - BL31_START,		\
-					MT_MEMORY | MT_RW | EL3_PAS)
+					MT_MEMORY | MT_RW | EL3_PAS |	\
+					MT_CAP_LD_ST_TRACK)
+
 #if RECLAIM_INIT_CODE
 IMPORT_SYM(unsigned long, __INIT_CODE_START__, BL_INIT_CODE_BASE);
 IMPORT_SYM(unsigned long, __INIT_CODE_END__, BL_CODE_END_UNALIGNED);
@@ -452,8 +454,10 @@ void arm_bl31_platform_setup(void)
 	/* Initialize power controller before setting up topology */
 	plat_arm_pwrc_setup();
 
-#if ENABLE_FEAT_RAS && FFH_SUPPORT
-	ras_init();
+#if FFH_SUPPORT
+	if (is_feat_ras_supported()) {
+		ras_init();
+	}
 #endif
 
 #if USE_DEBUGFS

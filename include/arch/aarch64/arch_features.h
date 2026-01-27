@@ -212,7 +212,7 @@ static inline bool is_ ## name ## _present(void)				\
  * +----------------------------+
  * |	FEAT_SB			|
  * +----------------------------+
- * |	FEAT_CSV2/CSV3		|
+ * |	FEAT_CSV2_2/CSV2_3	|
  * +----------------------------+
  * |	FEAT_SPE		|
  * +----------------------------+
@@ -269,6 +269,12 @@ static inline bool is_ ## name ## _present(void)				\
  * |	FEAT_RME_GDI		|
  * +----------------------------+
  * |    FEAT_IDTE3              |
+ * +----------------------------+
+ * |    FEAT_UINJ               |
+ * +----------------------------+
+ * |    FEAT_LSE                |
+ * +----------------------------+
+ * |	FEAT_MORELLO		|
  * +----------------------------+
  */
 
@@ -739,17 +745,17 @@ CREATE_FEATURE_FUNCS(feat_sme2, id_aa64pfr1_el1, ID_AA64PFR1_EL1_SME_SHIFT,
 		     ID_AA64PFR1_EL1_SME_MASK, SME2_IMPLEMENTED, ENABLE_SME2_FOR_NS,
 		     FEAT_ENABLE_ALL_WORLDS)
 
-/* FEAT_LS64_ACCDATA: */
+/* FEAT_LS64_ACCDATA: Support for 64-byte EL0 stores with status */
 CREATE_FEATURE_FUNCS(feat_ls64_accdata, id_aa64isar1_el1, ID_AA64ISAR1_LS64_SHIFT,
 		     ID_AA64ISAR1_LS64_MASK, LS64_ACCDATA_IMPLEMENTED,
 		     ENABLE_FEAT_LS64_ACCDATA, FEAT_ENABLE_ALL_WORLDS)
 
-/* FEAT_AIE: */
+/* FEAT_AIE: Memory Attribute Index Enhancement */
 CREATE_FEATURE_FUNCS(feat_aie, id_aa64mmfr3_el1, ID_AA64MMFR3_EL1_AIE_SHIFT,
 		     ID_AA64MMFR3_EL1_AIE_MASK, 1U, ENABLE_FEAT_AIE,
 		     FEAT_ENABLE_NS)
 
-/* FEAT_PFAR: */
+/* FEAT_PFAR: Physical Fault Address Register Extension */
 CREATE_FEATURE_FUNCS(feat_pfar, id_aa64pfr1_el1, ID_AA64PFR1_EL1_PFAR_SHIFT,
 		     ID_AA64PFR1_EL1_PFAR_MASK, 1U, ENABLE_FEAT_PFAR,
 		     FEAT_ENABLE_NS)
@@ -758,6 +764,12 @@ CREATE_FEATURE_FUNCS(feat_pfar, id_aa64pfr1_el1, ID_AA64PFR1_EL1_PFAR_SHIFT,
 CREATE_FEATURE_FUNCS(feat_idte3, id_aa64mmfr2_el1, ID_AA64MMFR2_EL1_IDS_SHIFT,
 		     ID_AA64MMFR2_EL1_IDS_MASK, 2U, ENABLE_FEAT_IDTE3,
 		     FEAT_ENABLE_ALL_WORLDS)
+
+/* FEAT_LSE: Atomic instructions */
+CREATE_FEATURE_FUNCS(feat_lse, id_aa64isar0_el1, ID_AA64ISAR0_ATOMIC_SHIFT,
+		     ID_AA64ISAR0_ATOMIC_MASK, 1U, USE_SPINLOCK_CAS,
+		     FEAT_ENABLE_ALL_WORLDS)
+
 
 /*******************************************************************************
  * Function to get hardware granularity support
@@ -814,4 +826,13 @@ CREATE_FEATURE_FUNCS(feat_cpa2, id_aa64isar3_el1, ID_AA64ISAR3_EL1_CPA_SHIFT,
 		     ID_AA64ISAR3_EL1_CPA_MASK, CPA2_IMPLEMENTED,
 		     ENABLE_FEAT_CPA2, FEAT_ENABLE_ALL_WORLDS)
 
+/* FEAT_UINJ: Injection of Undefined Instruction exceptions */
+CREATE_FEATURE_FUNCS(feat_uinj, id_aa64pfr2_el1, ID_AA64PFR2_EL1_UINJ_SHIFT,
+		     ID_AA64PFR2_EL1_UINJ_MASK, UINJ_IMPLEMENTED,
+		     ENABLE_FEAT_UINJ, FEAT_ENABLE_ALL_WORLDS)
+
+/* FEAT_MORELLO_PRESENT */
+CREATE_FEATURE_FUNCS(feat_morello, id_aa64pfr1_el1, ID_AA64PFR1_EL1_CE_SHIFT,
+		     ID_AA64PFR1_EL1_CE_MASK, MORELLO_EXTENSION_IMPLEMENTED,
+			 ENABLE_FEAT_MORELLO, FEAT_ENABLE_ALL_WORLDS)
 #endif /* ARCH_FEATURES_H */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -26,6 +26,12 @@
 #define LOG_LEVEL_WARNING		U(30)
 #define LOG_LEVEL_INFO			U(40)
 #define LOG_LEVEL_VERBOSE		U(50)
+/*
+ * LOG_DEBUG is another file level build flag. This build flag can be used to
+ * hide module internal detail debug logs.These detail logs may not be required
+ * even when LOG_LEVEL is VERBOSE. In such case, hide detail logs under this
+ * file level build flag and enable it when module debugging is required.
+ */
 
 #ifndef __ASSEMBLER__
 
@@ -99,6 +105,7 @@
 #endif /* EARLY_CONSOLE */
 
 const char *get_el_str(unsigned int el);
+const char *get_mode_str(unsigned int spsr_mode);
 
 #if ENABLE_BACKTRACE
 void backtrace(const char *cookie);
@@ -107,7 +114,6 @@ void backtrace(const char *cookie);
 #endif
 
 void __dead2 el3_panic(void);
-void __dead2 elx_panic(void);
 
 #define panic()				\
 	do {				\
@@ -115,21 +121,6 @@ void __dead2 elx_panic(void);
 		console_flush();	\
 		el3_panic();		\
 	} while (false)
-
-#if CRASH_REPORTING
-/* --------------------------------------------------------------------
- * do_lower_el_panic assumes it's called due to a panic from a lower EL
- * This call will not return.
- * --------------------------------------------------------------------
- */
-#define	lower_el_panic()		\
-	do {				\
-		console_flush();	\
-		elx_panic();		\
-	} while (false)
-#else
-#define	lower_el_panic()
-#endif
 
 /* Function called when stack protection check code detects a corrupted stack */
 void __dead2 __stack_chk_fail(void);

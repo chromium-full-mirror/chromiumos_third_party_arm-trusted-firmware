@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -10,29 +10,6 @@
 #include <plat/common/platform.h>
 
 static bool detection_done[PLATFORM_CORE_COUNT] = { false };
-
-/*******************************************************************************
- * This section lists the wrapper modules for each feature to evaluate the
- * feature states (FEAT_STATE_ALWAYS and FEAT_STATE_CHECK) and perform
- * necessary action as below:
- *
- * It verifies whether the FEAT_XXX (eg: FEAT_SB) is supported by the PE or not.
- * Without this check an exception would occur during context save/restore
- * routines, if the feature is enabled but not supported by PE.
- ******************************************************************************/
-
-#define feat_detect_panic(a, b)		((a) ? (void)0 : feature_panic(b))
-
-/*******************************************************************************
- * Function : feature_panic
- * Customised panic function with error logging mechanism to list the feature
- * not supported by the PE.
- ******************************************************************************/
-static inline void feature_panic(char *feat_name)
-{
-	ERROR("FEAT_%s not supported by the PE\n", feat_name);
-	panic();
-}
 
 /*******************************************************************************
  * Function : check_feature
@@ -103,6 +80,12 @@ static unsigned int read_feat_vhe_id_field(void)
 {
 	return ISOLATE_FIELD(read_id_aa64mmfr1_el1(), ID_AA64MMFR1_EL1_VHE_SHIFT,
 			     ID_AA64MMFR1_EL1_VHE_MASK);
+}
+
+static unsigned int read_feat_spe_id_field(void)
+{
+	return ISOLATE_FIELD(read_id_aa64dfr0_el1(), ID_AA64DFR0_PMS_SHIFT,
+			     ID_AA64DFR0_PMS_MASK);
 }
 
 static unsigned int read_feat_sve_id_field(void)
@@ -338,6 +321,25 @@ static unsigned int read_feat_idte3_id_field(void)
 			     ID_AA64MMFR2_EL1_IDS_MASK);
 }
 
+static unsigned int read_feat_uinj_id_field(void)
+{
+    return ISOLATE_FIELD(read_id_aa64pfr2_el1(),
+			 ID_AA64PFR2_EL1_UINJ_SHIFT,
+			 ID_AA64PFR2_EL1_UINJ_MASK);
+}
+
+static unsigned int read_feat_lse_id_field(void)
+{
+	return ISOLATE_FIELD(read_id_aa64isar0_el1(), ID_AA64ISAR0_ATOMIC_SHIFT,
+			     ID_AA64ISAR0_ATOMIC_MASK);
+}
+
+static unsigned int read_feat_morello_field(void)
+{
+	return ISOLATE_FIELD(read_id_aa64pfr1_el1(), ID_AA64PFR1_EL1_CE_SHIFT,
+			     ID_AA64PFR1_EL1_CE_MASK);
+}
+
 /***********************************************************************************
  * TF-A supports many Arm architectural features starting from arch version
  * (8.0 till 8.7+). These features are mostly enabled through build flags. This
@@ -386,17 +388,22 @@ void detect_arch_features(unsigned int core_pos)
 	tainted |= check_feature(FEAT_STATE_ALWAYS, read_feat_pmuv3_id_field(),
 				 "PMUv3", 1, ID_AA64DFR0_PMUVER_PMUV3P9);
 
+	tainted |= check_feature(USE_SPINLOCK_CAS, read_feat_lse_id_field(),
+				 "LSE", 2, 2);
+
 	/* v8.1 features */
 	tainted |= check_feature(ENABLE_FEAT_PAN, read_feat_pan_id_field(),
 				 "PAN", 1, 3);
 	tainted |= check_feature(ENABLE_FEAT_VHE, read_feat_vhe_id_field(),
 				 "VHE", 1, 1);
+	tainted |= check_feature(ENABLE_SPE_FOR_NS, read_feat_spe_id_field(),
+				 "SPE", 1, 6);
 
 	/* v8.2 features */
 	tainted |= check_feature(ENABLE_SVE_FOR_NS, read_feat_sve_id_field(),
-				 "SVE", 1, 1);
+				 "SVE", 1, 3);
 	tainted |= check_feature(ENABLE_FEAT_RAS, read_feat_ras_id_field(),
-				 "RAS", 1, 2);
+				 "RAS", 1, 3);
 
 	/* v8.3 features */
 	/* the PAuth fields are very complicated, no min/max is checked */
@@ -483,13 +490,15 @@ void detect_arch_features(unsigned int core_pos)
 	tainted |= check_feature(ENABLE_BRBE_FOR_NS, read_feat_brbe_id_field(),
 				 "BRBE", 1, 2);
 	tainted |= check_feature(ENABLE_TRBE_FOR_NS, read_feat_trbe_id_field(),
-				 "TRBE", 1, 1);
+				 "TRBE", 1, 2);
+	tainted |= check_feature(ENABLE_FEAT_UINJ, read_feat_uinj_id_field(),
+				 "UINJ", 1, 1);
 
 	/* v9.2 features */
 	tainted |= check_feature(ENABLE_SME_FOR_NS, read_feat_sme_id_field(),
 				 "SME", 1, 2);
 	tainted |= check_feature(ENABLE_SME2_FOR_NS, read_feat_sme_id_field(),
-				 "SME2", 2, 2);
+				 "SME2", 2, 3);
 	tainted |= check_feature(ENABLE_FEAT_FPMR, read_feat_fpmr_id_field(),
 				 "FPMR", 1, 1);
 
@@ -519,6 +528,10 @@ void detect_arch_features(unsigned int core_pos)
 				 "RME_GDI", 1, 1);
 	tainted |= check_feature(ENABLE_FEAT_IDTE3, read_feat_idte3_id_field(),
 				 "IDTE3", 2, 2);
+
+	/* Morello Arch feature */
+	tainted |= check_feature(ENABLE_FEAT_MORELLO, read_feat_morello_field(),
+				 "MORELLO_ARCH", 1, 1);
 
 	if (tainted) {
 		panic();

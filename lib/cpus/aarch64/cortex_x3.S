@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2025, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2026, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -8,9 +8,12 @@
 #include <asm_macros.S>
 #include <common/bl_common.h>
 #include <cortex_x3.h>
-#include <cpu_macros.S>
-#include <plat_macros.S>
 #include "wa_cve_2022_23960_bhb_vector.S"
+
+#include <cpu_macros.S>
+#include <wa_cve_2025_0647_cpprctx.h>
+
+#include <plat_macros.S>
 
 /* Hardware handled coherency */
 #if HW_ASSISTED_COHERENCY == 0
@@ -118,6 +121,18 @@ workaround_reset_end cortex_x3, ERRATUM(3827463)
 
 check_erratum_ls cortex_x3, ERRATUM(3827463), CPU_REV(1, 1)
 
+workaround_reset_start cortex_x3, ERRATUM(3888125), ERRATA_X3_3888125
+	sysreg_bit_set	CORTEX_X3_CPUACTLR2_EL1, BIT(22)
+workaround_reset_end cortex_x3, ERRATUM(3888125)
+
+check_erratum_ls cortex_x3, ERRATUM(3888125), CPU_REV(1, 2)
+
+workaround_reset_start cortex_x3, ERRATUM(4302966), ERRATA_X3_4302966
+	sysreg_bit_set	CORTEX_X3_CPUACTLR5_EL1, BIT(50)
+workaround_reset_end cortex_x3, ERRATUM(4302966)
+
+check_erratum_ls cortex_x3, ERRATUM(4302966), CPU_REV(1, 2)
+
 workaround_reset_start cortex_x3, CVE(2022, 23960), WORKAROUND_CVE_2022_23960
 #if IMAGE_BL31
 	override_vector_table wa_cve_vbar_cortex_x3
@@ -133,16 +148,40 @@ workaround_reset_end cortex_x3, CVE(2024, 5660)
 
 check_erratum_ls cortex_x3, CVE(2024, 5660), CPU_REV(1, 2)
 
-workaround_reset_start cortex_x3, CVE(2024, 7881), WORKAROUND_CVE_2024_7881
-	/* ---------------------------------
-	 * Sets BIT41 of CPUACTLR6_EL1 which
-	 * disables L1 Data cache prefetcher
-	 * ---------------------------------
+	/* --------------------------------------------------------------
+	 * CVE-2024-7881 is mitigated for Cortex-X3 using erratum 3692984
+	 * workaround by disabling the affected prefetcher setting
+	 * CPUACTLR6_EL1[41].
+	 * --------------------------------------------------------------
 	 */
+workaround_reset_start cortex_x3, CVE(2024, 7881), WORKAROUND_CVE_2024_7881
 	sysreg_bit_set CORTEX_X3_CPUACTLR6_EL1, BIT(41)
 workaround_reset_end cortex_x3, CVE(2024, 7881)
 
-check_erratum_chosen cortex_x3, CVE(2024, 7881), WORKAROUND_CVE_2024_7881
+check_erratum_ls cortex_x3, CVE(2024, 7881), CPU_REV(1, 2)
+
+	/*
+	 * Instruction patch sequence to trap 'cpp rctx' instructions to EL3.
+	 * Enables mitigation for CVE-2025-0647.
+	 */
+workaround_reset_start cortex_x3, CVE(2025, 647), WORKAROUND_CVE_2025_0647
+	mov	x0, #WA_PATCH_SLOT(3)
+	bl	wa_cve_2025_0647_instruction_patch
+workaround_reset_end cortex_x3, CVE(2025, 647)
+
+check_erratum_chosen cortex_x3, CVE(2025, 647), WORKAROUND_CVE_2025_0647
+
+#if WORKAROUND_CVE_2025_0647
+func cortex_x3_impl_defined_el3_handler
+	mov	x0, #WA_LS_RCG_EN
+
+	/* See if this call came from trap handler. */
+	cmp	x1, #EC_IMP_DEF_EL3
+	bne	wa_cve_2025_0647_do_cpp_wa
+	orr	x0, x0, #WA_IS_TRAP_HANDLER
+	b	wa_cve_2025_0647_do_cpp_wa
+endfunc cortex_x3_impl_defined_el3_handler
+#endif
 
 cpu_reset_func_start cortex_x3
 	/* Disable speculative loads */
@@ -185,6 +224,13 @@ func cortex_x3_cpu_reg_dump
 	ret
 endfunc cortex_x3_cpu_reg_dump
 
+#if WORKAROUND_CVE_2025_0647
+declare_cpu_ops_eh cortex_x3, CORTEX_X3_MIDR, \
+	cortex_x3_reset_func, \
+	cortex_x3_impl_defined_el3_handler, \
+	cortex_x3_core_pwr_dwn
+#else
 declare_cpu_ops cortex_x3, CORTEX_X3_MIDR, \
 	cortex_x3_reset_func, \
 	cortex_x3_core_pwr_dwn
+#endif

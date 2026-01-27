@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023-2025, STMicroelectronics - All Rights Reserved
+# Copyright (c) 2023-2026, STMicroelectronics - All Rights Reserved
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -56,11 +56,7 @@ $(eval $(call MAKE_LD,${STM32_TF_LINKERFILE},$(STM32_LD_FILE),bl2))
 
 tf-a-%.elf: $(PLAT)-%.o ${STM32_TF_LINKERFILE}
 	$(s)echo "  LDS     $<"
-ifeq ($($(ARCH)-ld-id),gnu-gcc)
-	$(q)$($(ARCH)-ld) -o $@ $(subst --,-Wl$(comma)--,${STM32_TF_ELF_LDFLAGS}) -nostartfiles -no-pie -Wl,-Map=$(@:.elf=.map) -Wl,-dT ${STM32_TF_LINKERFILE} $<
-else
-	$(q)$($(ARCH)-ld) -o $@ ${STM32_TF_ELF_LDFLAGS} -no-pie -Map=$(@:.elf=.map) --script ${STM32_TF_LINKERFILE} $<
-endif
+	$(q)$($(ARCH)-ld) -o $@ ${STM32_TF_ELF_LDFLAGS} $(TF_LDFLAGS) $(call ld_prefix,-Map=$(@:.elf=.map)) $<
 
 tf-a-%.bin: tf-a-%.elf
 	$(q)$($(ARCH)-oc) -O binary $< $@
@@ -71,7 +67,7 @@ tf-a-%.bin: tf-a-%.elf
 tf-a-%.stm32: tf-a-%.bin ${STM32_DEPS}
 	$(s)echo
 	$(s)echo "Generate $@"
-ifeq ($($(ARCH)-ld-id),llvm-lld)
+ifneq ($(filter $($(ARCH)-ld-id),llvm-clang llvm-lld),)
 	$(eval LOADADDR = 0x$(shell cat $(@:.stm32=.map) | grep '\.data$$' | awk '{print $$1}'))
 	$(eval ENTRY = 0x$(shell cat $(@:.stm32=.map) | grep "__BL2_IMAGE_START" | awk '{print $$1}'))
 else

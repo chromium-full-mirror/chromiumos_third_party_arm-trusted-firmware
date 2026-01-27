@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -133,6 +133,9 @@
 	 */
 	.macro end_vector_entry label
 	.cfi_endproc
+	.iflt \label + (32 * 4) - .
+		.error "\label won't fit in exception vector"
+	.endif
 	.fill	\label + (32 * 4) - .
 	.endm
 
@@ -272,7 +275,8 @@
 	 * FEAT_SB, if it's enabled.
 	 */
 	.macro speculation_barrier
-#if ENABLE_FEAT_SB
+	/* fallback to the old slower variant for FEAT_STATE_CHECKED */
+#if ENABLE_FEAT_SB == 1
 	sb_barrier_insn
 #else
 	dsb	sy
@@ -294,12 +298,7 @@
 	 */
 	.macro exception_return
 	eret
-#if ENABLE_FEAT_SB
-	sb_barrier_insn
-#else
-	dsb	nsh
-	isb
-#endif
+	speculation_barrier
 	.endm
 
 	/*
@@ -312,14 +311,19 @@
 	isb
 	.endm
 
-	/* Macro for error synchronization on exception boundries.
+	/*
+	 * Macro for error synchronization on exception boundaries.
 	 * With FEAT_RAS enabled, it is assumed that FEAT_IESB is also present
 	 * and enabled.
-	 * FEAT_IESB provides an implicit error synchronization event at exception
-	 * entry and exception return, so there is no need for any explicit instruction.
+	 * FEAT_IESB provides an implicit error synchronization event at
+	 * exception entry and exception return, so there is no need for any
+	 * explicit instruction. In the FEAT_STATE_CHECKED case the explicit
+	 * synchronisation will be done anyway because there isn't enough space
+	 * in the exception vectors to do the check. Any platform looking for
+	 * maximum performance should not use FEAT_STATE_CHECKED.
 	 */
 	.macro synchronize_errors
-#if !ENABLE_FEAT_RAS
+#if ENABLE_FEAT_RAS == 0 || ENABLE_FEAT_RAS == 2
 	/* Complete any stores that may return an abort */
 	dsb	sy
 	/* Synchronise the CPU context with the completion of the dsb */
@@ -362,6 +366,39 @@
 	.macro is_feat_sctlr2_present_asm reg:req
 	mrs	\reg, ID_AA64MMFR3_EL1
 	ands	\reg, \reg, #(ID_AA64MMFR3_EL1_SCTLR2_MASK << ID_AA64MMFR3_EL1_SCTLR2_SHIFT)
+	.endm
+
+	.macro is_feat_sme_present_asm reg:req
+	mrs	\reg, id_aa64pfr1_el1
+	ands	\reg, \reg, #(ID_AA64PFR1_EL1_SME_MASK << ID_AA64PFR1_EL1_SME_SHIFT)
+	.endm
+
+	.macro is_feat_amu_present_asm reg:req
+	mrs	\reg, ID_AA64PFR0_EL1
+	ands	\reg, \reg, #(ID_AA64PFR0_AMU_MASK << ID_AA64PFR0_AMU_SHIFT)
+	.endm
+
+	/*
+	 * There are various places where Morello requires simple switchovers for
+	 * system registers. For eg morello uses celr_el3 vs elr_el3, cvbar_el3 vs
+	 * vbar_el3 etc., this macro simplifies that operation and makes the code
+	 * more readable.
+	 */
+	.macro	msr_wide_reg _sysreg:req, _gp_reg:req
+#if ENABLE_FEAT_MORELLO
+#if ENABLE_FEAT_MORELLO == 2
+	is_feat_morello_present_asm	x10
+	beq 1f
+#endif /* ENABLE_FEAT_MORELLO == 2 */
+	cvtp	c\_gp_reg, x\_gp_reg
+	msr	c\_sysreg, c\_gp_reg
+	b	2f
+1:
+#endif /* ENABLE_FEAT_MORELLO */
+#if ENABLE_FEAT_MORELLO != 1
+	msr	\_sysreg, x\_gp_reg
+#endif /* ENABLE_FEAT_MORELLO != 1 */
+2:
 	.endm
 
 .macro call_reset_handler

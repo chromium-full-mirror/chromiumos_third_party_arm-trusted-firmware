@@ -51,11 +51,13 @@ static void psci_suspend_to_pwrdown_start(unsigned int idx,
 	PUBLISH_EVENT_ARG(psci_suspend_pwrdown_start, &idx);
 
 #if PSCI_OS_INIT_MODE
+	if (psci_suspend_mode == OS_INIT) {
 #ifdef PLAT_MAX_CPU_SUSPEND_PWR_LVL
-	end_pwrlvl = PLAT_MAX_CPU_SUSPEND_PWR_LVL;
+		end_pwrlvl = PLAT_MAX_CPU_SUSPEND_PWR_LVL;
 #else
-	end_pwrlvl = PLAT_MAX_PWR_LVL;
+		end_pwrlvl = PLAT_MAX_PWR_LVL;
 #endif
+	}
 #endif
 
 	/* Save PSCI target power level for the suspend finisher handler */
@@ -65,7 +67,7 @@ static void psci_suspend_to_pwrdown_start(unsigned int idx,
 	 * Flush the target power level as it might be accessed on power up with
 	 * Data cache disabled.
 	 */
-	psci_flush_cpu_data(psci_svc_cpu_data.target_pwrlvl);
+	psci_flush_cpu_data(psci_svc_cpu_data);
 
 	/*
 	 * Call the cpu suspend handler registered by the Secure Payload
@@ -172,6 +174,12 @@ int psci_cpu_suspend_start(unsigned int idx,
 	if (psci_plat_pm_ops->pwr_domain_validate_suspend != NULL) {
 		rc = psci_plat_pm_ops->pwr_domain_validate_suspend(state_info);
 		if (rc != PSCI_E_SUCCESS) {
+#ifdef PLAT_MAX_CPU_SUSPEND_PWR_LVL
+			unsigned int max_pwrlvl = PLAT_MAX_CPU_SUSPEND_PWR_LVL;
+#else
+			unsigned int max_pwrlvl = PLAT_MAX_PWR_LVL;
+#endif
+			psci_set_pwr_domains_to_run(idx, max_pwrlvl);
 			goto suspend_exit;
 		}
 	}

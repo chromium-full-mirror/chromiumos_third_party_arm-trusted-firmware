@@ -8,46 +8,55 @@
 RDASPEN_BASE		 =	plat/arm/board/automotive_rd/platform/rdaspen
 RDASPEN_CPU_SOURCES	:=	lib/cpus/aarch64/cortex_a720_ae.S
 
-PLAT_INCLUDES		+=	-I${RDASPEN_BASE}/include/
+PLAT_INCLUDES		+=	-I${RDASPEN_BASE}/include/ 	\
+				-I${RDASPEN_BASE}/ras/include/
 
-override ARM_FW_CONFIG_LOAD_ENABLE	:=	1
-override ARM_PLAT_MT			:=	1
-override ARM_RECOM_STATE_ID_ENC		:=	1
-override CSS_LOAD_SCP_IMAGES		:=	0
-override CTX_INCLUDE_AARCH32_REGS	:=	0
-override NEED_BL1			:=	0
-override NEED_BL2U			:=	0
-override PSCI_EXTENDED_STATE_ID		:=	1
+override ARM_FW_CONFIG_LOAD_ENABLE		:=	1
+override ARM_PLAT_MT				:=	1
+override ARM_PLAT_PROVIDES_BL2_MEM_PARAMS	:=	1
+override ARM_RECOM_STATE_ID_ENC			:=	1
+override CSS_LOAD_SCP_IMAGES			:=	0
+override CTX_INCLUDE_AARCH32_REGS		:=	0
+override NEED_BL1				:=	0
+override NEED_BL2U				:=	0
+override PSCI_EXTENDED_STATE_ID			:=	1
 
 # SVE related flags
-override CTX_INCLUDE_FPREGS		:=	1
-override CTX_INCLUDE_SVE_REGS		:=	1
-override ENABLE_SVE_FOR_NS		:=	1
-override ENABLE_SVE_FOR_SWD		:=	1
+override CTX_INCLUDE_FPREGS			:=	1
+override CTX_INCLUDE_SVE_REGS			:=	1
+override ENABLE_SVE_FOR_NS			:=	1
+override ENABLE_SVE_FOR_SWD			:=	1
 
-ARM_ARCH_MAJOR				:=	9
-ARM_ARCH_MINOR				:=	2
-CSS_USE_SCMI_SDS_DRIVER			:=	1
+ARM_ARCH_MAJOR					:=	9
+ARM_ARCH_MINOR					:=	2
+CSS_USE_SCMI_SDS_DRIVER				:=	1
 # Enable runtime feature detection for emulation environments
-ENABLE_FEAT_AMU				:=	2
-ENABLE_FEAT_ECV				:=	2
-ENABLE_FEAT_FGT				:=	2
-ENABLE_FEAT_MTE2			:=	2
-ENABLE_MPAM_FOR_LOWER_ELS		:=	1
-GIC_ENABLE_V4_EXTN			:=	1
-GICV3_SUPPORT_GIC600			:=	1
-HW_ASSISTED_COHERENCY			:=	1
-NEED_BL32				?=	yes
-PLAT_MHU_VERSION			:=	3
-RESET_TO_BL2				:=	1
-SVE_VECTOR_LEN				:=	128
-USE_GIC_DRIVER				:=	3
-USE_COHERENT_MEM			:=	0
+ENABLE_FEAT_AMU					:=	2
+ENABLE_FEAT_ECV					:=	2
+ENABLE_FEAT_FGT					:=	2
+ENABLE_FEAT_MTE2				:=	2
+ENABLE_MPAM_FOR_LOWER_ELS			:=	1
+GIC_ENABLE_V4_EXTN				:=	1
+GICV3_SUPPORT_GIC600				:=	1
+HW_ASSISTED_COHERENCY				:=	1
+NEED_BL32					?=	yes
+PLAT_MHU_VERSION				:=	3
+RESET_TO_BL2					:=	1
+SVE_VECTOR_LEN					:=	128
+USE_GIC_DRIVER					:=	3
+USE_COHERENT_MEM				:=	0
 
 # Enable the DSU driver and save DSU PMU registers on cluster off
 # and restore them on cluster on
 USE_DSU_DRIVER				:=	1
 PRESERVE_DSU_PMU_REGS			:=	1
+
+# RAS Enablement
+ENABLE_FEAT_RAS				:= 	1
+HANDLE_EA_EL3_FIRST_NS			:=	1
+EL3_EXCEPTION_HANDLING			:=	1
+FAULT_INJECTION_SUPPORT			?=	1
+
 
 # ERRATA
 ERRATA_A720_AE_3699562			:=	1
@@ -65,10 +74,19 @@ BL2_SOURCES	+=	${RDASPEN_CPU_SOURCES}	\
 BL31_SOURCES	+=	${RDASPEN_CPU_SOURCES}	\
 			${RDASPEN_BASE}/rdaspen_bl31_setup.c	\
 			${RDASPEN_BASE}/rdaspen_topology.c	\
+			${RDASPEN_BASE}/ras/rdaspen_ras.c	\
+			${RDASPEN_BASE}/ras/rdaspen_ras_helpers.S \
 			drivers/cfi/v2m/v2m_flash.c		\
 			lib/utils/mem_region.c	\
 			plat/arm/common/arm_nor_psci_mem_protect.c \
 			drivers/arm/dsu/dsu.c
+
+ifeq ($(ENABLE_FEAT_RAS),1)
+ifeq ($(HANDLE_EA_EL3_FIRST_NS),1)
+BL31_SOURCES 	+=	$(RDASPEN_BASE)/../common/cper.c
+PLAT_INCLUDES	+=	-I$(RDASPEN_BASE)/../common/include
+endif
+endif
 
 ifeq (${TRUSTED_BOARD_BOOT}, 1)
 BL2_SOURCES	+=	${RDASPEN_BASE}/rdaspen_trusted_board_boot.c
@@ -113,3 +131,16 @@ include plat/arm/board/common/board_common.mk
 PLAT_BL_COMMON_SOURCES	:= $(filter-out						\
 			     plat/arm/board/common/${ARCH}/board_arm_helpers.S, \
 			     $(PLAT_BL_COMMON_SOURCES))
+
+# Include Measured Boot makefile and source
+ifeq (${MEASURED_BOOT},1)
+	MEASURED_BOOT_MK	:= drivers/measured_boot/rse/rse_measured_boot.mk
+	include ${MEASURED_BOOT_MK}
+	PLAT_MHU		:= MHUv3
+	RSE_COMMS_BOOT_MK	:= drivers/arm/rse/rse_comms.mk
+	include ${RSE_COMMS_BOOT_MK}
+	MEASURED_BOOT_SOURCES	+= lib/psa/measured_boot.c
+	MEASURED_BOOT_SOURCES	+= ${RSE_COMMS_SOURCES}
+	BL2_SOURCES		+= ${MEASURED_BOOT_SOURCES}
+	PLAT_BL_COMMON_SOURCES	+= ${RDASPEN_BASE}/rdaspen_measured_boot.c
+endif

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025, Arm Limited. All rights reserved.
+# Copyright (c) 2025-2026, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -254,13 +254,16 @@ ifeq (${ARCH},aarch32)
                 $(error "ENABLE_SME_FOR_NS cannot be used with ARCH=aarch32")
 	endif
 
-	ifeq (${ENABLE_SVE_FOR_NS},1)
-		# Warning instead of error due to CI dependency on this
+	ifneq (${ENABLE_SVE_FOR_NS},0)
                 $(error "ENABLE_SVE_FOR_NS cannot be used with ARCH=aarch32")
 	endif
 
+	ifneq (${ENABLE_SPE_FOR_NS},0)
+                $(error "ENABLE_SPE_FOR_NS cannot be used with ARCH=aarch32")
+	endif
+
 	# BRBE is not supported in AArch32
-	ifeq (${ENABLE_BRBE_FOR_NS},1)
+	ifneq (${ENABLE_BRBE_FOR_NS},0)
                 $(error "ENABLE_BRBE_FOR_NS cannot be used with ARCH=aarch32")
 	endif
 
@@ -286,8 +289,17 @@ ifeq (${ARCH},aarch32)
 	ifneq (${ENABLE_FEAT_CPA2},0)
                 $(error "ENABLE_FEAT_CPA2 cannot be used with ARCH=aarch32")
 	endif
+        ifneq (${USE_SPINLOCK_CAS},0)
+                $(error "USE_SPINLOCK_CAS is not supported with ARCH=aarch32")
+        endif
 	ifneq (${PLATFORM_NODE_COUNT},1)
                 $(error "NUMA AWARE PER CPU is not supported with ARCH=aarch32")
+	endif
+	ifneq (${ENABLE_FEAT_MPAM},0)
+                $(error "ENABLE_FEAT_MPAM cannot be used with ARCH=aarch32")
+	endif
+	ifneq (${ENABLE_FEAT_UINJ},0)
+		$(error "ENABLE_FEAT_UINJ cannot be used with ARCH=aarch32")
 	endif
 endif #(ARCH=aarch32)
 
@@ -417,6 +429,20 @@ ifneq (${DYNAMIC_WORKAROUND_CVE_2018_3639},0)
         ifeq (${WORKAROUND_CVE_2018_3639},0)
                 $(error Error: WORKAROUND_CVE_2018_3639 must be 1 if DYNAMIC_WORKAROUND_CVE_2018_3639 is 1)
         endif
+endif
+
+ifeq (${WORKAROUND_CVE_2025_0647},1)
+ifeq "8.5" "$(word 1, $(sort 8.5 $(ARM_ARCH_MAJOR).$(ARM_ARCH_MINOR)))"
+else
+        $(error Error: WORKAROUND_CVE_2025_0647 can only be used with Arm Arch v8.5+, set ARM_ARCH_MAJOR and ARM_ARCH_MINOR appropriately.)
+endif
+endif
+
+ifneq ($(ENABLE_FEAT_MORELLO),0)
+        ifneq ($($(ARCH)-cc-id),llvm-clang)
+                $(error ENABLE_FEAT_MORELLO requires Clang toolchain)
+        endif
+        $(warning Morello capability is an experimental feature)
 endif
 
 # Handle all deprecated build options.

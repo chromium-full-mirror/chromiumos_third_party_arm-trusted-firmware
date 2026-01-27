@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2020-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -10,16 +10,15 @@
 #include <tc_plat.h>
 
 #include <arch_helpers.h>
-#include <common/bl_common.h>
 #include <common/debug.h>
 #include <drivers/arm/css/css_mhu_doorbell.h>
 #include <drivers/arm/css/scmi.h>
 #include <drivers/arm/dsu.h>
 #include <drivers/arm/sbsa.h>
+#include <drivers/arm/sfcp.h>
 #include <lib/fconf/fconf.h>
 #include <lib/fconf/fconf_dyn_cfg_getter.h>
 #include <plat/arm/common/plat_arm.h>
-#include <plat/common/platform.h>
 
 #ifdef PLATFORM_TEST_TFM_TESTSUITE
 #include <psa/crypto_platform.h>
@@ -29,7 +28,6 @@
 #include <psa/error.h>
 
 #include <plat/common/platform.h>
-#include <tc_rse_comms.h>
 
 #ifdef PLATFORM_TEST_TFM_TESTSUITE
 /*
@@ -120,9 +118,51 @@ static void set_mcn_slc_alloc_mode(void)
 }
 #endif
 
+#if defined(TARGET_FLAVOUR_FPGA) && TARGET_PLATFORM == 4
+/*
+ * Configure MTU tag registers to initialize the MTE carveout.
+ * This isn't required for FVP builds, as FVPs do not emulate
+ * MTE in such a way that it requires a physical careveout.
+ */
+static void set_mcn_mtu_tag_addr(void)
+{
+	for (int i = 0; i < MCN_INSTANCES; i++) {
+		uintptr_t mtu_tag_addr_base_lo = MCN_MTU_BASE_ADDR(i) +
+			MTU_TAG_ADDR_BASE_OFFSET;
+		uintptr_t mtu_tag_addr_base_hi = MCN_MTU_BASE_ADDR(i) +
+			MTU_TAG_ADDR_BASE_OFFSET + 4;
+
+		/* Enter MCN config state. */
+		mmio_write_32(MCN_CRP_BASE_ADDR(i) +
+			      MCN_CRP_ARCH_STATE_REQ_OFFSET, MCN_CONFIG_STATE);
+		while (mmio_read_32(MCN_CRP_BASE_ADDR(i) +
+				    MCN_CRP_ARCH_STATE_CUR_OFFSET) != MCN_CONFIG_STATE)
+			;
+
+		dsb();
+		isb();
+
+		mmio_write_32(mtu_tag_addr_base_lo,
+			      (uint32_t)(TC_MTU_TAG_ADDR_BASE & 0xFFFFFFFF));
+		mmio_write_32(mtu_tag_addr_base_hi,
+			      (uint32_t)((TC_MTU_TAG_ADDR_BASE >> 32) & 0xFFFFFFFF));
+
+		dsb();
+		isb();
+
+		/* Return to MCN run state. */
+		mmio_write_32(MCN_CRP_BASE_ADDR(i) +
+			      MCN_CRP_ARCH_STATE_REQ_OFFSET, MCN_RUN_STATE);
+		while (mmio_read_32(MCN_CRP_BASE_ADDR(i) +
+				    MCN_CRP_ARCH_STATE_CUR_OFFSET) != MCN_RUN_STATE)
+			;
+	}
+}
+#endif
+
 void bl31_platform_setup(void)
 {
-	psa_status_t status;
+	enum sfcp_error_t sfcp_err;
 
 	tc_bl31_common_platform_setup();
 	enable_ns_mcn_pmu();
@@ -131,11 +171,15 @@ void bl31_platform_setup(void)
 	plat_arm_ni_setup(NCI_BASE_ADDR);
 #endif
 
-	/* Initialise RSE communication channel */
-	status = plat_rse_comms_init();
-	if (status != PSA_SUCCESS) {
-		ERROR("Failed to initialize RSE communication channel - psa_status = %d\n", status);
+	/* Initialize SFCP for communications between AP and RSE */
+	sfcp_err = sfcp_init();
+	if (sfcp_err != SFCP_ERROR_SUCCESS) {
+		ERROR("Unable to initialize SFCP: %d\n", sfcp_err);
+		plat_panic_handler();
 	}
+#if defined(TARGET_FLAVOUR_FPGA) && TARGET_PLATFORM == 4
+	set_mcn_mtu_tag_addr();
+#endif
 }
 
 scmi_channel_plat_info_t *plat_css_get_scmi_info(unsigned int channel_id __unused)
@@ -168,8 +212,6 @@ static __dead2 void tc_run_platform_tests(void)
 
 #ifdef PLATFORM_TEST_NV_COUNTERS
 	tests_failed = nv_counter_test();
-#elif PLATFORM_TEST_ROTPK
-	tests_failed = rotpk_test();
 #elif PLATFORM_TEST_TFM_TESTSUITE
 	tests_failed = run_platform_tests();
 #endif

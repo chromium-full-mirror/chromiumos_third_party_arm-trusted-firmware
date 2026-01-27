@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2020, Renesas Electronics Corporation. All rights reserved.
+ * Copyright (c) 2015-2026, Renesas Electronics Corporation. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -43,7 +43,7 @@ typedef struct log_map {
 	uint8_t res_data[RCAR_LOG_RES_SIZE];
 } logmap_t;
 
-int32_t rcar_set_log_data(int32_t c)
+int console_renesas_putc(int c, console_t *pconsole)
 {
 	logmap_t *t_log;
 
@@ -75,7 +75,7 @@ int32_t rcar_set_log_data(int32_t c)
 	return 1;
 }
 
-int32_t rcar_log_init(void)
+int32_t renesas_log_init(void)
 {
 	logmap_t *t_log = (logmap_t *)RCAR_BL31_LOG_BASE;
 	uint32_t *log_data = (uint32_t *)t_log->log_data;
@@ -104,5 +104,17 @@ int32_t rcar_log_init(void)
 	}
 	rcar_lock_init();
 
+	return 1;
+}
+
+int console_renesas_flush(console_t *pconsole)
+{
+	/* Nothing to do */
+	return 0;
+}
+
+int console_renesas_init(uintptr_t base_addr, uint32_t uart_clk,
+		      uint32_t baud_rate)
+{
 	return 1;
 }
