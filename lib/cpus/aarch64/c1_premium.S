@@ -41,12 +41,6 @@ workaround_reset_end c1_premium, ERRATUM(3502731)
 
 check_erratum_ls c1_premium, ERRATUM(3502731), CPU_REV(0, 0)
 
-workaround_reset_start c1_premium, ERRATUM(3651221), ERRATA_C1PREMIUM_3651221
-	sysreg_bit_set C1_PREMIUM_CPUACTLR6_EL1, BIT(41)
-workaround_reset_end c1_premium, ERRATUM(3651221)
-
-check_erratum_ls c1_premium, ERRATUM(3651221), CPU_REV(0, 0)
-
 workaround_reset_start c1_premium, ERRATUM(3684152), ERRATA_C1PREMIUM_3684152
 	sysreg_bitfield_insert C1_PREMIUM_IMP_CPUACTLR_EL1, C1_PREMIUM_IMP_CPUACTLR_EL1_LOAD_BIT, \
 	C1_PREMIUM_IMP_CPUACTLR_EL1_LOAD_SHIFT, C1_PREMIUM_IMP_CPUACTLR_EL1_LOAD_WIDTH
@@ -120,8 +114,10 @@ check_erratum_ls c1_premium, CVE(2024, 7881), CPU_REV(0, 0)
 	 * Enables mitigation for CVE-2025-0647.
 	 */
 workaround_reset_start c1_premium, CVE(2025, 647), WORKAROUND_CVE_2025_0647
+#if IMAGE_BL31
 	mov	x0, #WA_PATCH_SLOT(3)
 	bl	wa_cve_2025_0647_instruction_patch
+#endif /* IMAGE_BL31 */
 workaround_reset_end c1_premium, CVE(2025, 647)
 
 check_erratum_chosen c1_premium, CVE(2025, 647), WORKAROUND_CVE_2025_0647
@@ -168,7 +164,7 @@ func c1_premium_cpu_reg_dump
 	ret
 endfunc c1_premium_cpu_reg_dump
 
-#if WORKAROUND_CVE_2025_0647
+#if WORKAROUND_CVE_2025_0647 && IMAGE_BL31
 declare_cpu_ops_eh c1_premium, C1_PREMIUM_MIDR, \
 	c1_premium_reset_func, \
 	c1_premium_impl_defined_el3_handler, \

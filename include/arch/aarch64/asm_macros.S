@@ -132,6 +132,7 @@
 	 * exception vector then an error is emitted.
 	 */
 	.macro end_vector_entry label
+	.size	\label, . - \label
 	.cfi_endproc
 	.iflt \label + (32 * 4) - .
 		.error "\label won't fit in exception vector"
@@ -376,6 +377,11 @@
 	.macro is_feat_amu_present_asm reg:req
 	mrs	\reg, ID_AA64PFR0_EL1
 	ands	\reg, \reg, #(ID_AA64PFR0_AMU_MASK << ID_AA64PFR0_AMU_SHIFT)
+	.endm
+
+	.macro is_feat_morello_present_asm reg:req
+	mrs	\reg, id_aa64pfr1_el1
+	ands	\reg, \reg, #(ID_AA64PFR1_EL1_CE_MASK << ID_AA64PFR1_EL1_CE_SHIFT)
 	.endm
 
 	/*

@@ -68,6 +68,12 @@ Common build options
    While it is explicitly set to 1 when RESET_TO_BL2 is set to 1 it can also be
    true in a 4-world system where RESET_TO_BL2 is 0.
 
+-  ``BL2_INV_DCACHE``: This is an optional build option which control dcache
+   invalidation upon BL2 entry. Some platform cannot handle cache operations
+   during entry as the coherency unit is not yet initialized. This may cause
+   crashing. Leaving this option to '1' (default) will allow the operation.
+   This option is only relevant when BL2 is set to run at EL3.
+
 -  ``BL2_ENABLE_SP_LOAD``: Boolean option to enable loading SP packages from the
    FIP. Automatically enabled if ``SP_LAYOUT_FILE`` is provided.
 
@@ -324,6 +330,24 @@ Common build options
    The flag can take values 0 to 2, to align with the ``ENABLE_FEAT``
    mechanism. Default value is ``0``.
 
+-  ``ENABLE_FEAT_CRYPTO``: Numeric value to enable the ``FEAT_CRYPTO``
+   extension. It allows using the SIMD crypto extension AES, SHA1 and SHA2
+   instructions for mbedtls HASH256, which speeds up the authentication process
+   of the subsequent images in BL1 and BL2. ``FEAT_CRYPTO`` is an optional
+   feature available on Arm v8 onwards. This flag can take values
+   0 to 2, to align with the ``ENABLE_FEAT`` mechanism, however, value ``2``
+   is treated as ``0`` since there is no way to perform runtime check.
+   Default value is ``0``.
+
+-  ``ENABLE_FEAT_CRYPTO_SHA3``: Numeric value to enable the ``FEAT_CRYPTO``
+   extension. It allows using the SIMD crypto extension SHA3 instructions for
+   mbedtls HASH384 and HASH512, which speeds up the authentication process of
+   the subsequent images in BL1 and BL2. ``FEAT_CRYPTO_SHA3`` is an optional
+   feature available on Arm v8.2 onwards. This flag can take values
+   0 to 1, to align with the ``ENABLE_FEAT`` mechanism, however, value ``2``
+   is treated as ``0`` since there is no way to perform runtime check.
+   Default value is ``0``.
+
 - ``ENABLE_FEAT_DEBUGV8P9``: Numeric value to enable ``FEAT_DEBUGV8P9``
    extension which allows the ability to implement more than 16 breakpoints
    and/or watchpoints. This feature is mandatory from v8.9 and is optional
@@ -379,6 +403,18 @@ Common build options
       ``SCTLR_EL3``(when ``HW_ASSISTED_COHERENCY=0``).
       If additional traps need to be disabled for specific platforms,
       please contact the Arm team on `TF-A public mailing list`_.
+
+-  ``ENABLE_FEAT_HDBSS``: Numeric value to enable support for HDBSS (Hardware
+   Dirty state tracking structure) by setting ``SCR_EL3.HDBSSEn`` for NS world.
+   This is an optional architectural feature and is available from v9.4 and
+   upwards. This flag can take the values 0 to 2, to align  with the
+   ``ENABLE_FEAT`` mechanism. Default value is ``0``.
+
+-  ``ENABLE_FEAT_HACDBS``: Numeric value to enable support for
+   HACDBS (Hardware accelerator for cleaning Dirty state) by setting
+   ``SCR_EL3.HACDBSEn`` for NS world. This is an optional architectural feature
+   and is available from v9.4 and upwards. This flag can take the values 0 to 2,
+   to align  with the ``ENABLE_FEAT`` mechanism. Default value is ``0``.
 
 -  ``ENABLE_FEAT_HCX``: Numeric value to set the bit SCR_EL3.HXEn in EL3 to
    allow access to HCRX_EL2 (extended hypervisor control register) from EL2 as
@@ -520,6 +556,12 @@ Common build options
    and mandatory in Armv8.9 implementations.
    This flag can take the values 0 to 2, to align  with the ``ENABLE_FEAT``
    mechanism. Default value is ``0``.
+
+-  ``ENABLE_FEAT_STEP2``: Numeric value that enables support for FEAT_STEP2 by
+   setting ``MDCR_EL3.EnSTEPOP`` so that lower ELs can access ``MDSTEPOP_EL1``.
+   This feature is optional from Armv9.4 implementations and is mandatory in
+   Armv9.5 implementations. This flag can take the values 0 to 2, to align  with
+   the ``ENABLE_FEAT`` mechanism Defaults value is ``0``.
 
 -  ``ENABLE_FEAT_D128``: Numeric value to enable support for FEAT_D128
    at EL2 and below, setting the bit SCT_EL3.D128En in EL3 to allow access to
@@ -1294,6 +1336,8 @@ Common build options
    +---------+--------------+-------------------------+
    | 1541130 |  Cortex-A65  |  ``ERRATA_A65_1541130`` |
    +---------+--------------+-------------------------+
+   | 1638571 | Cortex-A65AE | ``ERRATA_A65AE_1638571``|
+   +---------+--------------+-------------------------+
    | 1319537 |  Cortex-A57  |  ``ERRATA_A57_1319537`` |
    +---------+--------------+-------------------------+
    | 1530923 |  Cortex-A55  |  ``ERRATA_A55_1530923`` |
@@ -1530,6 +1574,10 @@ Common build options
    contexts for Realm security state and only one encryption context for the
    rest of the security states. Default value is 0.
 
+-  ``RMM_V1_COMPAT``: Boolean flag to enable support for RMM v1.x compatibility
+   mode. When set to 0, TF-A will use the RMM-EL3 interface version required
+   for RMMv2.0. Default value is 1.
+
 -  ``RMMD_ENABLE_EL3_TOKEN_SIGN``: Numeric value to enable support for singing
    realm attestation token signing requests in EL3. This flag can take the
    values 0 and 1. The default value is ``0``. When set to ``1``, this option
@@ -1636,6 +1684,39 @@ Firmware update options
    store description in the metadata structure. This option indicates
    if the firmware store description, which provides information on
    the updatable images is part of the structure.
+
+.. _sp_live_activation_build_options:
+
+SP Live Activation build options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- ``SUPPORT_SP_LIVE_ACTIVATION``: Boolean option to enable live activation of
+  Secure Partition(s) by using common SPMD LSP helpers. Enforces all of the
+  following dependencies are met:
+
+  -  ``LFA_SUPPORT=1`` to enable the live activation service in BL31.
+  -  ``ENABLE_SPMD_LP=1`` allows SPMD logical secure partition to be enabled.
+  -  ``SPMD_SPM_AT_SEL2=1`` as the current implementation only supports working
+     with an S-EL2 SPMC (for example, Hafnium) to live activate an SP; It is
+     incompatible with EL3 SPMC.
+
+  This flag is experimental and currently exercised on FVP. Default value is 0.
+
+Negative test scenario options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- ``TEST_IO_SHORT_READ_FI``: Boolean flag to enable a negative-test for the
+  BL image loader. When set to ``1``, TF-A intentionally simulates a short
+  read for the image selected by ``TEST_IO_SHORT_READ_FI_IMAGE_ID`` by reporting
+  fewer bytes read than the image size. This exercises the "read too short"
+  error handling path in ``load_image()`` and is intended for test/CI only.
+  Default is ``0`` (disabled). Must not be used on production devices.
+
+- ``TEST_IO_SHORT_READ_FI_IMAGE_ID``: Numeric flag that selects the ``image_id``
+  for which the short-read fault is injected when ``TEST_IO_SHORT_READ_FI=1``.
+  The value must match the image identifiers used by the platform image loading
+  flow (for example ``BL31_IMAGE_ID``, ``BL33_IMAGE_ID``, etc., depending on the
+  build and platform). Default is ``0``.
 
 --------------
 

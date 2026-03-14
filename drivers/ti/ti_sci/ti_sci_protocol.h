@@ -33,6 +33,7 @@
 /* Low Power Mode Requests */
 #define TI_SCI_MSG_ENTER_SLEEP		0x0301
 #define TI_SCI_MSG_LPM_GET_NEXT_SYS_MODE 0x030d
+#define TISCI_MSG_LPM_ENCRYPT_TFA	0x030F
 
 /* Clock requests */
 #define TI_SCI_MSG_SET_CLOCK_STATE	0x0100
@@ -53,6 +54,11 @@
 #define TISCI_MSG_PROC_AUTH_BOOT_IMAGE	0xc120
 #define TISCI_MSG_GET_PROC_BOOT_STATUS	0xc400
 #define TISCI_MSG_WAIT_PROC_BOOT_STATUS	0xc401
+
+/* Security Management Messages */
+#define TI_SCI_MSG_FWL_SET		0x9000
+#define TI_SCI_MSG_FWL_GET		0x9001
+#define TI_SCI_MSG_FWL_CHANGE_OWNER	0x9002
 
 /**
  * struct ti_sci_secure_msg_hdr - Header that prefixes all TISCI messages sent
@@ -161,6 +167,8 @@ struct ti_sci_msg_resp_query_fw_caps {
 #define MSG_FLAG_CAPS_LPM_STANDBY	TI_SCI_MSG_FLAG(3)
 #define MSG_FLAG_CAPS_LPM_PARTIAL_IO	TI_SCI_MSG_FLAG(4)
 #define MSG_FLAG_CAPS_LPM_DM_MANAGED	TI_SCI_MSG_FLAG(5)
+#define MSG_FLAG_CAPS_LPM_ENCRYPT_IMAGE	TI_SCI_MSG_FLAG(11)
+#define MSG_FLAG_CAPS_LPM_BOARDCFG_MANAGED	TI_SCI_MSG_FLAG(12)
 	uint64_t fw_caps;
 } __packed;
 
@@ -823,6 +831,157 @@ struct ti_sci_msg_resp_lpm_get_next_sys_mode {
 struct tisci_msg_boot_notification_msg {
 	struct ti_sci_msg_hdr hdr;
 	uint32_t extboot_status;
+} __packed;
+
+/*
+ * struct ti_sci_msg_req_encrypt_tfa - Request for TISCI_MSG_LPM_ENCRYPT_TFA.
+ *
+ * @hdr: Standard TISCI message header.
+ * @src_tfa_addr: Address where the TFA lies unencrypted
+ * @src_tfa_len: Size of the TFA unencrypted
+ *
+ * This message is to be sent when the system is going in suspend, just before
+ * TI_SCI_MSG_ENTER_SLEEP.
+ * The TIFS will then encrypt the TFA and store it in RAM, along with a private
+ * header.
+ * Upon resume, the SPL will ask TIFS to decrypt it back.
+ */
+struct ti_sci_msg_req_encrypt_tfa {
+	struct ti_sci_msg_hdr hdr;
+	uint64_t src_tfa_addr;
+	uint32_t src_tfa_len;
+} __packed;
+
+/*
+ * struct ti_sci_msg_req_encrypt_tfa - Response for TISCI_MSG_LPM_ENCRYPT_TFA.
+ *
+ * @hdr: Standard TISCI message header.
+ */
+struct ti_sci_msg_resp_encrypt_tfa {
+	struct ti_sci_msg_hdr hdr;
+} __packed;
+
+/* FWL_MAX_PRIVID_SLOTS must be defined with same value in ti_sci.h */
+#define FWL_MAX_PRIVID_SLOTS			3U
+
+/**
+ * struct ti_sci_msg_req_fwl_set_firewall_region - Set firewall permissions
+ * @hdr:		Generic Header
+ * @fwl_id:		Firewall ID
+ * @region:		Region or channel number to set config info.
+ *			This field is unused in case of a simple firewall and
+ *			must be initialized to zero.  In case of a region based
+ *			firewall, this field indicates the region (index
+ *			starting from 0). In case of a channel based firewall,
+ *			this field indicates the channel (index starting
+ *			from 0).
+ * @n_permission_regs:	Number of permission registers to set
+ * @control:		Contents of the firewall CONTROL register to set
+ * @permissions:	Contents of the firewall PERMISSION register to set
+ * @start_address:	Contents of the firewall START_ADDRESS register to set
+ * @end_address:	Contents of the firewall END_ADDRESS register to set
+ */
+struct ti_sci_msg_req_fwl_set_firewall_region {
+	struct ti_sci_msg_hdr hdr;
+	uint16_t fwl_id;
+	uint16_t region;
+	uint32_t n_permission_regs;
+	uint32_t control;
+	uint32_t permissions[FWL_MAX_PRIVID_SLOTS];
+	uint64_t start_address;
+	uint64_t end_address;
+} __packed;
+
+struct ti_sci_msg_resp_fwl_set_firewall_region {
+	struct ti_sci_msg_hdr hdr;
+} __packed;
+
+/**
+ * struct ti_sci_msg_req_fwl_get_firewall_region - Retrieve firewall permissions
+ * @hdr:		Generic Header
+ * @fwl_id:		Firewall ID in question
+ * @region:		Region or channel number to get config info.
+ *			This field is unused in case of a simple firewall and
+ *			must be initialized to zero.  In case of a region based
+ *			firewall, this field indicates the region (index
+ *			starting from 0). In case of a channel based firewall,
+ *			this field indicates the channel (index starting
+ *			from 0).
+ * @n_permission_regs:	Number of permission registers to retrieve
+ */
+struct ti_sci_msg_req_fwl_get_firewall_region {
+	struct ti_sci_msg_hdr hdr;
+	uint16_t fwl_id;
+	uint16_t region;
+	uint32_t n_permission_regs;
+} __packed;
+
+/**
+ * struct ti_sci_msg_resp_fwl_get_firewall_region - Response for retrieving the
+ *						    firewall permissions
+ *
+ * @hdr:		Generic Header
+ *
+ * @fwl_id:		Firewall ID in question
+ * @region:		Region or channel number to get config info.
+ *			This field is unused in case of a simple firewall and
+ *			must be initialized to zero.  In case of a region based
+ *			firewall, this field indicates the region (index
+ *			starting from 0). In case of a channel based firewall,
+ *			this field indicates the channel (index starting
+ *			from 0).
+ * @n_permission_regs:	Number of permission registers retrieved
+ * @control:		Contents of the firewall CONTROL register
+ * @permissions:	Contents of the firewall PERMISSION registers
+ * @start_address:	Contents of the firewall START_ADDRESS register
+ * @end_address:	Contents of the firewall END_ADDRESS register
+ */
+struct ti_sci_msg_resp_fwl_get_firewall_region {
+	struct ti_sci_msg_hdr hdr;
+	uint16_t fwl_id;
+	uint16_t region;
+	uint32_t n_permission_regs;
+	uint32_t control;
+	uint32_t permissions[FWL_MAX_PRIVID_SLOTS];
+	uint64_t start_address;
+	uint64_t end_address;
+} __packed;
+
+/**
+ * struct ti_sci_msg_req_fwl_change_owner_info - Request change firewall owner
+ *
+ * @hdr:		Generic Header
+ *
+ * @fwl_id:		Firewall ID in question
+ * @region:		Region or channel number if applicable
+ * @owner_index:	New owner index to transfer ownership to
+ */
+struct ti_sci_msg_req_fwl_change_owner_info {
+	struct ti_sci_msg_hdr hdr;
+	uint16_t fwl_id;
+	uint16_t region;
+	uint8_t owner_index;
+} __packed;
+
+/**
+ * struct ti_sci_msg_resp_fwl_change_owner_info - Response for change
+ *						  firewall owner
+ *
+ * @hdr:		Generic Header
+ *
+ * @fwl_id:		Firewall ID specified in request
+ * @region:		Region or channel number specified in request
+ * @owner_index:	Owner index specified in request
+ * @owner_privid:	New owner priv-ID returned by DMSC/TIFS.
+ * @owner_permission_bits:	New owner permission bits returned by DMSC/TIFS.
+ */
+struct ti_sci_msg_resp_fwl_change_owner_info {
+	struct ti_sci_msg_hdr hdr;
+	uint16_t fwl_id;
+	uint16_t region;
+	uint8_t owner_index;
+	uint8_t owner_privid;
+	uint16_t owner_permission_bits;
 } __packed;
 
 #endif /* TI_SCI_PROTOCOL_H */

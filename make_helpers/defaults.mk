@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016-2025, Arm Limited. All rights reserved.
+# Copyright (c) 2016-2026, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -84,6 +84,14 @@ DISABLE_BIN_GENERATION		:= 0
 # Enable capability to disable authentication dynamically. Only meant for
 # development platforms.
 DYN_DISABLE_AUTH		:= 0
+
+# Enable the SIMD crypto extension feature. The flags suppose to be in
+# arch_features.mk but since mbedtls_common.mk is included before arch_features.mk,
+# so this flag has to be defined here.
+ENABLE_FEAT_CRYPTO		:= 0
+
+# Enable the SIMD SHA3 crypto extension feature.
+ENABLE_FEAT_CRYPTO_SHA3		:= 0
 
 # Enable the Maximum Power Mitigation Mechanism on supporting cores.
 ENABLE_MPMM			:= 0
@@ -444,6 +452,9 @@ RMMD_ENABLE_EL3_TOKEN_SIGN	:= 0
 # finalized, this flag will be removed.
 RMMD_ENABLE_IDE_KEY_PROG	:= 0
 
+# Enable RMM v1.x compatibility mode
+RMM_V1_COMPAT			:= 1
+
 # Live firmware activation support
 LFA_SUPPORT			:= 0
 
@@ -456,3 +467,11 @@ SEPARATE_BL2_FIP		:=	0
 # Disable NUMA awareness for per-CPU framework by default. Platforms should
 # enable this feature by setting PLATFORM_NODE_COUNT > 1
 PLATFORM_NODE_COUNT		:= 1
+
+# Support for live activation of SPs managed by S-EL2 SPMC
+SUPPORT_SP_LIVE_ACTIVATION	:= 0
+
+# Negative I/O test: intentionally report a short read for a selected
+# image_id. Test/CI only. Do not enable in production builds.
+TEST_IO_SHORT_READ_FI		:= 0
+TEST_IO_SHORT_READ_FI_IMAGE_ID	:= 0

@@ -15,7 +15,9 @@ TRUSTED_BOARD_BOOT		:= 1
 RESET_TO_BL31			:= 1
 GENERATE_COT			:= 1
 ENABLE_SVE_FOR_NS		:= 1
-ENABLE_SVE_FOR_SWD		:= 0
+ENABLE_SVE_FOR_SWD		:= 1
+CTX_INCLUDE_FPREGS		:= 1
+CTX_INCLUDE_SVE_REGS		:= 1
 MULTI_CONSOLE_API		:= 1
 INIT_UNUSED_NS_EL2		:= 1
 
@@ -116,7 +118,6 @@ BL31_SOURCES	+=	${RCAR_GIC_SOURCES}				\
 			drivers/delay_timer/delay_timer.c		\
 			drivers/delay_timer/generic_delay_timer.c	\
 			drivers/renesas/common/scif/scif-common.c	\
-			drivers/renesas/common/scif/scif_helpers.S	\
 			drivers/renesas/common/timer/timer.c		\
 			drivers/renesas/rcar_gen5/pwrc/pwrc.c		\
 			drivers/renesas/rcar_gen5/scif/scif.c		\

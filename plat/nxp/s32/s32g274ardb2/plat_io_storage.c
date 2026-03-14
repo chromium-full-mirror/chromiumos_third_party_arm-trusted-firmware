@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 NXP
+ * Copyright 2024-2026 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -18,6 +18,7 @@
 #include <tools_share/firmware_image_package.h>
 
 #include <plat_io_storage.h>
+#include <tbbr_img_def.h>
 
 struct plat_io_policy {
 	uintptr_t *dev_handle;
@@ -143,7 +144,11 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 		.uuid = UUID_NON_TRUSTED_FIRMWARE_BL33,
 	};
 
-	static const struct plat_io_policy policies[GPT_IMAGE_ID + 1] = {
+	static const io_uuid_spec_t ddr_fw_uuid_spec = {
+		.uuid = UUID_DDR_FW,
+	};
+
+	static const struct plat_io_policy policies[DDR_FW_IMAGE_ID + 1] = {
 		[FIP_IMAGE_ID] = {
 			.dev_handle = &mmc_dev_handle,
 			.image_spec = (uintptr_t)&fip_mmc_spec,
@@ -152,17 +157,22 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 		[BL31_IMAGE_ID] = {
 			.dev_handle = &fip_dev_handle,
 			.image_spec = (uintptr_t)&bl31_uuid_spec,
-			.check = open_fip,
+			.check = &open_fip,
 		},
 		[BL33_IMAGE_ID] = {
 			.dev_handle = &fip_dev_handle,
 			.image_spec = (uintptr_t)&bl33_uuid_spec,
-			.check = open_fip,
+			.check = &open_fip,
+		},
+		[DDR_FW_IMAGE_ID] = {
+			.dev_handle = &fip_dev_handle,
+			.image_spec = (uintptr_t)&ddr_fw_uuid_spec,
+			.check = &open_fip,
 		},
 		[GPT_IMAGE_ID] = {
 			.dev_handle = &mmc_dev_handle,
 			.image_spec = (uintptr_t)&mbr_spec,
-			.check = open_mmc,
+			.check = &open_mmc,
 		},
 	};
 	const struct plat_io_policy *policy;

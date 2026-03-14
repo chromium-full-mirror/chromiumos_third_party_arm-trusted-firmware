@@ -325,6 +325,10 @@
 #define ID_AA64DFR1_BRP_SHIFT		U(8)
 #define ID_AA64DFR1_BRP_WIDTH		U(8)
 
+/* ID_AA64DFR2_EL1 definitions */
+#define ID_AA64DFR2_STEP_SHIFT		U(0)
+#define ID_AA64DFR2_STEP_MASK		ULL(0xf)
+
 #define ID_AA64ZFR0_EL1			S3_0_C0_C4_4
 #define ID_AA64FPFR0_EL1		S3_0_C0_C4_7
 #define ID_AA64DFR2_EL1			S3_0_C0_C5_2
@@ -335,6 +339,13 @@
 #define ID_AA64ISAR0_ATOMIC_MASK	ULL(0xf)
 #define ID_AA64ISAR0_RNDR_SHIFT		U(60)
 #define ID_AA64ISAR0_RNDR_MASK		ULL(0xf)
+
+#define ID_AA64ISAR0_AES_SHIFT		U(0x4)
+#define ID_AA64ISAR0_AES_MASK		ULL(0xf)
+#define ID_AA64ISAR0_SHA1_SHIFT		U(0x8)
+#define ID_AA64ISAR0_SHA1_MASK		ULL(0xf)
+#define ID_AA64ISAR0_SHA2_SHIFT		U(0xc)
+#define ID_AA64ISAR0_SHA2_MASK		ULL(0xf)
 
 /* ID_AA64ISAR1_EL1 definitions */
 #define ID_AA64ISAR1_EL1		S3_0_C0_C6_1
@@ -426,6 +437,10 @@
 #define ID_AA64MMFR1_EL1_TWED_MASK		ULL(0xf)
 #define TWED_IMPLEMENTED			ULL(0x1)
 
+#define ID_AA64MMFR1_EL1_HAFDBS_SHIFT		U(0)
+#define ID_AA64MMFR1_EL1_HAFDBS_MASK		ULL(0xf)
+#define HDBSS_IMPLEMENTED			ULL(0x4)
+
 #define ID_AA64MMFR1_EL1_PAN_SHIFT		U(20)
 #define ID_AA64MMFR1_EL1_PAN_MASK		ULL(0xf)
 #define PAN_IMPLEMENTED				ULL(0x1)
@@ -496,6 +511,10 @@
 
 /* ID_AA64MMFR4_EL1 definitions */
 #define ID_AA64MMFR4_EL1			S3_0_C0_C7_4
+
+#define ID_AA64MMFR4_EL1_HACDBS_SHIFT		U(12)
+#define ID_AA64MMFR4_EL1_HACDBS_MASK		ULL(0xf)
+#define HACDBS_IMPLEMENTED			ULL(0x1)
 
 #define ID_AA64MMFR4_EL1_FGWTE3_SHIFT		U(16)
 #define ID_AA64MMFR4_EL1_FGWTE3_MASK		ULL(0xf)
@@ -721,6 +740,8 @@
 #endif
 #define SCR_NSE_SHIFT		U(62)
 #define SCR_NSE_BIT		(ULL(1) << SCR_NSE_SHIFT)
+#define SCR_HACDBSEn_BIT	(UL(1) << 61)
+#define SCR_HDBSSEn_BIT		(UL(1) << 60)
 #define SCR_FGTEN2_BIT		(UL(1) << 59)
 #define SCR_PFAREn_BIT		(UL(1) << 53)
 #define SCR_EnFPM_BIT		(ULL(1) << 50)
@@ -771,6 +792,7 @@
 #define SCR_RESET_VAL		SCR_RES1_BITS
 
 /* MDCR_EL3 definitions */
+#define MDCR_EnSTEPOP_BIT	(ULL(1) << 50)
 #define MDCR_EBWE_BIT		(ULL(1) << 43)
 #define MDCR_EnPMS3_BIT		(ULL(1) << 42)
 #define MDCR_PMEE(x)		((x) << 40)
@@ -902,11 +924,11 @@
  * is reserved in Morello it should not have any effect anyways.
  */
 #define CPTR_EL3_RESET_VAL	((TAM_BIT | TTA_BIT | EC_BIT) & \
-				~(CPTR_EZ_BIT | ESM_BIT | TFP_BIT | TCPAC_BIT))
+				~(CPTR_EZ_BIT | ESM_BIT | TCPAC_BIT))
 #else
 /* TCPAC is always set by default as the register is always present */
 #define CPTR_EL3_RESET_VAL	((TAM_BIT | TTA_BIT) & \
-				~(CPTR_EZ_BIT | ESM_BIT | TFP_BIT | TCPAC_BIT))
+				~(CPTR_EZ_BIT | ESM_BIT | TCPAC_BIT))
 #endif
 
 /* CPTR_EL2 definitions */
@@ -1289,10 +1311,7 @@
 #define ZCR_EL2			S3_4_C1_C2_0
 
 /* ZCR_EL3 definitions */
-#define ZCR_EL3_LEN_MASK	U(0xf)
-
-/* ZCR_EL2 definitions */
-#define ZCR_EL2_LEN_MASK	U(0xf)
+#define ZCR_EL3_LEN_MASK	UL(0xf)
 
 /*******************************************************************************
  * Definitions for system register interface to SME as needed in EL3
@@ -1693,6 +1712,11 @@
  ******************************************************************************/
 #define TRFCR_EL2		S3_4_C1_C2_1
 #define TRFCR_EL1		S3_0_C1_C2_1
+
+/*******************************************************************************
+ * FEAT_STEP2 - Step2 registers
+ ******************************************************************************/
+#define MDSTEPOP_EL1		S2_0_C0_C5_2
 
 /*******************************************************************************
  * FEAT_THE - Translation Hardening Extension Registers

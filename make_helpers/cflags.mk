@@ -140,12 +140,6 @@ ifneq ($(PIE_FOUND),)
         cflags-common	+=	-fno-PIE
 endif
 
-ifeq ($(ENABLE_LTO),1)
-ifeq ($($(ARCH)-ld-id),gnu-gcc)
-        cflags-common	+=	-flto-partition=one
-endif
-endif
-
 cflags-common		+=	$(TF_CFLAGS_$(ARCH))
 cflags-common		+=	$(CPPFLAGS) $(CFLAGS) # some platforms set these
 TF_CFLAGS		+=	$(cflags-common)
@@ -174,6 +168,12 @@ ifeq ($($(ARCH)-ld-id),arm-link)
 else
         ifeq ($($(ARCH)-ld-id),llvm-clang)
                 ldflags-common	:=	-fuse-ld=lld
+        endif
+
+        ifeq ($(ENABLE_LTO),1)
+        ifeq ($($(ARCH)-ld-id),gnu-gcc)
+                ldflags-common	+=	-flto-partition=one
+        endif
         endif
 
         ldflags-common		+=	$(call ld_option,--no-warn-rwx-segments)
@@ -246,11 +246,11 @@ BL31_CPPFLAGS += -DREPORT_ERRATA=${DEBUG}
 BL32_CPPFLAGS += -DREPORT_ERRATA=${DEBUG}
 
 BL1_CPPFLAGS += -DIMAGE_AT_EL3
-ifeq ($(RESET_TO_BL2),1)
+ifeq ($(BL2_RUNS_AT_EL3),1)
 	BL2_CPPFLAGS += -DIMAGE_AT_EL3
 else
 	BL2_CPPFLAGS += -DIMAGE_AT_EL1
-endif #(RESET_TO_BL2)
+endif #(BL2_RUNS_AT_EL3)
 
 ifeq (${ARCH},aarch64)
 	BL2U_CPPFLAGS += -DIMAGE_AT_EL1

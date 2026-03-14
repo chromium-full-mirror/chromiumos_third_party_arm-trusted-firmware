@@ -30,16 +30,6 @@ associated with the related Secure Partition.
       - Y is the minor version of FF-A expected by the partition at the FFA
         instance it will execute.
 
-- uuid [mandatory]
-   - value type: <prop-encoded-array>
-   - An array of comma separated tuples each consisting of 4 <u32> values,
-     identifying the UUID of the services implemented by this partition.
-     The UUID format is described in RFC 4122.
-   - These 4 <u32> values are packed similar to the UUID register mapping
-     specified in section '5.3 Unique Identification format', SMC Calling
-     Convention, DEN0028, v1.6 G BET0
-     (https://developer.arm.com/documentation/den0028/latest/).
-
 - id
    - value type: <u32>
    - Pre-allocated partition ID.
@@ -109,17 +99,6 @@ associated with the related Secure Partition.
    - Specific "memory-regions" nodes that describe the RX/TX buffers expected
      by the partition.
      The "compatible" must be the string "arm,ffa-manifest-rx_tx-buffer".
-
-- messaging-method [mandatory]
-   - value type: <u32>
-   - Specifies which messaging methods are supported by the partition, set bit
-     means the feature is supported, clear bit - not supported:
-
-      - Bit[0]: partition can receive direct requests via FFA_MSG_SEND_DIRECT_REQ ABI if set
-      - Bit[1]: partition can send direct requests via FFA_MSG_SEND_DIRECT_REQ ABI if set
-      - Bit[2]: partition can send and receive indirect messages
-      - Bit[9]: partition can receive direct requests via FFA_MSG_SEND_DIRECT_REQ2 ABI if set
-      - Bit[10]: partition can send direct requests via FFA_MSG_SEND_DIRECT_REQ2 ABI if set
 
 - managed-exit
    - value type: <empty>
@@ -226,6 +205,145 @@ associated with the related Secure Partition.
 
    - All other values are unsupported. If a partition does not specify this
      field in the manifest, the SPMC takes implementation defined action.
+
+- live-activation-support
+   - value type: <empty>
+   - Presence of this field indicates support for partition framework messages
+     necessary for live activation as defined in the FF-A v1.3 ALP2 spec.
+
+- live-activation-register
+   - value type: <u32>
+   - Register used by the SPMC to report to the SP that it is undergoing live
+     activation. Must be one of ``x0``–``x3`` or ``x5``–``x7`` so that it does
+     not clash with the boot-info register or the reserved ``x4`` linear vCPU
+     index.
+
+- image-uuid
+   - value type: <prop-encoded-array>
+   - Exactly one tuple of 4 <u32> values identifying the partition image UUID.
+     The UUID must not be all zeros and must not collide with any protocol UUID
+     exposed by the partition.
+
+- live-state-buffer-info
+   - value type: <phandle>
+   - Child node with ``compatible = "arm,ffa-manifest,live-state-buffer"`` whose
+     ``live-state-buffer`` property points to the backing memory-region entry.
+
+When ``live-activation-support`` is present the manifest must also meet the
+following requirements:
+
+- ``lifecycle-support`` must be present and ``execution-ctx-count`` must be 1.
+- ``live-activation-register`` and ``image-uuid`` must follow the constraints
+  above; manifests advertising multiple image UUIDs or invalid registers are
+  rejected.
+- The live state buffer referenced via ``live-state-buffer-info`` must be
+  defined under ``memory-regions`` and describe a page-aligned, read/write
+  region that sits outside the working memory region (which is overwritten
+  during activation) and is large enough to preserve the framework state.
+
+Informative example:
+
+.. code:: dts
+
+   lifecycle-support;
+   execution-ctx-count = <1>;
+   abort-action = <1>;
+   live-activation-support;
+   live-activation-register = <1>;
+   image-uuid = <0x962a7bf0 0x174d471d 0xa686c89e 0x5c3e254e>;
+
+   live-state-buffer-info {
+       compatible = "arm,ffa-manifest,live-state-buffer";
+       live-state-buffer = <&livestatebuffer>;
+   };
+
+   memory-regions {
+       compatible = "arm,ffa-manifest-memory-regions";
+
+       livestatebuffer: live-state-buffer {
+           description = "live-state-buffer";
+           base-address = <0x00000000 0x06780000>;
+           pages-count = <1>;
+           attributes = <0x3>; /* read-write */
+       };
+   };
+
+.. _services:
+
+Services
+~~~~~~~~
+
+- A service pairs a protocol UUID with supported messaging methods that clients
+  use to reach the SP.
+- For the compatible value at the root set to "arm,ffa-manifest-1.0", the UUIDs
+  and messaging methods are specified in two separate lists at the root node as
+  below:
+
+   - uuid [mandatory]
+      - value type: <prop-encoded-array>
+      - An array of comma separated tuples each consisting of 4 <u32> values,
+        identifying the protocol UUIDs of the services implemented by this
+        partition. The UUID format is described in RFC 4122.
+      - These 4 <u32> values are packed similar to the UUID register mapping
+        specified in section '5.3 Unique Identification format',
+        SMC Calling Convention, DEN0028, v1.6 G BET0
+        (https://developer.arm.com/documentation/den0028/latest/).
+   - messaging-method [mandatory]
+      - value type: <prop-encoded-array>
+      - An array of <u32> values which specify which messaging methods are
+        supported for each service. If one value is specified all services
+        support those messaging methods. If multiple values are specified, there
+        must be the same number as UUIDs specified, and the messaging method at
+        each index is paired with the UUID at the matching index of the uuid
+        array. Set bit means the feature is supported, clear bit - not supported:
+
+         - Bit[0]: partition can receive direct requests via
+           FFA_MSG_SEND_DIRECT_REQ ABI if set
+         - Bit[1]: partition can send direct requests via
+           FFA_MSG_SEND_DIRECT_REQ ABI if set
+         - Bit[2]: partition can send and receive indirect messages
+         - Bit[9]: partition can receive direct requests via
+           FFA_MSG_SEND_DIRECT_REQ2 ABI if set
+         - Bit[10]: partition can send direct requests via
+           FFA_MSG_SEND_DIRECT_REQ2 ABI if set
+      - A request targeting a specific protocol UUID requires that service to
+        have the corresponding bit set. Requests that do not target a specific
+        protocol UUID (for example, a NULL UUID or FFA_MSG_SEND_DIRECT_REQ) are
+        allowed if any service exposes the required messaging method.
+
+- For compatible value "arm,ffa-manifest-X.Y" with X.Y > 1.0, specify services
+  under a parent "services" node like so:
+
+   - services [mandatory]
+      - compatible [mandatory]
+         - value type: <string>
+         - Must be the string "arm,ffa-manifest-services".
+      - Child service nodes [mandatory]
+         - uuid [mandatory]
+            - value type: <string>
+            - A protocol UUID specified in the canonical string format as
+              described in RFC 9562.
+              (https://www.rfc-editor.org/rfc/rfc9562.html#name-uuid-format)
+         - messaging-method [mandatory]
+            - value type: <u32>
+            - Specifies which messaging methods are supported by this service,
+              set bit means the feature is supported, clear bit - not supported:
+
+               - Bit[0]: partition can receive direct requests via
+                 FFA_MSG_SEND_DIRECT_REQ ABI if set
+               - Bit[1]: partition can send direct requests via
+                 FFA_MSG_SEND_DIRECT_REQ ABI if set
+               - Bit[2]: partition can send and receive indirect messages
+               - Bit[9]: partition can receive direct requests via
+                 FFA_MSG_SEND_DIRECT_REQ2 ABI if set
+               - Bit[10]: partition can send direct requests via
+                 FFA_MSG_SEND_DIRECT_REQ2 ABI if set
+         - Each child under "services" pairs a protocol UUID with a messaging
+           method. At least one child must be specified.
+         - A request targeting a specific protocol UUID requires that service to
+           have the corresponding bit set. Requests that do not target a specific
+           protocol UUID (for example, a NULL UUID or FFA_MSG_SEND_DIRECT_REQ) are
+           allowed if any service exposes the required messaging method.
 
 .. _memory_region_node:
 
@@ -424,4 +542,4 @@ attribute
 
 --------------
 
-*Copyright (c) 2019-2025, Arm Limited and Contributors. All rights reserved.*
+*Copyright (c) 2019-2026, Arm Limited and Contributors. All rights reserved.*

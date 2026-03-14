@@ -63,10 +63,24 @@ ifeq (${ENABLE_SPMD_LP}, 1)
 ifneq (${SPD},spmd)
         $(error Error: ENABLE_SPMD_LP requires SPD=spmd.)
 endif
+
 ifeq ($(SPMC_AT_EL3),1)
         $(error SPMC at EL3 not supported when enabling SPMD Logical partitions.)
 endif
 endif
+
+ifeq (${SUPPORT_SP_LIVE_ACTIVATION}, 1)
+ifeq (${LFA_SUPPORT}, 0)
+        $(error Error: SUPPORT_SP_LIVE_ACTIVATION requires LFA_SUPPORT=1)
+endif #(LFA_SUPPORT)
+ifeq (${ENABLE_SPMD_LP}, 0)
+        $(error Error: SUPPORT_SP_LIVE_ACTIVATION requires ENABLE_SPMD_LP=1)
+endif #(ENABLE_SPMD_LP)
+ifeq (${SPMD_SPM_AT_SEL2},0)
+        $(error Error: SUPPORT_SP_LIVE_ACTIVATION requires SPMD_SPM_AT_SEL2=1)
+endif #(SPMD_SPM_AT_SEL2)
+        $(warning SUPPORT_SP_LIVE_ACTIVATION is an experimental feature)
+endif #(SUPPORT_SP_LIVE_ACTIVATION)
 
 ifneq (${SPD},none)
 ifeq (${ARCH},aarch32)
@@ -202,6 +216,12 @@ ifeq (${ENABLE_FEAT_SCTLR2},0)
         $(error Error: PAUTH_LR cannot be used without ENABLE_FEAT_SCTLR2)
 endif
 
+ifneq (${ENABLE_FEAT_HACDBS},0)
+	ifeq (${ENABLE_FEAT_HDBSS},0)
+                $(error ENABLE_FEAT_HACDBS requires ENABLE_FEAT_HDBSS)
+	endif
+endif
+
 # FEAT_PAUTH_LR is only supported in aarch64 state
 ifneq (${ARCH},aarch64)
         $(error ENABLE_FEAT_PAUTH_LR requires AArch64)
@@ -295,11 +315,26 @@ ifeq (${ARCH},aarch32)
 	ifneq (${PLATFORM_NODE_COUNT},1)
                 $(error "NUMA AWARE PER CPU is not supported with ARCH=aarch32")
 	endif
+        ifeq (${ENABLE_FEAT_CRYPTO},1)
+                $(error "ENABLE_FEAT_CRYPTO cannot be used with ARCH=aarch32")
+        endif
+        ifeq (${ENABLE_FEAT_CRYPTO_SHA3},1)
+                $(error "ENABLE_FEAT_CRYPTO_SHA3 cannot be used with ARCH=aarch32")
+        endif
 	ifneq (${ENABLE_FEAT_MPAM},0)
                 $(error "ENABLE_FEAT_MPAM cannot be used with ARCH=aarch32")
 	endif
 	ifneq (${ENABLE_FEAT_UINJ},0)
 		$(error "ENABLE_FEAT_UINJ cannot be used with ARCH=aarch32")
+	endif
+	ifneq (${ENABLE_FEAT_STEP2},0)
+                $(error "ENABLE_FEAT_STEP2 cannot be used with ARCH=aarch32")
+	endif
+	ifneq (${ENABLE_FEAT_HDBSS},0)
+                $(error "ENABLE_FEAT_HDBSS cannot be used with ARCH=aarch32")
+	endif
+	ifneq (${ENABLE_FEAT_HACDBS},0)
+                $(error "ENABLE_FEAT_HACDBS cannot be used with ARCH=aarch32")
 	endif
 endif #(ARCH=aarch32)
 
@@ -358,6 +393,21 @@ ifeq (${ENABLE_SVE_FOR_SWD}, 1)
             $(warning "ENABLE_SVE_FOR_SWD and ENABLE_SVE_FOR_NS together require CTX_INCLUDE_SVE_REGS")
         endif
     endif
+endif
+
+# Enabling SHA3 requires regular Crypto extension to be enabled
+ifeq (${ENABLE_FEAT_CRYPTO_SHA3}, 1)
+    ifeq (${ENABLE_FEAT_CRYPTO}, 0)
+        $(error "ENABLE_FEAT_CRYPTO_SHA3 requires ENABLE_FEAT_CRYPTO")
+    endif
+endif
+
+ifeq (${ENABLE_FEAT_CRYPTO_SHA3}, 2)
+    $(warning "ENABLE_FEAT_CRYPTO_SHA3 does not have any effect when set to 2")
+endif
+
+ifeq (${ENABLE_FEAT_CRYPTO}, 2)
+    $(warning "ENABLE_FEAT_CRYPTO does not have any effect when set to 2")
 endif
 
 # Enabling SVE in either world while enabling CTX_INCLUDE_FPREGS requires

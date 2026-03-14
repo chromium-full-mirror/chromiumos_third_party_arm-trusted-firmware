@@ -366,6 +366,7 @@ DEFINE_SYSREG_RW_FUNCS(dbgprcr_el1)
 DEFINE_SYSOP_FUNC(wfi)
 DEFINE_SYSOP_FUNC(wfe)
 DEFINE_SYSOP_FUNC(sev)
+DEFINE_SYSOP_FUNC(sevl)
 DEFINE_SYSOP_TYPE_FUNC(dsb, sy)
 DEFINE_SYSOP_TYPE_FUNC(dmb, sy)
 DEFINE_SYSOP_TYPE_FUNC(dmb, st)
@@ -809,6 +810,9 @@ DEFINE_RENAME_SYSREG_RW_FUNCS(fgwte3_el3, FGWTE3_EL3)
 DEFINE_RENAME_SYSREG_RW_FUNCS(mpambw2_el2, MPAMBW2_EL2)
 DEFINE_RENAME_SYSREG_RW_FUNCS(mpambw3_el3, MPAMBW3_EL3)
 
+/* FEAT_STEP2 Registers */
+DEFINE_RENAME_SYSREG_RW_FUNCS(mdstepop_el1, MDSTEPOP_EL1)
+
 #define IS_IN_EL(x) \
 	(GET_EL(read_CurrentEl()) == MODE_EL##x)
 
@@ -853,6 +857,26 @@ static inline uint64_t el_implemented(unsigned int el)
 }
 
 /*
+ * Read number of break points available.
+ */
+static inline unsigned int read_brps_id_field(void)
+{
+	return EXTRACT(ID_AA64DFR1_BRP, read_id_aa64dfr1_el1());
+}
+
+static inline void enable_fpregs_traps_el3(void)
+{
+	write_cptr_el3(read_cptr_el3() | TFP_BIT);
+	isb();
+}
+
+static inline void disable_fpregs_traps_el3(void)
+{
+	write_cptr_el3(read_cptr_el3() & ~(TFP_BIT));
+	isb();
+}
+
+/*
  * TLBI PAALLOS instruction
  * (TLB Invalidate GPT Information by PA, All Entries, Outer Shareable)
  */
@@ -888,7 +912,6 @@ static inline void tlbipaallos(void)
 #define TLBI_SZ_64G		8UL
 #define TLBI_SZ_512G		9UL
 
-#define	TLBI_ADDR_SHIFT		U(12)
 #define	TLBI_SIZE_SHIFT		U(44)
 
 #define TLBIRPALOS(_addr, _size)				\

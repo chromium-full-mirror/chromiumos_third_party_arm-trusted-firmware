@@ -304,7 +304,7 @@ feat_sctlr2_not_supported\@:
 	 */
 	.if \_init_c_runtime
 #if defined(IMAGE_BL31) || (defined(IMAGE_BL2) && \
-	((RESET_TO_BL2 && BL2_INV_DCACHE) || ENABLE_RME))
+			    BL2_RUNS_AT_EL3 && BL2_INV_DCACHE)
 		/* -------------------------------------------------------------
 		 * Invalidate the RW memory used by the BL31 image. This
 		 * includes the data and NOBITS sections. This is done to
@@ -529,6 +529,7 @@ feat_sctlr2_not_supported\@:
 	 *  available.
 	 *
 	 * CPTR_EL3.EZ: Set to one so that accesses to ZCR_EL3 do not trap
+	 * CPTR_EL3.TFP: Set to one so that accesses to SIMD trap
 	 * CPTR_EL3.ESM: Set to one so that SME related registers don't trap
 	 * CPTR_EL3.EC: Set to one when Morello is enabled so that access to morello
 	 *  architecture and registers are not trapped
@@ -555,6 +556,7 @@ feat_sctlr2_not_supported\@:
 
 		mrs	x15, cptr_el3
 		orr	x15, x15, #CPTR_EZ_BIT
+		orr	x15, x15, #TFP_BIT
 		orr	x15, x15, #ESM_BIT
 #if ENABLE_FEAT_MORELLO
 		orr	x15, x15, #EC_BIT

@@ -169,9 +169,6 @@ subsections:
           - title: Common
             scope: common
 
-          - title: A5DS
-            scope: a5ds
-
           - title: CSS
             scope: css
 
@@ -603,6 +600,13 @@ subsections:
 
               - title: R-Car 5
                 scope: rcar5
+
+          - title: RZ
+            scope: rz
+
+            subsections:
+              - title: RZ/A
+                scope: rza
 
       - title: Rockchip
         scope: rockchip
@@ -1291,11 +1295,23 @@ subsections:
           - title: GPIO
             scope: st-gpio
 
+          - title: Regulator
+            scope: st-regulator
+
+          - title: Reset
+            scope: st-reset
+
+          - title: Resource Isolation Framework
+            scope: st-rif
+
           - title: SDMMC2
             scope: st-sdmmc2
 
             deprecated:
               - stm32_sdmmc2
+
+          - title: SPI
+            scope: st-spi
 
           - title: ST PMIC
             scope: st-pmic
@@ -1305,15 +1321,6 @@ subsections:
 
           - title: STPMIC1
             scope: stpmic1
-
-          - title: Regulator
-            scope: st-regulator
-
-          - title: Reset
-            scope: st-reset
-
-          - title: SPI
-            scope: st-spi
 
           - title: UART
             scope: st-uart

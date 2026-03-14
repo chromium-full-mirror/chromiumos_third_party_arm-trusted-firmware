@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023-2025, STMicroelectronics - All Rights Reserved
+# Copyright (c) 2023-2026, STMicroelectronics - All Rights Reserved
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -91,9 +91,17 @@ STM32MP_DDR_DUAL_AXI_PORT	:=	1
 STM32MP_DDR_FIP_IO_STORAGE	:=	1
 
 # Device tree
+ifeq ($(STM32MP21),1)
+BL2_DTSI			:=	stm32mp21-bl2.dtsi
+BL31_DTSI			:=	stm32mp21-bl31.dtsi
+else ifeq ($(STM32MP23),1)
+BL2_DTSI			:=	stm32mp23-bl2.dtsi
+BL31_DTSI			:=	stm32mp23-bl31.dtsi
+else ifeq ($(STM32MP25),1)
 BL2_DTSI			:=	stm32mp25-bl2.dtsi
-FDT_SOURCES			:=	$(addprefix ${BUILD_PLAT}/fdts/, $(patsubst %.dtb,%-bl2.dts,$(DTB_FILE_NAME)))
 BL31_DTSI			:=	stm32mp25-bl31.dtsi
+endif
+FDT_SOURCES			:=	$(addprefix ${BUILD_PLAT}/fdts/, $(patsubst %.dtb,%-bl2.dts,$(DTB_FILE_NAME)))
 FDT_SOURCES			+=	$(addprefix ${BUILD_PLAT}/fdts/, $(patsubst %.dtb,%-bl31.dts,$(DTB_FILE_NAME)))
 
 # Macros and rules to build TF binary
@@ -225,9 +233,13 @@ endif
 ifeq (${STM32MP_USB_PROGRAMMER},1)
 #The DFU stack uses only one end point, reduce the USB stack footprint
 $(eval $(call add_define_val,CONFIG_USBD_EP_NB,1U))
+ifeq ($(STM32MP21),1)
+BL2_SOURCES			+=	drivers/st/usb/stm32mp1_usb.c
+else
 $(eval $(call add_define,USB_CORE_AVOID_PACKET_SPLIT_MPS))
-BL2_SOURCES			+=	drivers/st/usb_dwc3/usb_dwc3.c				\
-					plat/st/stm32mp2/stm32mp2_usb_dfu.c
+BL2_SOURCES			+=	drivers/st/usb_dwc3/usb_dwc3.c
+endif
+BL2_SOURCES			+=	plat/st/stm32mp2/stm32mp2_usb_dfu.c
 endif
 
 BL2_SOURCES			+=	drivers/st/ddr/stm32mp2_ddr.c				\
@@ -259,8 +271,13 @@ BL2_SOURCES			+=	drivers/st/ddr/phy/phyinit/src/ddrphy_phyinit_d_loadimem.c				\
 BL31_SOURCES			+=	${FDT_WRAPPERS_SOURCES}
 
 BL31_SOURCES			+=	plat/st/stm32mp2/bl31_plat_setup.c			\
-					plat/st/stm32mp2/stm32mp2_pm.c				\
 					plat/st/stm32mp2/stm32mp2_topology.c
+
+ifeq ($(STM32MP_SUPPORT_PM),1)
+BL31_SOURCES			+=	plat/st/stm32mp2/stm32mp2_pm.c				\
+					plat/st/stm32mp2/stm32mp2_ca35ss.c
+endif
+
 # Generic GIC v2
 include drivers/arm/gic/v2/gicv2.mk
 
@@ -268,8 +285,10 @@ BL31_SOURCES			+=	${GICV2_SOURCES}					\
 					plat/common/plat_gicv2.c				\
 					plat/st/common/stm32mp_gic.c
 
+ifeq ($(STM32MP_SUPPORT_PM),1)
 # Generic PSCI
 BL31_SOURCES			+=	plat/common/plat_psci_common.c
+endif
 
 BL31_SOURCES			+=	plat/st/common/stm32mp_svc_setup.c			\
 					plat/st/stm32mp2/services/stgen_svc.c			\

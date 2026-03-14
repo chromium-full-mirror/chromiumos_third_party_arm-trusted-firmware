@@ -174,11 +174,11 @@
 /*
  * PLAT_ARM_FW_HANDOFF_SIZE should be page-aligned to ensure proper xlat mapping.
  * If it is not, generating the page table mapping for FW_HANDOFF will fail.
- * Because PLAT_ARM_EVENT_LOG_MAX_SIZE is not guaranteed to be aligned,
+ * Because EVENT_LOG_ENTRY_SIZE is not guaranteed to be aligned,
  * PLAT_ARM_FW_HANDOFF_SIZE must be explicitly aligned.
  */
 #define PLAT_ARM_FW_HANDOFF_SIZE	((((PLAT_ARM_HW_CONFIG_SIZE +		\
-					    PLAT_ARM_EVENT_LOG_MAX_SIZE +	\
+					    EVENT_LOG_ENTRY_SIZE +		\
 					    PLAT_ARM_TB_FW_CONFIG_SIZE +	\
 					    PLAT_ARM_SPMC_SP_MANIFEST_SIZE) +	\
 					    PAGE_SIZE_MASK) >>			\
@@ -190,6 +190,13 @@
 
 #if RESET_TO_BL31
 #define PLAT_ARM_TRANSFER_LIST_DTB_OFFSET	FW_NS_HANDOFF_BASE + TRANSFER_LIST_DTB_OFFSET
+#define EVENT_LOG_ENTRY_SIZE			PLAT_ARM_EVENT_LOG_MAX_SIZE
+#else
+/*
+ * The maximum PLAT_ARM_EVENT_LOG_MAX_SIZE for BL2 is SZ_4K
+ * SZ_512 is maximum event log size for BL1.
+ */
+#define EVENT_LOG_ENTRY_SIZE			(SZ_512 + SZ_4K)
 #endif
 
 #else
@@ -307,6 +314,17 @@ FVP_TRUSTED_SRAM_SIZE == 512
 #define PLAT_ARM_MAX_BL2_SIZE                                               \
 	(((PLAT_ARM_TRUSTED_SRAM_SIZE / 3) & ~PAGE_SIZE_MASK) - PAGE_SIZE - \
 	 FVP_BL2_ROMLIB_OPTIMIZATION)
+#endif
+
+/*
+ * Enabling CPU library code that requires to set build flags
+ * HW_ASSISTED_COHERENCY=1 and USE_COHERENT_MEM=0 along with RESET_TO_BL2=1
+ * (BL2 in EL3 case) causes increase in resident text size of BL2 beyond 4K.
+ * This is due to FVP including many CPU libs. So set BL2_TEXT_RESIDENT_LIMIT
+ * to 8K.
+ */
+#if defined(IMAGE_BL2) && BL2_RUNS_AT_EL3 && SEPARATE_CODE_AND_RODATA
+#define BL2_TEXT_RESIDENT_LIMIT		(SZ_8K)
 #endif
 
 #if RESET_TO_BL31

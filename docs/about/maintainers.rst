@@ -628,7 +628,6 @@ Arm Rich IoT Platform ports
 :|M|: Hugues Kamba Mpiana <hugues.kambampiana@arm.com>
 :|G|: `hugues-kambampiana-arm`_
 :|F|: plat/arm/board/corstone700
-:|F|: plat/arm/board/a5ds
 :|F|: plat/arm/board/corstone1000
 
 Arm Reference Design platform ports
@@ -684,7 +683,7 @@ HiSilicon HiKey and HiKey960 platform ports
 
 HiSilicon Poplar platform port
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-:|M|: Shawn Guo <shawn.guo@linaro.org>
+:|M|: Shawn Guo <shawn.gsc@gmail.com>
 :|G|: `shawnguo2`_
 :|F|: docs/plat/poplar.rst
 :|F|: plat/hisilicon/poplar/
@@ -698,6 +697,24 @@ Intel SocFPGA platform ports
 :|F|: plat/intel/soc/
 :|F|: drivers/intel/soc/
 
+Marvell platform ports and SoC drivers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:|M|: Jaiprakash Singh <jaiprakashs@marvell.com>
+:|G|: `sjaypee208`_
+:|M|: George Cherian <george.cherian@marvell.com>
+:|G|: `gcherianv`_
+:|F|: docs/plat/marvell/
+:|F|: plat/marvell/
+:|F|: drivers/marvell/
+:|F|: tools/marvell/
+
+Marvell Armada a80x0_nbx platform port
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:|M|: Vincent Jardin <vjardin@free.fr>
+:|G|: `vjardin`_
+:|F|: docs/plat/marvell/armada/a80x0_nbx.rst
+:|F|: plat/marvell/armada/a8k/a80x0_nbx/
+
 MediaTek platform ports
 ^^^^^^^^^^^^^^^^^^^^^^^
 :|M|: Leon Chen <leon.chen@mediatek.com>
@@ -708,15 +725,6 @@ MediaTek platform ports
 :|G|: `linyidi`_
 :|F|: docs/plat/mt\*.rst
 :|F|: plat/mediatek/
-
-Marvell platform ports and SoC drivers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-:|M|: Jaiprakash Singh <jaiprakashs@marvell.com>
-:|G|: `sjaypee208`_
-:|F|: docs/plat/marvell/
-:|F|: plat/marvell/
-:|F|: drivers/marvell/
-:|F|: tools/marvell/
 
 Nuvoton npcm845x platform port
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -851,21 +859,19 @@ QEMU platform port
 :|F|: docs/plat/qemu.rst
 :|F|: plat/qemu/
 
-QTI platform port
-^^^^^^^^^^^^^^^^^
-:|M|: Lachit Patel <lpatel@codeaurora.org>
-:|G|: `lachitp`_
-:|M|: Sreevyshanavi Kare <skare@codeaurora.org>
-:|G|: `sreekare`_
-:|M|: Muhammad Arsath K F <quic_mkf@quicinc.com>
-:|G|: `quic_mkf`_
-:|M|: Saurabh Gorecha <quic_sgorecha@quicinc.com>
-:|G|: `quic_sgorecha`_
+QTI platform port and SoC drivers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 :|M|: Sumit Garg <sumit.garg@oss.qualcomm.com>
 :|G|: `b49020`_
-:|M|: QTI TF Maintainers <qti.trustedfirmware.maintainers@codeaurora.org>
+:|M|: Jorge Ramirez-Ortiz <jorge.ramirez@oss.qualcomm.com>
+:|G|: `ldts`_
+:|M|: Sreevyshanavi Kare <skare@qti.qualcomm.com>
+:|G|: `skare-git`_
 :|F|: docs/plat/qti/
 :|F|: plat/qti/
+:|F|: drivers/qti/
+:|F|: include/drivers/qti/
+:|F|: tools/qti/
 
 QTI MSM8916 platform port
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1119,6 +1125,7 @@ Conventional Changelog Extensions
 .. _divin-raj: https://github.com/divin-raj
 .. _etienne-lms: https://github.com/etienne-lms
 .. _Gabriel-Fernandz: https://github.com/Gabriel-Fernandz
+.. _gcherianv: https://github.com/gcherianv
 .. _glneo: https://github.com/glneo
 .. _govindraj-arm: https://github.com/govindraj-arm
 .. _gprocopciucnxp: https://github.com/gprocopciucnxp
@@ -1140,8 +1147,8 @@ Conventional Changelog Extensions
 .. _jslater8: https://github.com/jslater8
 .. _jwerner-chromium: https://github.com/jwerner-chromium
 .. _kostapr: https://github.com/kostapr
-.. _lachitp: https://github.com/lachitp
 .. _laurenw-arm: https://github.com/laurenw-arm
+.. _ldts: https://github.com/ldts
 .. _leon-chen-mtk: https://github.com/leon-chen-mtk
 .. _linyidi: https://github.com/linyidi
 .. _loosper-arm: https://github.com/loosper-arm
@@ -1167,8 +1174,6 @@ Conventional Changelog Extensions
 .. _odeprez: https://github.com/odeprez
 .. _pangupta: https://github.com/pangupta
 .. _prabhakarlad: https://github.com/prabhakarlad
-.. _quic_mkf: https://github.com/quicmkf
-.. _quic_sgorecha: https://github.com/sgorecha
 .. _raghuncstate: https://github.com/raghuncstate
 .. _raymo200915: https://github.com/raymo200915
 .. _remi-triplefault: https://github.com/repk
@@ -1180,9 +1185,10 @@ Conventional Changelog Extensions
 .. _sandrine-bailleux-arm: https://github.com/sandrine-bailleux-arm
 .. _shawnguo2: https://github.com/shawnguo2
 .. _sieumunt: https://github.com/sieumunt
+.. _sjaypee208: https://github.com/sjaypee208
+.. _skare-git: https://github.com/skare-git
 .. _smaeul: https://github.com/smaeul
 .. _soby-mathew: https://github.com/soby-mathew
-.. _sreekare: https://github.com/sreekare
 .. _stefanasimion: https://github.com/stefanasimion
 .. _stephan-gh: https://github.com/stephan-gh
 .. _thomas-arm: https://github.com/thomas-arm
@@ -1190,11 +1196,11 @@ Conventional Changelog Extensions
 .. _TravMurav: https://github.com/TravMurav
 .. _uarif1: https://github.com/uarif1
 .. _vijayenthiran-arm: https://github.com/vijayenthiran-arm
+.. _vjardin: https://github.com/vjardin
 .. _artkopotev: https://github.com/artkopotev
 .. _vwadekar: https://github.com/vwadekar
 .. _Yann-lms: https://github.com/Yann-lms
-.. _sjaypee208: https://github.com/sjaypee208
 
 --------------
 
-*Copyright (c) 2019-2025, Arm Limited and Contributors. All rights reserved.*
+*Copyright (c) 2019-2026, Arm Limited and Contributors. All rights reserved.*

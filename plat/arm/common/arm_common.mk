@@ -60,12 +60,13 @@ $(eval $(call assert_boolean,ARM_RECOM_STATE_ID_ENC))
 $(eval $(call add_define,ARM_RECOM_STATE_ID_ENC))
 
 # Process ARM_DISABLE_TRUSTED_WDOG flag
-# By default, Trusted Watchdog is always enabled unless
-# SPIN_ON_BL1_EXIT or ENABLE_RME is set
-ARM_DISABLE_TRUSTED_WDOG	:=	0
-ifneq ($(filter 1,${SPIN_ON_BL1_EXIT} ${ENABLE_RME}),)
+# By default, Trusted Watchdog is always enabled unless SPIN_ON_BL1_EXIT is set
+ifeq (${SPIN_ON_BL1_EXIT}, 1)
 ARM_DISABLE_TRUSTED_WDOG	:=	1
+else
+ARM_DISABLE_TRUSTED_WDOG	:=	0
 endif
+
 $(eval $(call assert_boolean,ARM_DISABLE_TRUSTED_WDOG))
 $(eval $(call add_define,ARM_DISABLE_TRUSTED_WDOG))
 
@@ -289,10 +290,6 @@ DYN_CFG_SOURCES		+=	${FDT_WRAPPERS_SOURCES}
 
 BL1_SOURCES		+=	${DYN_CFG_SOURCES}
 BL2_SOURCES		+=	${DYN_CFG_SOURCES}
-
-ifeq (${RESET_TO_BL2},1)
-BL2_SOURCES		+=	plat/arm/common/arm_bl2_el3_setup.c
-endif
 
 # The Arm platforms use the default BL2 mem params desc.
 ARM_PLAT_PROVIDES_BL2_MEM_PARAMS	:=  0
@@ -531,8 +528,8 @@ ifneq ($(COTDTPATH),)
         $(eval $(call MAKE_PRE,$(BUILD_PLAT)/$(COTDTPATH),$(COTDTPATH),$(BUILD_PLAT)/$(COTDTPATH:.dts=.o.d)))
 
         $(BUILD_PLAT)/$(COTDTPATH:.dts=.c): $(BUILD_PLAT)/$(COTDTPATH) | $$(@D)/
-		$(if $(host-poetry),$(q)poetry -q install --no-root)
-		$(q)$(if $(host-poetry),poetry run )cot-dt2c convert-to-c $< $@
+		$(if $(host-poetry),$(q)$(host-poetry) -q install --no-root)
+		$(q)$(if $(host-poetry),$(host-poetry) run )cot-dt2c convert-to-c $< $@
 
         BL2_SOURCES += $(BUILD_PLAT)/$(COTDTPATH:.dts=.c)
 endif

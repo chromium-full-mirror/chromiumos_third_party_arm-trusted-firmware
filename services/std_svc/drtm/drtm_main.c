@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2025 Arm Limited. All rights reserved.
+ * Copyright (c) 2022-2026 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier:    BSD-3-Clause
  *
@@ -31,6 +31,7 @@
 
 /* Structure to store DRTM features specific to the platform. */
 static drtm_features_t plat_drtm_features;
+static bool dlme_img_auth_supported;
 
 /* DRTM-formatted memory map. */
 static drtm_memory_region_descriptor_table_t *plat_drtm_mem_map;
@@ -136,6 +137,10 @@ int drtm_setup(void)
 		plat_drtm_get_tcb_hash_features());
 	ARM_DRTM_DLME_IMG_AUTH_SUPPORT(plat_drtm_features.dlme_image_auth_features,
 		plat_drtm_get_dlme_img_auth_features());
+	dlme_img_auth_supported =
+		((plat_drtm_features.dlme_image_auth_features &
+		  (ARM_DRTM_DLME_IMAGE_AUTH_SUPPORT_MASK <<
+		   ARM_DRTM_DLME_IMAGE_AUTH_SUPPORT_SHIFT)) != 0ULL);
 
 	return 0;
 }
@@ -335,6 +340,15 @@ static int drtm_dl_check_features_sanity(uint32_t val)
 	}
 
 	/**
+	 * Check if DLME image authentication (Bit[6]) is supported by platform.
+	 */
+	if (EXTRACT(DRTM_LAUNCH_FEAT_DLME_IMG_AUTH, val) == DLME_IMG_AUTH) {
+		if (!dlme_img_auth_supported) {
+			return INVALID_PARAMETERS;
+		}
+	}
+
+	/**
 	 * Check if Bits [5:3] (Memory protection type) matches with platform's
 	 * memory protection type
 	 */
@@ -387,7 +401,7 @@ static enum drtm_retc drtm_dl_check_args(uint64_t x1,
 	}
 
 	rc = mmap_add_dynamic_region_alloc_va(x1, &va_mapping, va_mapping_size,
-					      MT_MEMORY | MT_NS | MT_RO |
+					      MT_NS | MT_RO_DATA |
 					      MT_SHAREABILITY_ISH);
 	if (rc != 0) {
 		WARN("DRTM: %s: mmap_add_dynamic_region() failed rc=%d\n",
@@ -514,7 +528,7 @@ static enum drtm_retc drtm_dl_check_args(uint64_t x1,
 	 */
 	va_mapping_size = ALIGNED_UP((dlme_end - dlme_start), DRTM_PAGE_SIZE);
 	rc = mmap_add_dynamic_region_alloc_va(dlme_start, &va_mapping, va_mapping_size,
-					      MT_MEMORY | MT_NS | MT_RO |
+					      MT_NS | MT_RO_DATA |
 					      MT_SHAREABILITY_ISH);
 	if (rc != 0) {
 		ERROR("DRTM: %s: mmap_add_dynamic_region_alloc_va() failed rc=%d\n",

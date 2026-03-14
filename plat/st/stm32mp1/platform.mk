@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015-2025, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2015-2026, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -38,6 +38,8 @@ else ifneq ($(findstring stm32mp15,$(DTB_FILE_NAME)),)
 STM32MP13		:=	0
 STM32MP15		:=	1
 endif
+
+STM32MP_STPMIC1L	?=	0
 
 ifeq ($(STM32MP13),1)
 # Will use SRAM2 as mbedtls heap
@@ -109,13 +111,13 @@ FDT_SOURCES		:=	$(addprefix ${BUILD_PLAT}/fdts/, $(patsubst %.dtb,%-bl2.dts,$(DT
 ifeq ($(AARCH32_SP),sp_min)
 BL32_DTSI		:=	stm32mp15-bl32.dtsi
 FDT_SOURCES		+=	$(addprefix ${BUILD_PLAT}/fdts/, $(patsubst %.dtb,%-bl32.dts,$(DTB_FILE_NAME)))
-ifneq (,$(wildcard $(patsubst %.dtb,fdts/%-sp_min.dts,$(DTB_FILE_NAME))))
-ifeq (,$(findstring -sp_min,$(DTB_FILE_NAME)))
-SP_EXT			:=	-sp_min
 endif
 endif
-endif
-endif
+
+sp_dts_name = $(patsubst %.dts,%$(if $(and \
+    $(wildcard $(patsubst %.dts,fdts/%-sp_min.dts,$(notdir $(1)))), \
+    $(filter-out %-sp_min.dts,$(notdir $(1))) \
+  ),-sp_min).dts,$(notdir $(1)))
 
 # Macros and rules to build TF binary
 STM32_TF_STM32		:=	$(addprefix ${BUILD_PLAT}/tf-a-, $(patsubst %.dtb,%.stm32,$(DTB_FILE_NAME)))
@@ -153,6 +155,7 @@ $(eval $(call assert_booleans,\
 		STM32MP_CRYPTO_ROM_LIB \
 		STM32MP_DDR_32BIT_INTERFACE \
 		STM32MP_DDR_DUAL_AXI_PORT \
+		STM32MP_STPMIC1L \
 		STM32MP_USE_EXTERNAL_HEAP \
 		STM32MP13 \
 		STM32MP15 \
@@ -183,6 +186,7 @@ $(eval $(call add_defines,\
 		STM32MP_CRYPTO_ROM_LIB \
 		STM32MP_DDR_32BIT_INTERFACE \
 		STM32MP_DDR_DUAL_AXI_PORT \
+		STM32MP_STPMIC1L \
 		STM32MP_USE_EXTERNAL_HEAP \
 		STM32MP13 \
 		STM32MP15 \
@@ -206,12 +210,18 @@ PLAT_BL_COMMON_SOURCES	+=	drivers/arm/tzc/tzc400.c				\
 				drivers/st/ddr/stm32mp1_ddr_helpers.c			\
 				drivers/st/i2c/stm32_i2c.c				\
 				drivers/st/iwdg/stm32_iwdg.c				\
-				drivers/st/pmic/stm32mp_pmic.c				\
-				drivers/st/pmic/stpmic1.c				\
 				drivers/st/reset/stm32mp1_reset.c			\
 				plat/st/stm32mp1/stm32mp1_dbgmcu.c			\
 				plat/st/stm32mp1/stm32mp1_helper.S			\
 				plat/st/stm32mp1/stm32mp1_syscfg.c
+
+ifeq ($(STM32MP_STPMIC1L),1)
+PLAT_BL_COMMON_SOURCES	+=	drivers/st/pmic/stm32mp_pmic2.c				\
+				drivers/st/pmic/stpmic2.c
+else
+PLAT_BL_COMMON_SOURCES	+=	drivers/st/pmic/stm32mp_pmic.c				\
+				drivers/st/pmic/stpmic1.c
+endif
 
 ifeq ($(STM32MP13),1)
 PLAT_BL_COMMON_SOURCES	+=	drivers/st/clk/clk-stm32-core.c				\
@@ -273,7 +283,7 @@ BL2_SOURCES		+=	plat/st/stm32mp1/plat_ddr.c
 ifeq ($(AARCH32_SP),sp_min)
 # Create DTB file for BL32
 ${BUILD_PLAT}/fdts/%-bl32.dts: fdts/%.dts fdts/${BL32_DTSI} | $$(@D)/
-	$(q)echo '#include "$(patsubst %.dts,%$(SP_EXT).dts,$(patsubst fdts/%,%,$<))"' > $@
+	$(q)echo '#include "$(call sp_dts_name,$(patsubst fdts/%,%,$<))"' > $@
 	$(q)echo '#include "${BL32_DTSI}"' >> $@
 
 ${BUILD_PLAT}/fdts/%-bl32.dtb: ${BUILD_PLAT}/fdts/%-bl32.dts | $$(@D)/

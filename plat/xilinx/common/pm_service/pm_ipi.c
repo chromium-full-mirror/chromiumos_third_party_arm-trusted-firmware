@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2013-2020, Arm Limited and Contributors. All rights reserved.
  * Copyright (c) 2019-2022, Xilinx, Inc. All rights reserved.
- * Copyright (c) 2022-2025, Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2026, Advanced Micro Devices, Inc. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -39,7 +39,7 @@ static inline void pm_ipi_lock_release(void)
 	bakery_lock_release(&pm_secure_lock);
 }
 #else
-spinlock_t pm_secure_lock;
+static spinlock_t pm_secure_lock;
 static inline void pm_ipi_lock_get(void)
 {
 	spin_lock(&pm_secure_lock);
@@ -313,7 +313,7 @@ uint32_t pm_ipi_irq_status(const struct pm_proc *proc)
 }
 
 #if IPI_CRC_CHECK
-uint32_t calculate_crc(uint32_t payload[PAYLOAD_ARG_CNT], uint32_t buffersize)
+uint32_t calculate_crc(const uint32_t payload[PAYLOAD_ARG_CNT], uint32_t buffersize)
 {
 	uint32_t crcinit = CRC_INIT_VALUE;
 	uint32_t order   = CRC_ORDER;
@@ -325,7 +325,7 @@ uint32_t calculate_crc(uint32_t payload[PAYLOAD_ARG_CNT], uint32_t buffersize)
 	crchighbit = ((uint32_t)1U << (order - 1U));
 
 	for (i = 0U; i < buffersize; i++) {
-		datain = mmio_read_8((unsigned long)payload + i);
+		datain = mmio_read_8((uint64_t)payload + i);
 		c = datain;
 		j = 0x80U;
 		while (j != 0U) {

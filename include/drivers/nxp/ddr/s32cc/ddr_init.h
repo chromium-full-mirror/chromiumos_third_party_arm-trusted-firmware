@@ -139,6 +139,20 @@ struct ddr_fw_layout {
 uint32_t ddr_init_cfg(const struct ddrss_config *config);
 
 /*
+ * Full initialization of DDR SubSystem.
+ * @param load_from - memory address from where imem/dmem binary will be loaded.
+ * @return - error code, 0 if init succeeds, non-zero on error.
+ */
+uint32_t ddr_init(uintptr_t load_from);
+
+/*
+ * Map DDR-related memory regions before DDR initialization.
+ *
+ * @return - error code, 0 if succeeds, non-zero on error.
+ */
+int plat_ddr_mmap_setup(void);
+
+/*
  * Writes the data associated for each address.
  *
  * @param size - size of the array, number of elements

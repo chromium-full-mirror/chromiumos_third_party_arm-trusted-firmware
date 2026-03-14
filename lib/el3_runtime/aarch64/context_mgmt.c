@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  * Copyright (c) 2022, NVIDIA Corporation. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -341,6 +341,20 @@ static void setup_ns_context(cpu_context_t *ctx, const struct entry_point_info *
 		scr_el3 |= SCR_PFAREn_BIT;
 	}
 
+	if (is_feat_hdbss_supported()) {
+		/* Set the HDBSSEn bit to enable access to hdbssbr_el2 and
+		 * hdbssprod_el2
+		 */
+		scr_el3 |= SCR_HDBSSEn_BIT;
+	}
+
+	if (is_feat_hacdbs_supported()) {
+		/* Set the HACDBSEn bit to enable access to hacdbsbr_el2 and
+		 * hacdbscons_el2
+		 */
+		scr_el3 |= SCR_HACDBSEn_BIT;
+	}
+
 	write_ctx_reg(state, CTX_SCR_EL3, scr_el3);
 
 	/* Initialize EL2 context registers */
@@ -607,6 +621,12 @@ static void setup_context_common(cpu_context_t *ctx, const entry_point_info_t *e
 	 */
 	mdcr_el3 |= MDCR_SDD_BIT | MDCR_SPD32(MDCR_SPD32_DISABLE);
 	mdcr_el3 &= ~(MDCR_TDA_BIT | MDCR_TDOSA_BIT);
+
+	/* MDCR_EL3.EnSTEPOP: allow access to MDSTEPOP_EL1 */
+	if (is_feat_step2_supported()) {
+		mdcr_el3 |= MDCR_EnSTEPOP_BIT;
+	}
+
 	write_ctx_reg(state, CTX_MDCR_EL3, mdcr_el3);
 
 #if IMAGE_BL31
@@ -1404,8 +1424,10 @@ static void el2_sysregs_context_restore_mpam(el2_sysregs_t *ctx)
  * SCR_EL3.NS = 1 before accessing this register.
  * ---------------------------------------------------------------------------
  */
-static void el2_sysregs_context_save_gic(el2_sysregs_t *ctx, uint32_t security_state)
+void cm_el2_sysregs_context_save_gic(uint32_t security_state)
 {
+	el2_sysregs_t *ctx = get_el2_sysregs_ctx(cm_get_context(security_state));
+
 	u_register_t scr_el3 = read_scr_el3();
 
 #if defined(SPD_spmd) && SPMD_SPM_AT_SEL2
@@ -1438,8 +1460,10 @@ static void el2_sysregs_context_save_gic(el2_sysregs_t *ctx, uint32_t security_s
 	}
 }
 
-static void el2_sysregs_context_restore_gic(el2_sysregs_t *ctx, uint32_t security_state)
+void cm_el2_sysregs_context_restore_gic(uint32_t security_state)
 {
+	el2_sysregs_t *ctx = get_el2_sysregs_ctx(cm_get_context(security_state));
+
 	u_register_t scr_el3 = read_scr_el3();
 
 #if defined(SPD_spmd) && SPMD_SPM_AT_SEL2
@@ -1561,7 +1585,6 @@ void cm_el2_sysregs_context_save(uint32_t security_state)
 	el2_sysregs_ctx = get_el2_sysregs_ctx(ctx);
 
 	el2_sysregs_context_save_common(el2_sysregs_ctx);
-	el2_sysregs_context_save_gic(el2_sysregs_ctx, security_state);
 
 	if (is_feat_mte2_supported()) {
 		write_el2_ctx_mte2(el2_sysregs_ctx, tfsr_el2, read_tfsr_el2());
@@ -1660,7 +1683,6 @@ void cm_el2_sysregs_context_restore(uint32_t security_state)
 	el2_sysregs_ctx = get_el2_sysregs_ctx(ctx);
 
 	el2_sysregs_context_restore_common(el2_sysregs_ctx);
-	el2_sysregs_context_restore_gic(el2_sysregs_ctx, security_state);
 
 	if (is_feat_mte2_supported()) {
 		write_tfsr_el2(read_el2_ctx_mte2(el2_sysregs_ctx, tfsr_el2));
@@ -1767,6 +1789,7 @@ void cm_prepare_el3_exit_ns(void)
 
 	/* Restore EL2 sysreg contexts */
 	cm_el2_sysregs_context_restore(NON_SECURE);
+	cm_el2_sysregs_context_restore_gic(NON_SECURE);
 	cm_set_next_eret_context(NON_SECURE);
 #else
 	cm_prepare_el3_exit(NON_SECURE);
@@ -1890,6 +1913,10 @@ static void el1_sysregs_context_save(el1_sysregs_t *ctx)
 	if (is_feat_ls64_accdata_supported()) {
 		write_el1_ctx_ls64(ctx, accdata_el1, read_accdata_el1());
 	}
+
+	if (is_feat_step2_supported()) {
+		write_el1_ctx_step2(ctx, mdstepop_el1, read_mdstepop_el1());
+	}
 }
 
 static void el1_sysregs_context_restore(el1_sysregs_t *ctx)
@@ -1998,6 +2025,10 @@ static void el1_sysregs_context_restore(el1_sysregs_t *ctx)
 
 	if (is_feat_ls64_accdata_supported()) {
 		write_accdata_el1(read_el1_ctx_ls64(ctx, accdata_el1));
+	}
+
+	if (is_feat_step2_supported()) {
+		write_mdstepop_el1(read_el1_ctx_step2(ctx, mdstepop_el1));
 	}
 }
 

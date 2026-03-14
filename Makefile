@@ -26,6 +26,8 @@ include ${MAKE_HELPERS_DIRECTORY}build_macros.mk
 include ${MAKE_HELPERS_DIRECTORY}build-rules.mk
 include ${MAKE_HELPERS_DIRECTORY}common.mk
 
+MBEDTLS_DIR := contrib/mbed-tls
+
 ################################################################################
 # Default values for build configurations, and their dependencies
 ################################################################################
@@ -121,7 +123,7 @@ SP_MK_GEN		?=	${SPTOOLPATH}/sp_mk_generator.py
 SP_DTS_LIST_FRAGMENT	?=	${BUILD_PLAT}/sp_list_fragment.dts
 
 # Variables for use with sptool
-TLCTOOL 		?=	poetry run tlc
+TLCTOOL 		?=	$(host-poetry) run tlc
 
 # Variables for use with ROMLIB
 ROMLIBPATH		?=	lib/romlib
@@ -162,14 +164,6 @@ ifdef W
 	ifneq (${W},0)
 		E	 ?= 0
 	endif
-endif
-
-################################################################################
-# Setup ARCH_MAJOR/MINOR before parsing arch_features.
-################################################################################
-ifeq (${ENABLE_RME},1)
-	ARM_ARCH_MAJOR := 9
-	ARM_ARCH_MINOR := 2
 endif
 
 ################################################################################
@@ -375,13 +369,7 @@ endif
 # 4 world system running BL2 at EL3 and two world system without BL1 running
 # BL2 in EL3
 
-ifeq (${RESET_TO_BL2},1)
-	BL2_RUNS_AT_EL3	:=	1
-	ifeq (${ENABLE_RME},1)
-                $(error RESET_TO_BL2=1 and ENABLE_RME=1 configuration is not \
-                supported at the moment.)
-	endif
-else ifeq (${ENABLE_RME},1)
+ifneq ($(filter 1,${RESET_TO_BL2} ${ENABLE_RME}),)
 	BL2_RUNS_AT_EL3	:=	1
 else
 	BL2_RUNS_AT_EL3	:=	0
@@ -396,8 +384,8 @@ else
 endif
 
 ifneq ($(filter 1,${ERRATA_A53_1530924} ${ERRATA_A55_1530923}	\
-        ${ERRATA_A57_1319537} ${ERRATA_A65_1541130} ${ERRATA_A72_1319367}	\
-		${ERRATA_A76_1165522}),)
+        ${ERRATA_A57_1319537} ${ERRATA_A65_1541130} ${ERRATA_A65AE_1638571}	\
+		${ERRATA_A72_1319367} ${ERRATA_A76_1165522}),)
 ERRATA_SPECULATIVE_AT	:= 1
 else
 ERRATA_SPECULATIVE_AT	:= 0
@@ -598,6 +586,7 @@ $(eval $(call assert_booleans,\
 	DICE_PROTECTION_ENVIRONMENT \
 	RMMD_ENABLE_EL3_TOKEN_SIGN \
 	RMMD_ENABLE_IDE_KEY_PROG \
+	RMM_V1_COMPAT \
 	DRTM_SUPPORT \
 	NS_TIMER_SWITCH \
 	OVERRIDE_LIBC \
@@ -658,6 +647,8 @@ $(eval $(call assert_booleans,\
 	PRESERVE_DSU_PMU_REGS \
 	HOB_LIST \
 	LFA_SUPPORT \
+	SUPPORT_SP_LIVE_ACTIVATION \
+	TEST_IO_SHORT_READ_FI \
 )))
 
 # Numeric_Flags
@@ -681,12 +672,17 @@ $(eval $(call assert_numerics,\
 	ENABLE_FEAT_CPA2 \
 	ENABLE_FEAT_CSV2_2 \
 	ENABLE_FEAT_CSV2_3 \
+	ENABLE_FEAT_CRYPTO \
+	ENABLE_FEAT_CRYPTO_SHA3 \
 	ENABLE_FEAT_DEBUGV8P9 \
 	ENABLE_FEAT_DIT \
 	ENABLE_FEAT_ECV \
 	ENABLE_FEAT_EBEP \
 	ENABLE_FEAT_FGT \
 	ENABLE_FEAT_FGT2 \
+	ENABLE_FEAT_HDBSS \
+	ENABLE_FEAT_HACDBS \
+	ENABLE_FEAT_STEP2 \
 	ENABLE_FEAT_UINJ \
 	ENABLE_FEAT_FGWTE3 \
 	ENABLE_FEAT_FPMR \
@@ -734,6 +730,7 @@ $(eval $(call assert_numerics,\
 	USE_SPINLOCK_CAS \
 	IMPDEF_SYSREG_TRAP \
 	W \
+	TEST_IO_SHORT_READ_FI_IMAGE_ID \
 )))
 
 ifdef KEY_SIZE
@@ -774,6 +771,8 @@ $(eval $(call add_defines,\
 	AMU_RESTRICT_COUNTERS \
 	ENABLE_ASSERTIONS \
 	ENABLE_BTI \
+	ENABLE_FEAT_CRYPTO \
+	ENABLE_FEAT_CRYPTO_SHA3 \
 	ENABLE_FEAT_DEBUGV8P9 \
 	ENABLE_FEAT_IDTE3 \
 	ENABLE_FEAT_MPAM \
@@ -784,6 +783,7 @@ $(eval $(call add_defines,\
 	ENABLE_PMF \
 	ENABLE_PSCI_STAT \
 	ENABLE_RME \
+	RMM_V1_COMPAT \
 	RMMD_ENABLE_EL3_TOKEN_SIGN \
 	RMMD_ENABLE_IDE_KEY_PROG \
 	ENABLE_RUNTIME_INSTRUMENTATION \
@@ -897,9 +897,12 @@ $(eval $(call add_defines,\
 	ENABLE_FEAT_S2POE \
 	ENABLE_FEAT_S1POE \
 	ENABLE_FEAT_SCTLR2 \
+	ENABLE_FEAT_STEP2 \
 	ENABLE_FEAT_D128 \
 	ENABLE_FEAT_RME_GDI \
 	ENABLE_FEAT_GCS \
+	ENABLE_FEAT_HDBSS \
+	ENABLE_FEAT_HACDBS \
 	ENABLE_FEAT_MOPS \
 	ENABLE_FEAT_GCIE \
 	ENABLE_FEAT_MTE2 \
@@ -920,6 +923,9 @@ $(eval $(call add_defines,\
 	HOB_LIST \
 	HW_CONFIG_BASE \
 	LFA_SUPPORT \
+	SUPPORT_SP_LIVE_ACTIVATION \
+	TEST_IO_SHORT_READ_FI \
+	TEST_IO_SHORT_READ_FI_IMAGE_ID \
 )))
 
 ifeq (${PLATFORM_REPORT_CTX_MEM_USE}, 1)
@@ -1087,8 +1093,8 @@ endif #(NEED_FDT)
 # Add Secure Partition packages
 ifeq (${NEED_SP_PKG},yes)
 $(BUILD_PLAT)/sp_gen.mk: ${SP_MK_GEN} ${SP_LAYOUT_FILE} | $$(@D)/
-	$(if $(host-poetry),$(q)poetry -q install --no-root)
-	$(q)$(if $(host-poetry),poetry run )${PYTHON} "$<" "$@" $(filter-out $<,$^) $(BUILD_PLAT) ${COT} ${SP_DTS_LIST_FRAGMENT}
+	$(if $(host-poetry),$(q)$(host-poetry) -q install --no-root)
+	$(q)$(if $(host-poetry),$(host-poetry) run )${PYTHON} "$<" "$@" $(filter-out $<,$^) $(BUILD_PLAT) ${COT} ${SP_DTS_LIST_FRAGMENT}
 sp: $(DTBS) $(BUILD_PLAT)/sp_gen.mk $(SP_PKGS)
 	$(s)echo
 	$(s)echo "Built SP Images successfully"
@@ -1238,18 +1244,18 @@ $(BUILD_PLAT)/romlib/romlib.bin $(BUILD_PLAT)/lib/libwrappers.a $&: $(BUILD_PLAT
 	$(q)${MAKE} PLAT_DIR=${PLAT_DIR} BUILD_PLAT=${BUILD_PLAT} ENABLE_BTI=${ENABLE_BTI} CRYPTO_LIB=$(CRYPTO_LIB) ARM_ARCH_MINOR=${ARM_ARCH_MINOR} INCLUDES=$(call escape-shell,$(INCLUDES)) DEFINES=$(call escape-shell,$(DEFINES)) --no-print-directory -C ${ROMLIBPATH} all
 
 memmap: all
-	$(if $(host-poetry),$(q)poetry -q install --no-root)
-	$(q)$(if $(host-poetry),poetry run )memory --root ${BUILD_PLAT} symbols
+	$(if $(host-poetry),$(q)$(host-poetry) -q install --no-root)
+	$(q)$(if $(host-poetry),$(host-poetry) run )memory --root ${BUILD_PLAT} symbols
 
 tl: ${BUILD_PLAT}/tl.bin
 ${BUILD_PLAT}/tl.bin: ${HW_CONFIG} | $$(@D)/
-	$(if $(host-poetry),$(q)poetry -q install --no-root)
-	$(q)$(if $(host-poetry),poetry run )tlc create --fdt $< -s ${FW_HANDOFF_SIZE} $@
+	$(if $(host-poetry),$(q)$(host-poetry) -q install --no-root)
+	$(q)$(if $(host-poetry),$(host-poetry) run )tlc create --fdt $< -s ${FW_HANDOFF_SIZE} $@
 
 doc:
 	$(s)echo "  BUILD DOCUMENTATION"
-	$(if $(host-poetry),$(q)poetry -q install --with docs --no-root)
-	$(q)$(if $(host-poetry),poetry run )${MAKE} --no-print-directory -C ${DOCS_PATH} BUILDDIR=$(abspath ${BUILD_BASE}/docs) html
+	$(if $(host-poetry),$(q)$(host-poetry) -q install --with docs --no-root)
+	$(q)$(if $(host-poetry),$(host-poetry) run )${MAKE} --no-print-directory -C ${DOCS_PATH} BUILDDIR=$(abspath ${BUILD_BASE}/docs) html
 
 enctool: ${ENCTOOL}
 
