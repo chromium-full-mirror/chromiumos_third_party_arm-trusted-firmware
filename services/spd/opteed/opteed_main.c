@@ -69,7 +69,7 @@ static uint64_t dual32to64(uint32_t high, uint32_t low)
 	return ((uint64_t)high << 32) | low;
 }
 
-#define OPTEED_FDT_SIZE 1024
+#define OPTEED_FDT_SIZE 2048
 static uint8_t fdt_buf[OPTEED_FDT_SIZE] __aligned(CACHE_WRITEBACK_GRANULE);
 
 #else
