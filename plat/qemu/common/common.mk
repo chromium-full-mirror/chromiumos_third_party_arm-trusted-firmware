@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2023-2024, Linaro Limited and Contributors. All rights reserved.
+# Copyright (c) 2023-2025, Linaro Limited and Contributors. All rights reserved.
+# Copyright (c) 2025, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -139,7 +140,7 @@ else
 	ENABLE_SME_FOR_NS	:= 2
 endif
 
-ifeq (${ENABLE_RME},1)
+ifeq (${ENABLE_RMM},1)
 BL31_SOURCES			+= plat/qemu/common/qemu_plat_attest_token.c \
 				   plat/qemu/common/qemu_realm_attest_key.c
 endif

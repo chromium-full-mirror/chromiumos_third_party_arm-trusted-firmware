@@ -13,7 +13,7 @@
 #if defined(SPD_spmd)
 #include <services/spm_core_manifest.h>
 #endif
-#if ENABLE_RME
+#if ENABLE_RMM
 #include <services/rmm_core_manifest.h>
 #include <services/rmm_el3_token_sign.h>
 #endif
@@ -389,9 +389,9 @@ plat_local_state_t plat_get_target_pwr_state(unsigned int lvl,
 			unsigned int ncpu);
 
 /*******************************************************************************
- * Mandatory BL31 functions when ENABLE_RME=1
+ * Mandatory BL31 functions when ENABLE_RMM=1
  ******************************************************************************/
-#if ENABLE_RME
+#if ENABLE_RMM
 
 int plat_rmmd_get_cca_attest_token(uintptr_t buf, size_t *len,
 				   uintptr_t hash, size_t hash_size,
@@ -429,7 +429,7 @@ int plat_rmmd_el3_ide_key_set_stop(uint64_t ecam_address, uint64_t root_port_id,
 int plat_rmmd_el3_ide_km_pull_response(uint64_t ecam_address, uint64_t root_port_id,
 				   uint64_t *req_resp, uint64_t *request_id,
 				   uint64_t *cookie);
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 
 /*******************************************************************************
  * Optional BL31 functions (may be overridden)

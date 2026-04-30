@@ -7,6 +7,8 @@
 
 #include <common/debug.h>
 
+#include <arch_helpers.h>
+#include <lib/psci/psci.h>
 #include <plat_gic.h>
 #include <plat_common.h>
 #include <plat_psci.h>

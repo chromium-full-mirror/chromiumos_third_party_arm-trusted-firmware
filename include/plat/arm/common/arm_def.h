@@ -62,7 +62,7 @@
 #define ARM_SHARED_RAM_BASE		ARM_TRUSTED_SRAM_BASE
 #define ARM_SHARED_RAM_SIZE		UL(0x00001000)	/* 4 KB */
 
-#if ENABLE_RME
+#if ENABLE_FEAT_RME
 /* Store level 0 GPT at the top of the Trusted SRAM */
 #define ARM_L0_GPT_BASE			(ARM_TRUSTED_SRAM_BASE + \
 					 PLAT_ARM_TRUSTED_SRAM_SIZE - \
@@ -89,6 +89,8 @@
  *   - Event Log: Area for Event Log if MEASURED_BOOT feature is enabled
  *   - AP TZC DRAM: The remaining TZC secured DRAM reserved for AP use
  *
+ *   TODO: update this layout
+ *
  *              RME enabled(64MB)                RME not enabled(16MB)
  *              --------------------             -------------------
  *              |                  |             |                 |
@@ -111,7 +113,7 @@
  *              |       (~1MB)     |
  *  0xFFFF_FFFF --------------------
  */
-#if ENABLE_RME
+#if ENABLE_FEAT_RME
 #define ARM_TZC_DRAM1_SIZE              UL(0x04000000) /* 64MB */
 /*
  * Define a region within the TZC secured DRAM for use by EL3 runtime
@@ -122,17 +124,22 @@
 #define ARM_EL3_TZC_DRAM1_SIZE		UL(0x00300000) /* 3MB */
 /* 8 x 128KB L1 pages (L0GPTSZ = 1GB, PGS = 4KB) */
 #define ARM_L1_GPT_SIZE			UL(0x00100000) /* 1MB */
+
+#else /* !ENABLE_FEAT_RME */
+#define ARM_TZC_DRAM1_SIZE		UL(0x01000000) /* 16MB */
+#define ARM_EL3_TZC_DRAM1_SIZE		UL(0x00200000) /* 2MB */
+#define ARM_L1_GPT_SIZE			UL(0)
+#endif /* ENABLE_FEAT_RME */
+
+#if ENABLE_RMM
 /* 32MB - ARM_EL3_RMM_SHARED_SIZE */
 #define ARM_REALM_SIZE			(UL(0x02000000) -		\
 						ARM_EL3_RMM_SHARED_SIZE)
 #define ARM_EL3_RMM_SHARED_SIZE		(PAGE_SIZE)    /* 4KB */
-#else
-#define ARM_TZC_DRAM1_SIZE		UL(0x01000000) /* 16MB */
-#define ARM_EL3_TZC_DRAM1_SIZE		UL(0x00200000) /* 2MB */
-#define ARM_L1_GPT_SIZE			UL(0)
+#else /* !ENABLE_RMM */
 #define ARM_REALM_SIZE			UL(0)
 #define ARM_EL3_RMM_SHARED_SIZE		UL(0)
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 
 #define ARM_SCP_TZC_DRAM1_BASE		(ARM_DRAM1_BASE +		\
 					ARM_DRAM1_SIZE -		\
@@ -146,13 +153,13 @@
 MEASURED_BOOT
 #define ARM_EVENT_LOG_DRAM1_SIZE	UL(0x00001000)	/* 4KB */
 
-#if ENABLE_RME
+#if ENABLE_RMM
 #define ARM_EVENT_LOG_DRAM1_BASE	(ARM_REALM_BASE -		\
 					 ARM_EVENT_LOG_DRAM1_SIZE)
 #else
 #define ARM_EVENT_LOG_DRAM1_BASE	(ARM_EL3_TZC_DRAM1_BASE -	\
 					 ARM_EVENT_LOG_DRAM1_SIZE)
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 #define ARM_EVENT_LOG_DRAM1_END		(ARM_EVENT_LOG_DRAM1_BASE +	\
 					 ARM_EVENT_LOG_DRAM1_SIZE -	\
 					 1U)
@@ -160,13 +167,14 @@ MEASURED_BOOT
 #define ARM_EVENT_LOG_DRAM1_SIZE	UL(0)
 #endif /* (SPD_tspd || SPD_opteed || SPD_spmd) && MEASURED_BOOT */
 
-#if ENABLE_RME
+#if ENABLE_FEAT_RME
 #define ARM_L1_GPT_BASE			(ARM_DRAM1_BASE +		\
 					ARM_DRAM1_SIZE -		\
 					ARM_L1_GPT_SIZE)
 #define ARM_L1_GPT_END			(ARM_L1_GPT_BASE +		\
 					ARM_L1_GPT_SIZE - 1U)
 
+#if ENABLE_RMM
 #define ARM_REALM_BASE			(ARM_EL3_RMM_SHARED_BASE -	\
 					 ARM_REALM_SIZE)
 
@@ -181,7 +189,8 @@ MEASURED_BOOT
 
 #define ARM_EL3_RMM_SHARED_END		(ARM_EL3_RMM_SHARED_BASE +	\
 					 ARM_EL3_RMM_SHARED_SIZE - 1U)
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
+#endif /* ENABLE_FEAT_RME */
 
 #define ARM_EL3_TZC_DRAM1_BASE		(ARM_SCP_TZC_DRAM1_BASE -	\
 					ARM_EL3_TZC_DRAM1_SIZE)
@@ -322,7 +331,7 @@ MEASURED_BOOT
 #define ARM_MAP_BL31_SEC_DRAM	MAP_REGION_FLAT(			\
 					BL31_BASE,			\
 					PLAT_ARM_MAX_BL31_SIZE,		\
-					MT_MEMORY | MT_RW | MT_SECURE)
+					MT_MEMORY | MT_RW | EL3_PAS)
 #endif
 
 #define ARM_MAP_EL3_TZC_DRAM	MAP_REGION_FLAT(			\
@@ -344,7 +353,14 @@ MEASURED_BOOT
 					MT_MEMORY | MT_RW | MT_SECURE)
 #endif /* (SPD_tspd || SPD_opteed || SPD_spmd) && MEASURED_BOOT */
 
-#if ENABLE_RME
+#if ENABLE_FEAT_RME
+#define ARM_MAP_GPT_L1_DRAM	MAP_REGION_FLAT(			\
+					ARM_L1_GPT_BASE,		\
+					ARM_L1_GPT_SIZE,		\
+					MT_MEMORY | MT_RW | EL3_PAS)
+#endif
+
+#if ENABLE_RMM
 /*
  * We add the EL3_RMM_SHARED size to RMM mapping to map the region as a block.
  * Else we end up requiring more pagetables in BL2 for ROMLIB build.
@@ -356,17 +372,12 @@ MEASURED_BOOT
 					MT_MEMORY | MT_RW | MT_REALM)
 
 
-#define ARM_MAP_GPT_L1_DRAM	MAP_REGION_FLAT(			\
-					ARM_L1_GPT_BASE,		\
-					ARM_L1_GPT_SIZE,		\
-					MT_MEMORY | MT_RW | EL3_PAS)
-
 #define ARM_MAP_EL3_RMM_SHARED_MEM					\
 				MAP_REGION_FLAT(			\
 					ARM_EL3_RMM_SHARED_BASE,	\
 					ARM_EL3_RMM_SHARED_SIZE,	\
 					MT_MEMORY | MT_RW | MT_REALM)
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 
 /*
  * Mapping for the BL1 RW region. This mapping is needed by BL2 in order to
@@ -438,7 +449,7 @@ MEASURED_BOOT
 /*
  * Map L0_GPT with read and write permissions
  */
-#if ENABLE_RME
+#if ENABLE_FEAT_RME
 #define ARM_MAP_L0_GPT_REGION		MAP_REGION_FLAT(ARM_L0_GPT_BASE,	\
 						ARM_L0_GPT_SIZE,		\
 						MT_MEMORY | MT_RW | MT_ROOT)
@@ -570,7 +581,7 @@ MEASURED_BOOT
 #endif
 
 /*
- * With ENABLE_RME=1 put BL1 RW below L0 GPT,
+ * With ENABLE_RMM=1 put BL1 RW below L0 GPT,
  * or at the top of Trusted SRAM otherwise.
  */
 #define BL1_RW_BASE			(ARM_BL_RAM_BASE +		\
@@ -663,7 +674,7 @@ MEASURED_BOOT
 /******************************************************************************
  * RMM specific defines
  *****************************************************************************/
-#if ENABLE_RME
+#if ENABLE_RMM
 #define RMM_BASE			(ARM_REALM_BASE)
 #define RMM_LIMIT			(RMM_BASE + ARM_REALM_SIZE)
 #define RMM_PAYLOAD_LIMIT		(RMM_BASE + PLAT_ARM_RMM_PAYLOAD_SIZE)

@@ -54,9 +54,13 @@ PER_CPU_DEFINE(world_amu_regs_t, world_amu_ctx[CPU_CONTEXT_NUM]);
 static void manage_extensions_nonsecure(cpu_context_t *ctx);
 static void manage_extensions_secure(cpu_context_t *ctx);
 
-#if ((IMAGE_BL1) || (IMAGE_BL31 && (!CTX_INCLUDE_EL2_REGS)))
+/*
+ * Set up EL1 context unless there is something running at EL2 and we must
+ * context switch.
+ */
 static void setup_el1_context(cpu_context_t *ctx, const struct entry_point_info *ep)
 {
+#if ((IMAGE_BL1) || (IMAGE_BL31 && (!CTX_INCLUDE_EL2_REGS)))
 	u_register_t sctlr_elx, actlr_elx;
 
 	/*
@@ -111,8 +115,92 @@ static void setup_el1_context(cpu_context_t *ctx, const struct entry_point_info 
 	 */
 	actlr_elx = read_actlr_el1();
 	write_el1_ctx_common(get_el1_sysregs_ctx(ctx), actlr_el1, actlr_elx);
-}
 #endif /* (IMAGE_BL1) || (IMAGE_BL31 && (!CTX_INCLUDE_EL2_REGS)) */
+}
+
+/*
+ * The lower-EL context is zeroed so that no stale values leak to a world.
+ * It is assumed that an all-zero lower-EL context is good enough for it
+ * to boot correctly. However, there are very few registers where this
+ * is not true and some values need to be (re)created.
+ */
+static void setup_el2_context(cpu_context_t *ctx)
+{
+#if CTX_INCLUDE_EL2_REGS && IMAGE_BL31
+	el2_sysregs_t *el2_ctx = get_el2_sysregs_ctx(ctx);
+
+	/*
+	 * These bits are set in the gicv3 driver. Losing them (especially the
+	 * SRE bit) is problematic for all worlds. Henceforth recreate them.
+	 */
+	u_register_t icc_sre_el2_val = ICC_SRE_DIB_BIT | ICC_SRE_DFB_BIT |
+				   ICC_SRE_EN_BIT | ICC_SRE_SRE_BIT;
+	write_el2_ctx_common(el2_ctx, icc_sre_el2, icc_sre_el2_val);
+
+	/*
+	 * The actlr_el2 register can be initialized in platform's reset handler
+	 * and it may contain access control bits (e.g. CLUSTERPMUEN bit).
+	 */
+	write_el2_ctx_common(el2_ctx, actlr_el2, read_actlr_el2());
+
+	write_el2_ctx_common(el2_ctx, sctlr_el2, SCTLR_EL2_RES1);
+
+	/*
+	 * Initialize registers with known disabled init values.
+	 *
+	 * As their value is zeroed at init, there is a chance that this can
+	 * lead to unexpected behavior in lower ELs that do not initialise these
+	 * registers themselves.
+	 *
+	 * NOTE: this is duplicate, and mutually exclusive, of the same writes
+	 * to setup_el2_regs(). They must be kept in sync.
+	 *
+	 * Some registers' disabled init value is all zeroes which is carried
+	 * forward from init. These are:
+	 *  * HCRX_EL2
+	 *  * TCR2_EL2
+	 *  * HAFGRTR_EL2
+	 */
+	if (is_feat_fgt_supported()) {
+		write_el2_ctx_fgt(el2_ctx, hfgitr_el2, HFGITR_EL2_INIT_VAL);
+		write_el2_ctx_fgt(el2_ctx, hfgrtr_el2, HFGRTR_EL2_INIT_VAL);
+		write_el2_ctx_fgt(el2_ctx, hfgwtr_el2, HFGWTR_EL2_INIT_VAL);
+	}
+#endif
+}
+
+/*
+ * Write safe values into EL2 registers that reset into an UNKNOWN state.
+ *
+ * As their value is UNKNOWN at init, there is a chance that this can lead to
+ * unexpected behavior in lower ELs that do not initialise these registers
+ * themselves.
+ *
+ * NOTE: this is duplicate, and mutually exclusive, of the same writes to
+ * setup_el2_context(). They must be kept in sync.
+ */
+static void setup_el2_regs(void)
+{
+#if !(CTX_INCLUDE_EL2_REGS && IMAGE_BL31)
+	if (is_feat_hcx_supported()) {
+		write_hcrx_el2(HCRX_EL2_INIT_VAL);
+	}
+
+	if (is_feat_fgt_supported()) {
+		write_hfgitr_el2(HFGITR_EL2_INIT_VAL);
+		write_hfgrtr_el2(HFGRTR_EL2_INIT_VAL);
+		write_hfgwtr_el2(HFGWTR_EL2_INIT_VAL);
+	}
+
+	if (is_feat_tcr2_supported()) {
+		write_tcr2_el2(TCR2_EL2_INIT_VAL);
+	}
+
+	if (is_feat_fgt_supported() && is_feat_amu_supported()) {
+		write_hafgrtr_el2(HAFGRTR_EL2_INIT_VAL);
+	}
+ #endif
+}
 
 /******************************************************************************
  * This function performs initializations that are specific to SECURE state
@@ -141,18 +229,10 @@ static void setup_secure_context(cpu_context_t *ctx, const struct entry_point_in
 
 	write_ctx_reg(state, CTX_SCR_EL3, scr_el3);
 
-	/*
-	 * Initialize EL1 context registers unless SPMC is running
-	 * at S-EL2.
-	 */
-#if !CTX_INCLUDE_EL2_REGS || IMAGE_BL1
-	setup_el1_context(ctx, ep);
-#endif
-
 	manage_extensions_secure(ctx);
 }
 
-#if ENABLE_RME && IMAGE_BL31
+#if ENABLE_RMM && IMAGE_BL31
 /******************************************************************************
  * This function performs initializations that are specific to REALM state
  * and updates the cpu context specified by 'ctx'.
@@ -224,7 +304,7 @@ static void setup_realm_context(cpu_context_t *ctx, const struct entry_point_inf
 		trbe_disable_realm(ctx);
 	}
 }
-#endif /* ENABLE_RME && IMAGE_BL31 */
+#endif /* ENABLE_RMM && IMAGE_BL31 */
 
 /******************************************************************************
  * This function performs initializations that are specific to NON-SECURE state
@@ -357,39 +437,6 @@ static void setup_ns_context(cpu_context_t *ctx, const struct entry_point_info *
 
 	write_ctx_reg(state, CTX_SCR_EL3, scr_el3);
 
-	/* Initialize EL2 context registers */
-#if (CTX_INCLUDE_EL2_REGS && IMAGE_BL31)
-	if (is_feat_hcx_supported()) {
-		/*
-		 * Initialize register HCRX_EL2 with its init value.
-		 * As the value of HCRX_EL2 is UNKNOWN on reset, there is a
-		 * chance that this can lead to unexpected behavior in lower
-		 * ELs that have not been updated since the introduction of
-		 * this feature if not properly initialized, especially when
-		 * it comes to those bits that enable/disable traps.
-		 */
-		write_el2_ctx_hcx(get_el2_sysregs_ctx(ctx), hcrx_el2,
-			HCRX_EL2_INIT_VAL);
-	}
-
-	if (is_feat_fgt_supported()) {
-		/*
-		 * Initialize HFG*_EL2 registers with a default value so legacy
-		 * systems unaware of FEAT_FGT do not get trapped due to their lack
-		 * of initialization for this feature.
-		 */
-		write_el2_ctx_fgt(get_el2_sysregs_ctx(ctx), hfgitr_el2,
-			HFGITR_EL2_INIT_VAL);
-		write_el2_ctx_fgt(get_el2_sysregs_ctx(ctx), hfgrtr_el2,
-			HFGRTR_EL2_INIT_VAL);
-		write_el2_ctx_fgt(get_el2_sysregs_ctx(ctx), hfgwtr_el2,
-			HFGWTR_EL2_INIT_VAL);
-	}
-#else
-	/* Initialize EL1 context registers */
-	setup_el1_context(ctx, ep);
-#endif /* (CTX_INCLUDE_EL2_REGS && IMAGE_BL31) */
-
 	manage_extensions_nonsecure(ctx);
 }
 
@@ -427,30 +474,6 @@ static void setup_context_common(cpu_context_t *ctx, const entry_point_info_t *e
 
 	/* Clear any residual register values from the context */
 	zeromem(ctx, sizeof(*ctx));
-
-	/*
-	 * The lower-EL context is zeroed so that no stale values leak to a world.
-	 * It is assumed that an all-zero lower-EL context is good enough for it
-	 * to boot correctly. However, there are very few registers where this
-	 * is not true and some values need to be recreated.
-	 */
-#if (CTX_INCLUDE_EL2_REGS && IMAGE_BL31)
-	el2_sysregs_t *el2_ctx = get_el2_sysregs_ctx(ctx);
-
-	/*
-	 * These bits are set in the gicv3 driver. Losing them (especially the
-	 * SRE bit) is problematic for all worlds. Henceforth recreate them.
-	 */
-	u_register_t icc_sre_el2_val = ICC_SRE_DIB_BIT | ICC_SRE_DFB_BIT |
-				   ICC_SRE_EN_BIT | ICC_SRE_SRE_BIT;
-	write_el2_ctx_common(el2_ctx, icc_sre_el2, icc_sre_el2_val);
-
-	/*
-	 * The actlr_el2 register can be initialized in platform's reset handler
-	 * and it may contain access control bits (e.g. CLUSTERPMUEN bit).
-	 */
-	write_el2_ctx_common(el2_ctx, actlr_el2, read_actlr_el2());
-#endif /* (CTX_INCLUDE_EL2_REGS && IMAGE_BL31) */
 
 	/* Start with a clean SCR_EL3 copy as all relevant values are set */
 	scr_el3 = SCR_RESET_VAL;
@@ -644,14 +667,11 @@ static void setup_context_common(cpu_context_t *ctx, const entry_point_info_t *e
 	if (is_feat_idte3_supported()) {
 		idte3_enable(ctx);
 	}
-
-#if CTX_INCLUDE_EL2_REGS && IMAGE_BL31
-	/*
-	 * Initialize SCTLR_EL2 context register with reset value.
-	 */
-	write_el2_ctx_common(get_el2_sysregs_ctx(ctx), sctlr_el2, SCTLR_EL2_RES1);
-#endif /* CTX_INCLUDE_EL2_REGS */
 #endif /* IMAGE_BL31 */
+
+	setup_el2_context(ctx);
+
+	setup_el1_context(ctx, ep);
 
 	if (is_feat_morello_supported()) {
 		ctx->ddc_el0 = read_ddc_el0();
@@ -710,7 +730,7 @@ void cm_setup_context(cpu_context_t *ctx, const entry_point_info_t *ep)
 	case SECURE:
 		setup_secure_context(ctx, ep);
 		break;
-#if ENABLE_RME && IMAGE_BL31
+#if ENABLE_RMM && IMAGE_BL31
 	case REALM:
 		setup_realm_context(ctx, ep);
 		break;
@@ -867,7 +887,7 @@ static void manage_extensions_secure_per_world(void)
 
 static void manage_extensions_realm_per_world(void)
 {
-#if ENABLE_RME && IMAGE_BL31
+#if ENABLE_RMM && IMAGE_BL31
 	cm_el3_arch_init_per_world(&per_world_context[CPU_CONTEXT_REALM]);
 
 	if (is_feat_sve_supported()) {
@@ -906,7 +926,7 @@ static void manage_extensions_realm_per_world(void)
 	if (is_feat_idte3_supported()) {
 		idte3_init_cached_idregs_per_world(CPU_CONTEXT_REALM);
 	}
-#endif /* ENABLE_RME && IMAGE_BL31 */
+#endif /* ENABLE_RMM && IMAGE_BL31 */
 }
 
 void cm_manage_extensions_per_world(void)
@@ -922,9 +942,9 @@ void cm_init_percpu_once_regs(void)
 	if (is_feat_idte3_supported()) {
 		idte3_init_percpu_once_regs(CPU_CONTEXT_NS);
 		idte3_init_percpu_once_regs(CPU_CONTEXT_SECURE);
-#if ENABLE_RME
+#if ENABLE_RMM
 		idte3_init_percpu_once_regs(CPU_CONTEXT_REALM);
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 	}
 #endif /* IMAGE_BL31 */
 }
@@ -1196,32 +1216,7 @@ void cm_prepare_el3_exit(size_t security_state)
 						 CTX_SCR_EL3);
 
 		if (el2_implemented != EL_IMPL_NONE) {
-
-			/*
-			 * If context is not being used for EL2, initialize
-			 * HCRX_EL2 with its init value here.
-			 */
-			if (is_feat_hcx_supported()) {
-				write_hcrx_el2(HCRX_EL2_INIT_VAL);
-			}
-
-			/*
-			 * Initialize Fine-grained trap registers introduced
-			 * by FEAT_FGT so all traps are initially disabled when
-			 * switching to EL2 or a lower EL, preventing undesired
-			 * behavior.
-			 */
-			if (is_feat_fgt_supported()) {
-				/*
-				 * Initialize HFG*_EL2 registers with a default
-				 * value so legacy systems unaware of FEAT_FGT
-				 * do not get trapped due to their lack of
-				 * initialization for this feature.
-				 */
-				write_hfgitr_el2(HFGITR_EL2_INIT_VAL);
-				write_hfgrtr_el2(HFGRTR_EL2_INIT_VAL);
-				write_hfgwtr_el2(HFGWTR_EL2_INIT_VAL);
-			}
+			setup_el2_regs();
 
 			/* Condition to ensure EL2 is being used. */
 			if ((scr_el3 & SCR_HCE_BIT) != 0U) {

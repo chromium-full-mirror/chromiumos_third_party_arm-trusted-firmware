@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2024-2025, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -63,6 +63,14 @@
 #define QEMU_PAS_GPT_BASE		RME_GPT_DRAM_BASE
 #define QEMU_PAS_GPT_SIZE		RME_GPT_DRAM_SIZE
 
+/* NS Memory */
+#define QEMU_PAS_NS0_BASE		NS_DRAM0_BASE
+
+#if !ENABLE_RMM
+#define QEMU_PAS_NS0_SIZE		NS_DRAM0_SIZE
+#else /* ENABLE_RMM */
+#define QEMU_PAS_NS0_SIZE		PLAT_QEMU_DT_MAX_SIZE
+
 /* RMM */
 #define QEMU_PAS_RMM_BASE		RMM_BASE
 #define QEMU_PAS_RMM_SIZE		PLAT_QEMU_RMM_SIZE
@@ -71,11 +79,10 @@
 #define QEMU_PAS_RMM_SHARED_BASE	RMM_SHARED_BASE
 #define QEMU_PAS_RMM_SHARED_SIZE	RMM_SHARED_SIZE
 
-#define QEMU_PAS_NS0_BASE		NS_DRAM0_BASE
-#define QEMU_PAS_NS0_SIZE		PLAT_QEMU_DT_MAX_SIZE
 #define QEMU_PAS_NS1_BASE		(REALM_DRAM_BASE + REALM_DRAM_SIZE)
 #define QEMU_PAS_NS1_SIZE		(NS_DRAM0_SIZE - \
 					 (QEMU_PAS_NS0_SIZE + REALM_DRAM_SIZE))
+#endif /* !ENABLE_RMM */
 
 #define QEMU_PAS_ROOT			GPT_MAP_REGION_GRANULE(QEMU_PAS_ROOT_BASE, \
 							       QEMU_PAS_ROOT_SIZE, \
@@ -93,6 +100,7 @@
 							       QEMU_PAS_NS0_SIZE, \
 							       GPT_GPI_NS)
 
+#if ENABLE_RMM
 #define QEMU_PAS_NS1			GPT_MAP_REGION_GRANULE(QEMU_PAS_NS1_BASE, \
 							       QEMU_PAS_NS1_SIZE, \
 							       GPT_GPI_NS)
@@ -101,6 +109,7 @@
 							       QEMU_PAS_RMM_SIZE + \
 							       QEMU_PAS_RMM_SHARED_SIZE, \
 							       GPT_GPI_REALM)
+#endif /* ENABLE_RMM */
 
 /* Cover 1TB with L0GTP */
 #define PLAT_QEMU_GPCCR_PPS		GPCCR_PPS_1TB

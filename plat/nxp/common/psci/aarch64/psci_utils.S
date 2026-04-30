@@ -11,6 +11,8 @@
 
 #include <lib/psci/psci.h>
 
+#include <cortex_a53.h>
+#include <cortex_a72.h>
 #include <bl31_data.h>
 #include <plat_psci.h>
 

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2024-2025, Linaro Limited. All rights reserved.
+ * Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -27,12 +28,14 @@
 #define QEMU_PAS_GPT_SIZE	RME_GPT_DRAM_SIZE
 
 /* RMM */
+#if ENABLE_RMM
 #define QEMU_PAS_RMM_BASE	RMM_BASE
 #define QEMU_PAS_RMM_SIZE	PLAT_QEMU_RMM_SIZE
 
 /* Shared area between EL3 and RMM */
 #define QEMU_PAS_RMM_SHARED_BASE	RMM_SHARED_BASE
 #define QEMU_PAS_RMM_SHARED_SIZE	RMM_SHARED_SIZE
+#endif /* ENABLE_RMM */
 
 #define QEMU_PAS_ROOT		GPT_MAP_REGION_GRANULE(QEMU_PAS_ROOT_BASE, \
 						       QEMU_PAS_ROOT_SIZE, \
@@ -52,10 +55,12 @@
  */
 #define QEMU_PAS_NS0		GPT_MAP_REGION_GRANULE(0, 0, GPT_GPI_NS)
 
+#if ENABLE_RMM
 #define QEMU_PAS_REALM		GPT_MAP_REGION_GRANULE(QEMU_PAS_RMM_BASE, \
 					       QEMU_PAS_RMM_SIZE + \
 					       QEMU_PAS_RMM_SHARED_SIZE, \
 					       GPT_GPI_REALM)
+#endif /* ENABLE_RMM */
 
 /* Cover 4TB with L0GTP */
 #define PLAT_QEMU_GPCCR_PPS	GPCCR_PPS_4TB

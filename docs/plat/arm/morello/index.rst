@@ -5,7 +5,7 @@ Morello is an ARMv8-A platform that implements the capability architecture exten
 The platform port present at `site <https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git>`_
 provides ARMv8-A architecture enablement.
 
-Capability architecture specific changes will be added `here <https://git.morello-project.org/morello>`_
+Capability architecture specific changes have been added in upstream.
 
 Further information on Morello Platform is available at `info <https://developer.arm.com/architectures/cpu-architecture/a-profile/morello>`_
 
@@ -32,12 +32,24 @@ Build Procedure (TF-A only)
 -  Obtain arm `toolchain <https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads>`_.
    Set the CROSS_COMPILE environment variable to point to the toolchain folder.
 
--  Build TF-A:
+-  For building morello with capability architecture specific changes use clang with morello changes which can be obtained from
+   `here <https://git.morello-project.org/morello/llvm-project-releases/>`_.
+   Set the CROSS_COMPILE enviroment variable to point to the toolchain folder.
+
+-  Build TF-A (without capabilities):
 
    .. code:: shell
 
       export CROSS_COMPILE=<path-to-aarch64-gcc>/bin/aarch64-none-elf-
 
-      make PLAT=morello all
+      make PLAT=morello TARGET_PLATFORM=<fvp or soc> all
+
+-  Build TF-A (with capabilities):
+
+   .. code:: shell
+
+      export CROSS_COMPILE=<path-to-clang>/bin/llvm-
+
+      make PLAT=morello TARGET_PLATFORM=<fvp or soc> ENABLE_FEAT_MORELLO=<1 or 2> all
 
 *Copyright (c) 2020-2023, Arm Limited. All rights reserved.*

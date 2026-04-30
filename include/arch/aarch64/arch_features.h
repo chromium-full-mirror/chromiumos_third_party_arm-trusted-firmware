@@ -15,7 +15,7 @@
 #include <lib/el3_runtime/context_mgmt.h>
 #include <lib/el3_runtime/cpu_data.h>
 
-#if ENABLE_RME
+#if ENABLE_RMM
 #define FEAT_ENABLE_ALL_WORLDS			\
 	((1u << CPU_CONTEXT_SECURE)	|	\
 	(1u << CPU_CONTEXT_NS)		|	\
@@ -528,11 +528,11 @@ CREATE_FEATURE_FUNCS(feat_rng_trap, id_aa64pfr1_el1, ID_AA64PFR1_EL1_RNDR_TRAP_S
 		      ID_AA64PFR1_EL1_RNDR_TRAP_MASK, RNG_TRAP_IMPLEMENTED, ENABLE_FEAT_RNG_TRAP,
 		      FEAT_ENABLE_ALL_WORLDS)
 
-/* Return the RME version, zero if not supported. */
+/* FEAT_RME: Realm Management Extension */
 _CREATE_FEATURE_PRESENT(feat_rme, id_aa64pfr0_el1,
 		      ID_AA64PFR0_FEAT_RME_SHIFT, ID_AA64PFR0_FEAT_RME_MASK, 1U)
 
-CREATE_FEATURE_SUPPORTED(feat_rme, is_feat_rme_present, ENABLE_RME)
+CREATE_FEATURE_SUPPORTED(feat_rme, is_feat_rme_present, ENABLE_FEAT_RME)
 
 /* FEAT_SB: Speculation barrier instruction */
 CREATE_FEATURE_PRESENT(feat_sb, id_aa64isar1_el1, ID_AA64ISAR1_SB_SHIFT,

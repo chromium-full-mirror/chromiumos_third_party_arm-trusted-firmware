@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -31,11 +31,9 @@ extern gicv3_driver_data_t gic_data;
 /******************************************************************************
  * This function gets called per core to make its redistributor frame rw
  *****************************************************************************/
-static void fvp_gicv3_make_rdistrif_rw(void)
+void fvp_gicv3_make_rdistrif_rw(unsigned int core_pos)
 {
 #if FVP_GICR_REGION_PROTECTION
-	unsigned int core_pos = plat_my_core_pos();
-
 	/* Make the redistributor frame RW if it is not done previously */
 	if (fvp_gicr_rw_region_init[core_pos] != true) {
 		int ret = xlat_change_mem_attributes(BASE_GICR_BASE +
@@ -56,11 +54,6 @@ static void fvp_gicv3_make_rdistrif_rw(void)
 #else
 	return;
 #endif /* FVP_GICR_REGION_PROTECTION */
-}
-
-void fvp_pcpu_init(void)
-{
-	fvp_gicv3_make_rdistrif_rw();
 }
 
 void fvp_gic_driver_pre_init(void)

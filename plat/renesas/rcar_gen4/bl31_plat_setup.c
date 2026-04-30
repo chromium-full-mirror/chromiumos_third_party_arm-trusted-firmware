@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2025, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  * Copyright (c) 2015-2025, Renesas Electronics Corporation. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -25,6 +25,11 @@
 #include "rcar_def.h"
 #include "rcar_private.h"
 #include "rcar_version.h"
+
+static const uintptr_t gicr_base_addrs[2] = {
+	PLAT_ARM_GICR_BASE,	/* GICR Base address of the primary CPU */
+	0U			/* Zero Termination */
+};
 
 struct entry_point_info *bl31_plat_get_next_image_ep_info(uint32_t type)
 {
@@ -55,12 +60,13 @@ void bl31_plat_arch_setup(void)
 			       BL31_RO_BASE, BL31_RO_LIMIT);
 
 	rcar_pwrc_code_copy_to_system_ram();
+
+	gic_set_gicr_frames(gicr_base_addrs);
 }
 
-static const uintptr_t gicr_base_addrs[2] = {
-	PLAT_ARM_GICR_BASE,	/* GICR Base address of the primary CPU */
-	0U			/* Zero Termination */
-};
+void plat_gic_pre_pcpu_init(unsigned int cpu_idx)
+{
+}
 
 void bl31_platform_setup(void)
 {
@@ -75,8 +81,6 @@ void bl31_platform_setup(void)
 
 	/* Enable the system level generic timer */
 	mmio_write_32(RCAR_CNTC_BASE + CNTCR_OFF, CNTCR_FCREQ(0) | CNTCR_EN);
-
-	gic_set_gicr_frames(gicr_base_addrs);
 
 	rcar_pwrc_setup();
 	rcar_ptp_setup();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Arm Limited. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -44,9 +44,6 @@ const dsu_driver_data_t plat_dsu_data = {
 void bl31_platform_setup(void)
 {
 	arm_bl31_platform_setup();
-#if USE_GIC_DRIVER == 3
-	gic_set_gicr_frames(arm_gicr_base_addrs);
-#endif
 	rdaspen_ras_init_per_cpu();
 }
 

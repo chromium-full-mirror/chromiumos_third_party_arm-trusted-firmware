@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2024, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2021-2026, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -21,8 +21,6 @@ int ddrphy_phyinit_isdbytedisabled(struct stm32mp_ddr_config *config,
 	int disabledbyte;
 	uint32_t nad0 __maybe_unused;
 	uint32_t nad1 __maybe_unused;
-
-	disabledbyte = 0; /* Default assume Dbyte is Enabled */
 
 #if STM32MP_DDR3_TYPE || STM32MP_DDR4_TYPE
 	disabledbyte = (dbytenumber > (config->uib.numactivedbytedfi0 - 1U)) ? 1 : 0;

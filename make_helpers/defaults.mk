@@ -355,15 +355,12 @@ ENABLE_LTO			:= 0
 
 # This option will include EL2 registers in cpu context save and restore during
 # EL2 firmware entry/exit. Internal flag not meant for direct setting.
-# Use SPD=spmd and SPMD_SPM_AT_SEL2=1 or ENABLE_RME=1 to enable
+# Use SPD=spmd and SPMD_SPM_AT_SEL2=1 or ENABLE_RMM=1 to enable
 # CTX_INCLUDE_EL2_REGS.
 CTX_INCLUDE_EL2_REGS		:= 0
 
 # Select workaround for AT speculative behaviour.
 ERRATA_SPECULATIVE_AT		:= 0
-
-# select workaround for SME aborting powerdown
-ERRATA_SME_POWER_DOWN		:= 0
 
 # Trap RAS error record access from Non secure
 RAS_TRAP_NS_ERR_REC_ACCESS	:= 0
@@ -444,6 +441,9 @@ EARLY_CONSOLE			:= 0
 # Disabled by default and must be enabled by individual platforms.
 PRESERVE_DSU_PMU_REGS		:= 0
 
+# Flag to enable an RME payload
+ENABLE_RMM			:= 0
+
 # Enable RMMD to forward attestation requests from RMM to EL3.
 RMMD_ENABLE_EL3_TOKEN_SIGN	:= 0
 
@@ -453,7 +453,7 @@ RMMD_ENABLE_EL3_TOKEN_SIGN	:= 0
 RMMD_ENABLE_IDE_KEY_PROG	:= 0
 
 # Enable RMM v1.x compatibility mode
-RMM_V1_COMPAT			:= 1
+RMM_V1_COMPAT			:= 0
 
 # Live firmware activation support
 LFA_SUPPORT			:= 0
@@ -475,3 +475,6 @@ SUPPORT_SP_LIVE_ACTIVATION	:= 0
 # image_id. Test/CI only. Do not enable in production builds.
 TEST_IO_SHORT_READ_FI		:= 0
 TEST_IO_SHORT_READ_FI_IMAGE_ID	:= 0
+
+# Enable the FIRME interface.
+FIRME_SUPPORT			:= 0

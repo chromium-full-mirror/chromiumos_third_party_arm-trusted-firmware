@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2024-2026, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
  */
@@ -80,12 +80,10 @@ struct stm32_clk_platdata {
 #define A35_SS_PLL_ENABLE_NRESET_SWPLL_FF	BIT(2)
 
 #define TIMEOUT_US_200MS	U(200000)
-#define TIMEOUT_US_1S		U(1000000)
 
 #define PLLRDY_TIMEOUT		TIMEOUT_US_200MS
 #define CLKSRC_TIMEOUT		TIMEOUT_US_200MS
 #define CLKDIV_TIMEOUT		TIMEOUT_US_200MS
-#define OSCRDY_TIMEOUT		TIMEOUT_US_1S
 
 /* PLL minimal frequencies for clock sources */
 #define PLL_REFCLK_MIN			UL(5000000)
@@ -257,6 +255,7 @@ enum clock {
 #endif /* !STM32MP21 */
 	_CK_STGEN,
 	_CK_SYSCPU1,
+	_CK_SYSDBG,
 	_CK_SYSRAM,
 	_CK_UART4,
 	_CK_UART5,
@@ -427,6 +426,7 @@ enum enum_gate_cfg {
 	GATE_IWDG1,
 	GATE_IWDG2,
 
+	GATE_DBG,
 	GATE_DDRCAPB,
 	GATE_DDR,
 
@@ -562,6 +562,7 @@ static const struct gate_cfg gates_mp2[LAST_GATE] = {
 	GATE_CFG(GATE_BSEC,		RCC_BSECCFGR,		1,	0),
 	GATE_CFG(GATE_IWDG1,		RCC_IWDG1CFGR,		1,	0),
 	GATE_CFG(GATE_IWDG2,		RCC_IWDG2CFGR,		1,	0),
+	GATE_CFG(GATE_DBG,		RCC_DBGCFGR,		8,	0),
 	GATE_CFG(GATE_DDRCAPB,		RCC_DDRCAPBCFGR,	1,	0),
 	GATE_CFG(GATE_DDR,		RCC_DDRCFGR,		1,	0),
 	GATE_CFG(GATE_USART2,		RCC_USART2CFGR,		1,	0),
@@ -644,6 +645,35 @@ enum stm32_osc {
 	NB_OSCILLATOR
 };
 
+#define BYPASS(_offset, _bit_byp, _bit_digbyp) &(struct stm32_clk_bypass){\
+	.offset		= (_offset),\
+	.bit_byp	= (_bit_byp),\
+	.bit_digbyp	= (_bit_digbyp),\
+}
+
+#define CSS(_offset, _bit_css)	&(struct stm32_clk_css){\
+	.offset		= (_offset),\
+	.bit_css	= (_bit_css),\
+}
+
+#define DRIVE(_offset, _shift, _width, _default) &(struct stm32_clk_drive){\
+	.offset		= (_offset),\
+	.drv_shift	= (_shift),\
+	.drv_width	= (_width),\
+	.drv_default	= (_default),\
+}
+
+#define OSCILLATOR(idx_osc, _id, _name, _gate_id, _gate_rdy_id, _bypass, _css, _drive) \
+	[(idx_osc)] = (struct clk_oscillator_data){\
+		.name		= (_name),\
+		.id_clk		= (_id),\
+		.gate_id	= (_gate_id),\
+		.gate_rdy_id	= (_gate_rdy_id),\
+		.bypass		= (_bypass),\
+		.css		= (_css),\
+		.drive		= (_drive),\
+	}
+
 static struct clk_oscillator_data stm32mp2_osc_data[] = {
 	OSCILLATOR(OSC_HSI, _CK_HSI, "clk-hsi", GATE_HSI, GATE_HSI_RDY,
 		   NULL, NULL, NULL),
@@ -680,7 +710,217 @@ static const char *clk_stm32_get_oscillator_name(enum stm32_osc id)
 
 	return NULL;
 }
+
+#if !STM32MP_M33_TDCID
+static void clk_oscillator_set_bypass(struct stm32_clk_priv *priv, int id,
+				      bool digbyp, bool bypass)
+{
+	struct clk_oscillator_data *osc_data = clk_oscillator_get_data(priv, id);
+
+	struct stm32_clk_bypass *bypass_data = osc_data->bypass;
+	uintptr_t address;
+
+	if (bypass_data == NULL) {
+		return;
+	}
+
+	address = priv->base + bypass_data->offset;
+
+	if (digbyp) {
+		mmio_setbits_32(address, BIT(bypass_data->bit_digbyp));
+	}
+
+	if (bypass || digbyp) {
+		mmio_setbits_32(address, BIT(bypass_data->bit_byp));
+	}
+}
+
+static void clk_oscillator_set_css(struct stm32_clk_priv *priv, int id,
+				   bool css)
+{
+	struct clk_oscillator_data *osc_data = clk_oscillator_get_data(priv, id);
+
+	struct stm32_clk_css *css_data = osc_data->css;
+	uintptr_t address;
+
+	if (css_data == NULL) {
+		return;
+	}
+
+	address = priv->base + css_data->offset;
+
+	if (css) {
+		mmio_setbits_32(address, BIT(css_data->bit_css));
+	}
+}
+
+static void clk_oscillator_set_drive(struct stm32_clk_priv *priv, int id,
+				     uint8_t lsedrv)
+{
+	struct clk_oscillator_data *osc_data = clk_oscillator_get_data(priv, id);
+
+	struct stm32_clk_drive *drive_data = osc_data->drive;
+	uintptr_t address;
+	uint32_t mask;
+	uint32_t value;
+
+	if (drive_data == NULL) {
+		return;
+	}
+
+	address = priv->base + drive_data->offset;
+
+	mask = (BIT(drive_data->drv_width) - 1U) <<  drive_data->drv_shift;
+
+	/*
+	 * Warning: not recommended to switch directly from "high drive"
+	 * to "medium low drive", and vice-versa.
+	 */
+	value = (mmio_read_32(address) & mask) >> drive_data->drv_shift;
+
+	while (value != lsedrv) {
+		if (value > lsedrv) {
+			value--;
+		} else {
+			value++;
+		}
+
+		mmio_clrsetbits_32(address, mask, value << drive_data->drv_shift);
+	}
+}
+
+static int clk_oscillator_wait_ready(struct stm32_clk_priv *priv, int id,
+				     bool ready_on)
+{
+	struct clk_oscillator_data *osc_data = clk_oscillator_get_data(priv, id);
+
+	return _clk_stm32_gate_wait_ready(priv, osc_data->gate_rdy_id, ready_on);
+}
+
+static int clk_oscillator_wait_ready_on(struct stm32_clk_priv *priv, int id)
+{
+	return clk_oscillator_wait_ready(priv, id, true);
+}
+#endif /* !STM32MP_M33_TDCID */
+#endif /* IMAGE_BL2 */
+
+static unsigned long clk_stm32_osc_recalc_rate(struct stm32_clk_priv *priv,
+					       int id, unsigned long prate)
+{
+	struct clk_oscillator_data *osc_data = clk_oscillator_get_data(priv, id);
+
+	return osc_data->frequency;
+};
+
+static bool clk_stm32_osc_gate_is_enabled(struct stm32_clk_priv *priv, int id)
+{
+	struct clk_oscillator_data *osc_data = clk_oscillator_get_data(priv, id);
+
+	if (osc_data->frequency == 0UL) {
+		return true;
+	}
+
+	return _clk_stm32_gate_is_enabled(priv, osc_data->gate_id);
+
+}
+
+static int __maybe_unused clk_stm32_osc_gate_enable(struct stm32_clk_priv *priv, int id)
+{
+	struct clk_oscillator_data *osc_data = clk_oscillator_get_data(priv, id);
+
+	if (osc_data->frequency == 0UL) {
+		return 0;
+	}
+
+	_clk_stm32_gate_enable(priv, osc_data->gate_id);
+
+	if (_clk_stm32_gate_wait_ready(priv, osc_data->gate_rdy_id, true) != 0U) {
+		ERROR("%s: %s (%d)\n", __func__, osc_data->name, __LINE__);
+		panic();
+	}
+
+	return 0;
+}
+
+static void __maybe_unused clk_stm32_osc_gate_disable(struct stm32_clk_priv *priv, int id)
+{
+	struct clk_oscillator_data *osc_data = clk_oscillator_get_data(priv, id);
+
+	if (osc_data->frequency == 0UL) {
+		return;
+	}
+
+	_clk_stm32_gate_disable(priv, osc_data->gate_id);
+
+	if (_clk_stm32_gate_wait_ready(priv, osc_data->gate_rdy_id, false) != 0U) {
+		ERROR("%s: %s (%d)\n", __func__, osc_data->name, __LINE__);
+		panic();
+	}
+}
+
+static unsigned long clk_stm32_get_dt_oscillator_frequency(const char *name)
+{
+	void *fdt = NULL;
+	int node = 0;
+	int subnode = 0;
+
+	if (fdt_get_address(&fdt) == 0) {
+		panic();
+	}
+
+	node = fdt_path_offset(fdt, "/clocks");
+	if (node < 0) {
+		return 0UL;
+	}
+
+	fdt_for_each_subnode(subnode, fdt, node) {
+		const char *cchar = NULL;
+		const fdt32_t *cuint = NULL;
+		int ret = 0;
+
+		cchar = fdt_get_name(fdt, subnode, &ret);
+		if (cchar == NULL) {
+			continue;
+		}
+
+		if (strncmp(cchar, name, (size_t)ret) ||
+		    fdt_get_status(subnode) == DT_DISABLED) {
+			continue;
+		}
+
+		cuint = fdt_getprop(fdt, subnode, "clock-frequency", &ret);
+		if (cuint == NULL) {
+			return 0UL;
+		}
+
+		return fdt32_to_cpu(*cuint);
+	}
+
+	return 0UL;
+}
+
+static void clk_stm32_osc_init(struct stm32_clk_priv *priv, int id)
+{
+	struct clk_oscillator_data *osc_data = clk_oscillator_get_data(priv, id);
+	const char *name = osc_data->name;
+
+	osc_data->frequency = clk_stm32_get_dt_oscillator_frequency(name);
+}
+
+static struct stm32_clk_ops clk_stm32_osc_ops = {
+	.recalc_rate	= clk_stm32_osc_recalc_rate,
+	.is_enabled	= clk_stm32_osc_gate_is_enabled,
+#if !STM32MP_M33_TDCID
+	.enable		= clk_stm32_osc_gate_enable,
+	.disable	= clk_stm32_osc_gate_disable,
 #endif
+	.init		= clk_stm32_osc_init,
+};
+
+static struct stm32_clk_ops clk_stm32_osc_nogate_ops = {
+	.recalc_rate	= clk_stm32_osc_recalc_rate,
+	.init		= clk_stm32_osc_init,
+};
 
 enum pll_id {
 	_PLL1,
@@ -1137,6 +1377,28 @@ static const struct stm32_clk_ops clk_stm32_osc_msi_ops = {
 	.init		= clk_stm32_osc_init,
 };
 
+#define CLK_OSC(idx, _idx, _parent, _osc_id) \
+	[(idx)] = (struct clk_stm32){ \
+		.binding	= (_idx),\
+		.parent		= (_parent),\
+		.flags		= CLK_IS_CRITICAL,\
+		.clock_cfg	= &(struct stm32_osc_cfg){\
+			.osc_id = (_osc_id),\
+		},\
+		.ops		= STM32_OSC_OPS,\
+	}
+
+#define CLK_OSC_FIXED(idx, _idx, _parent, _osc_id) \
+	[(idx)] = (struct clk_stm32){ \
+		.binding	= (_idx),\
+		.parent		= (_parent),\
+		.flags		= CLK_IS_CRITICAL,\
+		.clock_cfg	= &(struct stm32_osc_cfg){\
+			.osc_id	= (_osc_id),\
+		},\
+		.ops		= STM32_OSC_NOGATE_OPS,\
+	}
+
 #define CLK_OSC_MSI(idx, _idx, _parent, _osc_id) \
 	[(idx)] = (struct clk_stm32){ \
 		.binding	= (_idx),\
@@ -1168,6 +1430,8 @@ enum {
 	STM32_PLL_OPS = STM32_LAST_OPS,
 	STM32_PLL1_OPS,
 	STM32_FLEXGEN_OPS,
+	STM32_OSC_OPS,
+	STM32_OSC_NOGATE_OPS,
 	STM32_OSC_MSI_OPS,
 	STM32_RTC_OPS,
 
@@ -1340,7 +1604,7 @@ static const struct clk_stm32 stm32mp2_clk[CK_LAST] = {
 	STM32_GATE(_CK_GPIOK, CK_BUS_GPIOK, _CK_ICN_LS_MCU, 0, GATE_GPIOK),
 #endif /* !STM32MP21 */
 	STM32_GATE(_CK_GPIOZ, CK_BUS_GPIOZ, _CK_ICN_LS_MCU, 0, GATE_GPIOZ),
-	STM32_GATE(_CK_RTC, CK_BUS_RTC, _CK_ICN_LS_MCU, 0, GATE_RTC),
+	STM32_GATE(_CK_RTC, CK_BUS_RTC, _CK_ICN_LS_MCU, CLK_IS_CRITICAL, GATE_RTC),
 
 	STM32_GATE(_CK_BUS_RISAF4, CK_BUS_RISAF4, _CK_ICN_LS_MCU, CLK_IS_CRITICAL, GATE_DDRCP),
 	STM32_GATE(_CK_DDRCP, CK_BUS_DDR, _CK_ICN_DDR, CLK_IS_CRITICAL, GATE_DDRCP),
@@ -1364,6 +1628,8 @@ static const struct clk_stm32 stm32mp2_clk[CK_LAST] = {
 
 	STM32_GATE(_CK_DDRCAPB, CK_BUS_DDRC, _CK_ICN_APB4, 0, GATE_DDRCAPB),
 	STM32_GATE(_CK_DDR, CK_BUS_DDRCFG, _CK_ICN_APB4, 0, GATE_DDR),
+
+	STM32_GATE(_CK_SYSDBG, CK_SYSDBG, _CK_ICN_APBDBG, 0, GATE_DBG),
 
 	STM32_GATE(_CK_USART2, CK_KER_USART2, _CK_FLEXGEN_08, 0, GATE_USART2),
 	STM32_GATE(_CK_UART4, CK_KER_UART4, _CK_FLEXGEN_08, 0, GATE_UART4),
@@ -2122,41 +2388,6 @@ static int stm32_clk_configure_mux(struct stm32_clk_priv *priv, uint32_t data)
 	return clk_mux_set_parent(priv, mux_id, sel);
 }
 
-static int stm32_clk_configure_clk_get_binding_id(struct stm32_clk_priv *priv, uint32_t data)
-{
-	unsigned long binding_id = ((unsigned long)data & CLK_ID_MASK) >> CLK_ID_SHIFT;
-
-	return clk_get_index(priv, binding_id);
-}
-
-static int stm32_clk_configure_clk(struct stm32_clk_priv *priv, uint32_t data)
-{
-	int sel = (data & CLK_SEL_MASK) >> CLK_SEL_SHIFT;
-	bool enable = ((data & CLK_ON_MASK) >> CLK_ON_SHIFT) != 0U;
-	int clk_id = 0;
-	int ret = 0;
-
-	clk_id = stm32_clk_configure_clk_get_binding_id(priv, data);
-	if (clk_id < 0) {
-		return clk_id;
-	}
-
-	if (sel != CLK_NOMUX) {
-		ret = _clk_stm32_set_parent_by_index(priv, clk_id, sel);
-		if (ret != 0) {
-			return ret;
-		}
-	}
-
-	if (enable) {
-		clk_stm32_enable_call_ops(priv, clk_id);
-	} else {
-		clk_stm32_disable_call_ops(priv, clk_id);
-	}
-
-	return 0;
-}
-
 static int stm32_clk_configure(struct stm32_clk_priv *priv, uint32_t val)
 {
 	uint32_t cmd = (val & CMD_MASK) >> CMD_SHIFT;
@@ -2170,10 +2401,6 @@ static int stm32_clk_configure(struct stm32_clk_priv *priv, uint32_t val)
 
 	case CMD_MUX:
 		ret = stm32_clk_configure_mux(priv, cmd_data);
-		break;
-
-	case CMD_CLK:
-		ret = stm32_clk_configure_clk(priv, cmd_data);
 		break;
 
 	default:

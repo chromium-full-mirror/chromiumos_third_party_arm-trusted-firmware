@@ -522,6 +522,8 @@ void detect_arch_features(unsigned int core_pos)
 				 "SME2", 2, 3);
 	tainted |= check_feature(ENABLE_FEAT_FPMR, read_feat_fpmr_id_field(),
 				 "FPMR", 1, 1);
+	tainted |= check_feature(ENABLE_FEAT_RME, read_feat_rme_id_field(),
+				 "RME", 1, 2);
 
 	/* v9.3 features */
 	tainted |= check_feature(ENABLE_FEAT_D128, read_feat_d128_id_field(),
@@ -537,8 +539,6 @@ void detect_arch_features(unsigned int core_pos)
 	/* v9.4 features */
 	tainted |= check_feature(ENABLE_FEAT_GCS, read_feat_gcs_id_field(),
 				 "GCS", 1, 1);
-	tainted |= check_feature(ENABLE_RME, read_feat_rme_id_field(),
-				 "RME", 1, 2);
 	tainted |= check_feature(ENABLE_FEAT_PAUTH_LR, is_feat_pauth_lr_present(),
 				 "PAUTH_LR", 1, 1);
 	tainted |= check_feature(ENABLE_FEAT_FGWTE3, read_feat_fgwte3_id_field(),

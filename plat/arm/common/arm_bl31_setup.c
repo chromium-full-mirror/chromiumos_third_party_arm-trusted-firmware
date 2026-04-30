@@ -30,13 +30,6 @@
 struct transfer_list_header *secure_tl;
 struct transfer_list_header *ns_tl __unused;
 
-#if USE_GIC_DRIVER == 3
-uintptr_t arm_gicr_base_addrs[2] = {
-	PLAT_ARM_GICR_BASE,	/* GICR Base address of the primary CPU */
-	0U			/* Zero Termination */
-};
-#endif
-
 /*
  * Placeholder variables for copying the arguments that have been passed to
  * BL31 from BL2.
@@ -44,12 +37,11 @@ uintptr_t arm_gicr_base_addrs[2] = {
 static entry_point_info_t bl32_image_ep_info;
 static entry_point_info_t bl33_image_ep_info;
 
-#if ENABLE_RME
+#if ENABLE_RMM
 static entry_point_info_t rmm_image_ep_info;
-#if (RME_GPT_BITLOCK_BLOCK == 0)
-#define BITLOCK_BASE	UL(0)
-#define BITLOCK_SIZE	UL(0)
-#else
+#endif
+
+#if ENABLE_FEAT_RME && (RME_GPT_BITLOCK_BLOCK != 0)
 /*
  * Number of bitlock_t entries in bitlocks array for PLAT_ARM_PPS
  * with RME_GPT_BITLOCK_BLOCK * 512MB per bitlock.
@@ -66,8 +58,10 @@ static entry_point_info_t rmm_image_ep_info;
 static bitlock_t gpt_bitlock[BITLOCKS_NUM];
 #define BITLOCK_BASE	(uintptr_t)gpt_bitlock
 #define BITLOCK_SIZE	sizeof(gpt_bitlock)
-#endif /* RME_GPT_BITLOCK_BLOCK */
-#endif /* ENABLE_RME */
+#else /* !(ENABLE_FEAT_RME && (RME_GPT_BITLOCK_BLOCK != 0)) */
+#define BITLOCK_BASE	UL(0)
+#define BITLOCK_SIZE	UL(0)
+#endif /* ENABLE_FEAT_RME && (RME_GPT_BITLOCK_BLOCK != 0) */
 
 #if !RESET_TO_BL31
 /*
@@ -138,7 +132,7 @@ struct entry_point_info *bl31_plat_get_next_image_ep_info(uint32_t type)
 		next_image_info = &bl33_image_ep_info;
 #endif
 	}
-#if ENABLE_RME
+#if ENABLE_RMM
 	else if (type == REALM) {
 #if LFA_SUPPORT
 		if (lfa_is_prime_complete(LFA_RMM_COMPONENT)) {
@@ -214,7 +208,7 @@ void __init arm_bl31_early_platform_setup(u_register_t arg0, u_register_t arg1,
 			case NON_SECURE:
 				bl33_image_ep_info = *ep;
 				break;
-#if ENABLE_RME
+#if ENABLE_RMM
 			case REALM:
 				rmm_image_ep_info = *ep;
 				break;
@@ -267,13 +261,13 @@ void __init arm_bl31_early_platform_setup(u_register_t arg0, u_register_t arg1,
 	bl33_image_ep_info.spsr = arm_get_spsr(BL33_IMAGE_ID);
 	SET_SECURITY_STATE(bl33_image_ep_info.h.attr, NON_SECURE);
 
-#if ENABLE_RME
+#if ENABLE_RMM
 	/*
 	 * Populate entry point information for RMM.
 	 * Only PC needs to be set as other fields are determined by RMMD.
 	 */
 	rmm_image_ep_info.pc = RMM_BASE;
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 #else /* RESET_TO_BL31 */
 	/*
 	 * In debug builds, we pass a special value in 'arg3'
@@ -320,7 +314,7 @@ void __init arm_bl31_early_platform_setup(u_register_t arg0, u_register_t arg1,
 				bl_params->image_info->image_max_size;
 #endif
 		}
-#if ENABLE_RME
+#if ENABLE_RMM
 		else if (bl_params->image_id == RMM_IMAGE_ID) {
 			rmm_image_ep_info = *bl_params->ep_info;
 		}
@@ -334,7 +328,7 @@ void __init arm_bl31_early_platform_setup(u_register_t arg0, u_register_t arg1,
 
 	if (bl33_image_ep_info.pc == 0U)
 		panic();
-#if ENABLE_RME
+#if ENABLE_RMM
 	if (rmm_image_ep_info.pc == 0U)
 		panic();
 #endif
@@ -392,37 +386,6 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
  ******************************************************************************/
 void arm_bl31_platform_setup(void)
 {
-	struct transfer_list_entry *te __unused;
-
-#if TRANSFER_LIST && !RESET_TO_BL31
-	ns_tl = transfer_list_init((void *)FW_NS_HANDOFF_BASE,
-				   PLAT_ARM_FW_HANDOFF_SIZE);
-	if (ns_tl == NULL) {
-		ERROR("Non-secure transfer list initialisation failed!\n");
-		panic();
-	}
-	/* BL31 may modify the HW_CONFIG so defer copying it until later. */
-	te = transfer_list_find(secure_tl, TL_TAG_FDT);
-	assert(te != NULL);
-
-	/* Populate HW_CONFIG device tree from transfer list entry */
-	fconf_populate("HW_CONFIG", (uintptr_t)transfer_list_entry_data(te));
-
-	te = transfer_list_add(ns_tl, TL_TAG_FDT, te->data_size,
-			       transfer_list_entry_data(te));
-	assert(te != NULL);
-
-	te = transfer_list_find(secure_tl, TL_TAG_TPM_EVLOG);
-	if (te != NULL) {
-		te = transfer_list_add(ns_tl, TL_TAG_TPM_EVLOG, te->data_size,
-				  transfer_list_entry_data(te));
-		if (te == NULL) {
-			ERROR("Failed to load event log in Non-Secure transfer list\n");
-			panic();
-		}
-	}
-#endif /* TRANSFER_LIST && !RESET_TO_BL31 */
-
 #if RESET_TO_BL31
 	/*
 	 * Do initial security configuration to allow DRAM/device access
@@ -531,10 +494,6 @@ void arm_free_init_memory(void)
 void __init bl31_platform_setup(void)
 {
 	arm_bl31_platform_setup();
-
-#if USE_GIC_DRIVER == 3
-	gic_set_gicr_frames(arm_gicr_base_addrs);
-#endif
 }
 
 void bl31_plat_runtime_setup(void)
@@ -552,7 +511,7 @@ void __init arm_bl31_plat_arch_setup(void)
 {
 	const mmap_region_t bl_regions[] = {
 		MAP_BL31_TOTAL,
-#if ENABLE_RME
+#if ENABLE_FEAT_RME
 		ARM_MAP_L0_GPT_REGION,
 #endif
 #if RECLAIM_INIT_CODE
@@ -576,30 +535,74 @@ void __init arm_bl31_plat_arch_setup(void)
 
 	enable_mmu_el3(0);
 
-#if ENABLE_RME
-#if RESET_TO_BL31
-	/*  initialize GPT only when RME is enabled. */
-	assert(is_feat_rme_present());
-
-	/* Initialise and enable granule protection after MMU. */
-	arm_gpt_setup();
-#endif /* RESET_TO_BL31 */
 	/*
 	 * Initialise Granule Protection library and enable GPC for the primary
 	 * processor. The tables have already been initialized by a previous BL
 	 * stage, so there is no need to provide any PAS here. This function
 	 * sets up pointers to those tables.
+	 *
+	 * Although FEAT_RME supports feature detection, a build with
+	 * ENABLE_FEAT_RME=0 and -O0 (no optimization) fails due to undefined
+	 * reference to gpt library calls as the compiler doesn't optimise the
+	 * check done using is_feat_rme_supported(). So calls to gpt library
+	 * are gated using ENABLE_FEAT_RME.
 	 */
-	if (gpt_runtime_init(BITLOCK_BASE, BITLOCK_SIZE) < 0) {
-		ERROR("gpt_runtime_init() failed!\n");
-		panic();
+#if ENABLE_FEAT_RME
+	if (is_feat_rme_supported()) {
+		assert(is_feat_rme_present());
+
+#if RESET_TO_BL31
+		/* Initialise and enable granule protection after MMU. */
+		arm_gpt_setup();
+#endif /* RESET_TO_BL31 */
+
+		if (gpt_runtime_init(BITLOCK_BASE, BITLOCK_SIZE) < 0) {
+			ERROR("gpt_runtime_init() failed!\n");
+			panic();
+		}
 	}
-#endif /* ENABLE_RME */
+#endif /* ENABLE_FEAT_RME */
 
 	arm_setup_romlib();
+
+	struct transfer_list_entry *te __unused;
+
+#if TRANSFER_LIST && !RESET_TO_BL31
+	ns_tl = transfer_list_init((void *)FW_NS_HANDOFF_BASE,
+				   PLAT_ARM_FW_HANDOFF_SIZE);
+	if (ns_tl == NULL) {
+		ERROR("Non-secure transfer list initialisation failed!\n");
+		panic();
+	}
+	/* BL31 may modify the HW_CONFIG so defer copying it until later. */
+	te = transfer_list_find(secure_tl, TL_TAG_FDT);
+	assert(te != NULL);
+
+	/* Populate HW_CONFIG device tree from transfer list entry */
+	fconf_populate("HW_CONFIG", (uintptr_t)transfer_list_entry_data(te));
+
+	te = transfer_list_add(ns_tl, TL_TAG_FDT, te->data_size,
+			       transfer_list_entry_data(te));
+	assert(te != NULL);
+
+	te = transfer_list_find(secure_tl, TL_TAG_TPM_EVLOG);
+	if (te != NULL) {
+		te = transfer_list_add(ns_tl, TL_TAG_TPM_EVLOG, te->data_size,
+				  transfer_list_entry_data(te));
+		if (te == NULL) {
+			ERROR("Failed to load event log in Non-Secure transfer list\n");
+			panic();
+		}
+	}
+#endif /* TRANSFER_LIST && !RESET_TO_BL31 */
+
 }
 
 void __init bl31_plat_arch_setup(void)
 {
 	arm_bl31_plat_arch_setup();
+
+#if USE_GIC_DRIVER == 3
+	gic_set_gicr_frames(arm_gicr_base_addrs);
+#endif
 }

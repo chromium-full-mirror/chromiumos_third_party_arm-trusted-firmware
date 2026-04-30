@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -32,11 +32,3 @@ const struct gicv5_driver_data plat_gicv5_driver_data = {
 	.num_irss = ARRAY_SIZE(irss),
 	.num_iwbs = ARRAY_SIZE(iwbs)
 };
-
-void fvp_gic_driver_pre_init(void)
-{
-}
-
-void fvp_pcpu_init(void)
-{
-}

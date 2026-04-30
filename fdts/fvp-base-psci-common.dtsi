@@ -74,7 +74,7 @@
 
 	memory@80000000 {
 		device_type = "memory";
-#if (ENABLE_RME == 1)
+#if (ENABLE_RMM == 1)
 		reg = <0x00000000 0x80000000 0 0x7C000000>,
 		      <0x00000008 0x80000000 0 0x80000000>;
 #else
@@ -135,7 +135,7 @@
 		interrupt-map-mask = <0 0 63>;
 	};
 
-#if (ENABLE_RME == 1)
+#if (ENABLE_RMM == 1)
 	pci: pci@40000000 {
 		#address-cells = <3>;
 		#size-cells = <2>;
@@ -158,5 +158,5 @@
 		dma-coherent;
 		#iommu-cells = <1>;
 	};
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -70,6 +70,13 @@ void arm_gicv3_distif_pre_save(unsigned int rdist_proc_num)
 
 void arm_gicv3_distif_post_restore(unsigned int rdist_proc_num)
 {}
+
+void plat_gic_pre_pcpu_init(unsigned int cpu_idx)
+{
+#if USE_GIC_DRIVER == 3
+	fvp_gicv3_make_rdistrif_rw(cpu_idx);
+#endif
+}
 
 static void fvp_power_domain_on_finish_common(const psci_power_state_t *target_state)
 {
@@ -247,18 +254,6 @@ static void fvp_pwr_domain_on_finish(const psci_power_state_t *target_state)
 }
 
 /*******************************************************************************
- * FVP handler called when a power domain has just been powered on and the cpu
- * and its cluster are fully participating in coherent transaction on the
- * interconnect. Data cache must be enabled for CPU at this point.
- ******************************************************************************/
-static void fvp_pwr_domain_on_finish_late(const psci_power_state_t *target_state)
-{
-#if USE_GIC_DRIVER == 3
-	fvp_pcpu_init();
-#endif
-}
-
-/*******************************************************************************
  * FVP handler called when a power domain has just been powered on after
  * having been suspended earlier. The target_state encodes the low power state
  * that each level has woken up from.
@@ -402,7 +397,6 @@ plat_psci_ops_t plat_arm_psci_pm_ops = {
 	.pwr_domain_off = fvp_pwr_domain_off,
 	.pwr_domain_suspend = fvp_pwr_domain_suspend,
 	.pwr_domain_on_finish = fvp_pwr_domain_on_finish,
-	.pwr_domain_on_finish_late = fvp_pwr_domain_on_finish_late,
 	.pwr_domain_suspend_finish = fvp_pwr_domain_suspend_finish,
 	.system_off = fvp_system_off,
 	.system_reset = fvp_system_reset,

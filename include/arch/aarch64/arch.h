@@ -156,6 +156,8 @@
 #define CONTEXTIDR_EL2		S3_4_C13_C0_1
 #define TTBR1_EL2		S3_4_C2_C0_1
 
+#define HAFGRTR_EL2_INIT_VAL	ULL(0)
+
 /*******************************************************************************
  * Generic timer memory mapped registers & offsets
  ******************************************************************************/
@@ -1682,6 +1684,8 @@
 #define TCR2_EL1		S3_0_C2_C0_3
 #define TCR2_EL2		S3_4_C2_C0_3
 
+#define TCR2_EL2_INIT_VAL	ULL(0)
+
 /*******************************************************************************
  * Permission indirection and overlay Registers
  ******************************************************************************/
@@ -1800,6 +1804,7 @@
 #define FGWTE3_EL3					S3_6_C1_C1_5
 
 /* FGWTE3_EL3 Defintions */
+#define FGWTE3_EL3_GPCBW_EL3_BIT			(U(1) << 22)
 #define FGWTE3_EL3_VBAR_EL3_BIT				(U(1) << 21)
 #define FGWTE3_EL3_TTBR0_EL3_BIT			(U(1) << 20)
 #define FGWTE3_EL3_TPIDR_EL3_BIT			(U(1) << 19)
@@ -1822,6 +1827,7 @@
 #define FGWTE3_EL3_ACTLR_EL3_BIT			(U(1) << 0)
 
 #define FGWTE3_EL3_EARLY_INIT_VAL			(	\
+		FGWTE3_EL3_GPCBW_EL3_BIT 		| 	\
 		FGWTE3_EL3_VBAR_EL3_BIT 		| 	\
 		FGWTE3_EL3_TTBR0_EL3_BIT 		|	\
 		FGWTE3_EL3_SPMROOTCR_EL3_BIT		|	\
@@ -1830,8 +1836,6 @@
 		FGWTE3_EL3_MECID_RL_A_EL3_BIT		|	\
 		FGWTE3_EL3_MAIR2_EL3_BIT		|	\
 		FGWTE3_EL3_MAIR_EL3_BIT			|	\
-		FGWTE3_EL3_GPTBR_EL3_BIT		|	\
-		FGWTE3_EL3_GPCCR_EL3_BIT		|	\
 		FGWTE3_EL3_GCSPR_EL3_BIT		|	\
 		FGWTE3_EL3_GCSCR_EL3_BIT		|	\
 		FGWTE3_EL3_AMAIR2_EL3_BIT		|	\
@@ -1840,22 +1844,24 @@
 		FGWTE3_EL3_AFSR0_EL3_BIT)
 
 #if HW_ASSISTED_COHERENCY
-#define FGWTE3_EL3_LATE_INIT_SCTLR_EL3_BIT   FGWTE3_EL3_SCTLR_EL3_BIT |
+#define FGWTE3_EL3_LATE_INIT_SCTLR_EL3_BIT	FGWTE3_EL3_SCTLR_EL3_BIT
 #else
-#define FGWTE3_EL3_LATE_INIT_SCTLR_EL3_BIT
+#define FGWTE3_EL3_LATE_INIT_SCTLR_EL3_BIT	0
 #endif
 
 #if !(CRASH_REPORTING)
-#define FGWTE3_EL3_LATE_INIT_TPIDR_EL3_BIT	FGWTE3_EL3_TPIDR_EL3_BIT |
+#define FGWTE3_EL3_LATE_INIT_TPIDR_EL3_BIT	FGWTE3_EL3_TPIDR_EL3_BIT
 #else
-#define FGWTE3_EL3_LATE_INIT_TPIDR_EL3_BIT
+#define FGWTE3_EL3_LATE_INIT_TPIDR_EL3_BIT	0
 #endif
 
 #define FGWTE3_EL3_LATE_INIT_VAL			(	\
 		FGWTE3_EL3_EARLY_INIT_VAL		|	\
-		FGWTE3_EL3_LATE_INIT_SCTLR_EL3_BIT		\
-		FGWTE3_EL3_LATE_INIT_TPIDR_EL3_BIT		\
+		FGWTE3_EL3_LATE_INIT_SCTLR_EL3_BIT	|	\
+		FGWTE3_EL3_LATE_INIT_TPIDR_EL3_BIT	|	\
 		FGWTE3_EL3_TCR_EL3_BIT			|	\
+		FGWTE3_EL3_GPTBR_EL3_BIT		|	\
+		FGWTE3_EL3_GPCCR_EL3_BIT		|	\
 		FGWTE3_EL3_ACTLR_EL3_BIT)
 
 #endif /* ARCH_H */

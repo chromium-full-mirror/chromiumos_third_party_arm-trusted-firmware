@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  * Copyright (c) 2025, Renesas Electronics Corporation. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -52,6 +52,11 @@
 #define FLAG_OFF				0xD4D47171U
 
 static u_register_t rcar_boot_mpidr;
+
+static const uintptr_t gicr_base_addrs[2] = {
+	PLAT_ARM_GICR_BASE,	/* GICR Base address of the primary CPU */
+	0U			/* Zero Termination */
+};
 
 void rd_write_clock_control_register(uint32_t reg_address, uint32_t set_value)
 {
@@ -145,12 +150,13 @@ void bl31_plat_arch_setup(void)
 	rcar_configure_mmu_el3(BL31_BASE,
 			       BL31_LIMIT - BL31_BASE,
 			       BL31_RO_BASE, BL31_RO_LIMIT);
+
+	gic_set_gicr_frames(gicr_base_addrs);
 }
 
-static const uintptr_t gicr_base_addrs[2] = {
-	PLAT_ARM_GICR_BASE,	/* GICR Base address of the primary CPU */
-	0U			/* Zero Termination */
-};
+void plat_gic_pre_pcpu_init(unsigned int cpu_idx)
+{
+}
 
 void bl31_platform_setup(void)
 {
@@ -163,8 +169,6 @@ void bl31_platform_setup(void)
 
 	/* enable the system level generic timer */
 	mmio_write_32(RCAR_CNTC_BASE + CNTCR_OFF, CNTCR_FCREQ(0) | CNTCR_EN);
-
-	gic_set_gicr_frames(gicr_base_addrs);
 
 	/*
 	 * Preserve plat_secondary_reset symbol for secondary CPU boot.

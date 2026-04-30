@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2025, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -95,75 +95,80 @@ int __init smmuv3_init(uintptr_t smmu_base)
 		return -1;
 	}
 
-#if ENABLE_RME
+	/*
+	 * For RME-enabled systems, the platform layer is responsible for
+	 * providing the SMMU root register offset. If the offset is not
+	 * provided, GPC checks are not enabled. If provided, a runtime
+	 * validation is performed to confirm its availability and activate GPC
+	 * checks.
+	 */
+#if defined(__aarch64__) && defined(PLAT_ARM_SMMUV3_ROOT_REG_OFFSET)
 
-	if (is_feat_rme_present()) {
-		if ((mmio_read_32(smmu_base + SMMU_ROOT_IDR0) &
-				  SMMU_ROOT_IDR0_ROOT_IMPL) == 0U) {
-			WARN("Skip SMMU GPC configuration.\n");
-		} else {
-			uint64_t gpccr_el3 = read_gpccr_el3();
-			uint64_t gptbr_el3 = read_gptbr_el3();
+	if ((mmio_read_32(smmu_base + SMMU_ROOT_IDR0) &
+			  SMMU_ROOT_IDR0_ROOT_IMPL) == 0U) {
+		VERBOSE("Skip SMMU GPC configuration.\n");
+	} else {
+		uint64_t gpccr_el3 = read_gpccr_el3();
+		uint64_t gptbr_el3 = read_gptbr_el3();
 
-			/* SMMU_ROOT_GPT_BASE_CFG[16] is RES0. */
-			gpccr_el3 &= ~(1UL << 16);
+		/* SMMU_ROOT_GPT_BASE_CFG[16] is RES0. */
+		gpccr_el3 &= ~(1UL << 16);
+
+		/*
+		 * TODO: SMMU_ROOT_GPT_BASE_CFG is 64b in the spec,
+		 * but SMMU model only accepts 32b access.
+		 */
+		mmio_write_32(smmu_base + SMMU_ROOT_GPT_BASE_CFG,
+			      gpccr_el3);
+
+		/*
+		 * pa_gpt_table_base[51:12] maps to GPTBR_EL3[39:0]
+		 * whereas it maps to SMMU_ROOT_GPT_BASE[51:12]
+		 * hence needs a 12 bit left shit.
+		 */
+		mmio_write_64(smmu_base + SMMU_ROOT_GPT_BASE,
+			      gptbr_el3 << 12);
+
+		/*
+		 * GPCEN=1: All clients and SMMU-originated accesses,
+		 *          except GPT-walks, are subject to GPC.
+		 *
+		 * It is recommended to set GPCEN and wait for completion
+		 * prior to setting ACCESSEN.
+		 */
+		mmio_setbits_32(smmu_base + SMMU_ROOT_CR0,
+				SMMU_ROOT_CR0_GPCEN);
+
+		/* Poll for GPCEN ack bit. */
+		if (smmuv3_poll(smmu_base + SMMU_ROOT_CR0ACK,
+				SMMU_ROOT_CR0_GPCEN,
+				SMMU_ROOT_CR0_GPCEN) != 0) {
+			WARN("Failed enabling SMMU GPC.\n");
+		}
+
+		/*
+		 * ACCESSEN=1: SMMU- and client-originated accesses are
+		 *             not terminated by this mechanism.
+		 */
+		mmio_setbits_32(smmu_base + SMMU_ROOT_CR0,
+				SMMU_ROOT_CR0_GPCEN |
+				SMMU_ROOT_CR0_ACCESSEN);
+
+		/* Poll for ACCESSEN ack bit. */
+		if (smmuv3_poll(smmu_base + SMMU_ROOT_CR0ACK,
+				SMMU_ROOT_CR0_ACCESSEN,
+				SMMU_ROOT_CR0_ACCESSEN) != 0) {
+			WARN("Failed enabling SMMU ACCESS.\n");
 
 			/*
-			 * TODO: SMMU_ROOT_GPT_BASE_CFG is 64b in the spec,
-			 * but SMMU model only accepts 32b access.
+			 * Do not return in error, but fall back to
+			 * invalidating all entries through the secure
+			 * register file.
 			 */
-			mmio_write_32(smmu_base + SMMU_ROOT_GPT_BASE_CFG,
-				      gpccr_el3);
-
-			/*
-			 * pa_gpt_table_base[51:12] maps to GPTBR_EL3[39:0]
-			 * whereas it maps to SMMU_ROOT_GPT_BASE[51:12]
-			 * hence needs a 12 bit left shit.
-			 */
-			mmio_write_64(smmu_base + SMMU_ROOT_GPT_BASE,
-				      gptbr_el3 << 12);
-
-			/*
-			 * GPCEN=1: All clients and SMMU-originated accesses,
-			 *          except GPT-walks, are subject to GPC.
-			 *
-			 * It is recommended to set GPCEN and wait for completion
-			 * prior to setting ACCESSEN.
-			 */
-			mmio_setbits_32(smmu_base + SMMU_ROOT_CR0,
-					SMMU_ROOT_CR0_GPCEN);
-
-			/* Poll for GPCEN ack bit. */
-			if (smmuv3_poll(smmu_base + SMMU_ROOT_CR0ACK,
-					SMMU_ROOT_CR0_GPCEN,
-					SMMU_ROOT_CR0_GPCEN) != 0) {
-				WARN("Failed enabling SMMU GPC.\n");
-			}
-
-			/*
-			 * ACCESSEN=1: SMMU- and client-originated accesses are
-			 *             not terminated by this mechanism.
-			 */
-			mmio_setbits_32(smmu_base + SMMU_ROOT_CR0,
-					SMMU_ROOT_CR0_GPCEN |
-					SMMU_ROOT_CR0_ACCESSEN);
-
-			/* Poll for ACCESSEN ack bit. */
-			if (smmuv3_poll(smmu_base + SMMU_ROOT_CR0ACK,
-					SMMU_ROOT_CR0_ACCESSEN,
-					SMMU_ROOT_CR0_ACCESSEN) != 0) {
-				WARN("Failed enabling SMMU ACCESS.\n");
-
-				/*
-				 * Do not return in error, but fall back to
-				 * invalidating all entries through the secure
-				 * register file.
-				 */
-			}
 		}
 	}
 
-#endif /* ENABLE_RME */
+#endif /* __aarch64__ && PLAT_ARM_SMMUV3_ROOT_REG_OFFSET */
 
 	return 0;
 }

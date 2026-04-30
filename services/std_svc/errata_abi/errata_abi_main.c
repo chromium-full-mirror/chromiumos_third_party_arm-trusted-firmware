@@ -180,17 +180,19 @@ int32_t verify_errata_implemented(uint32_t errata_id)
 	}
 #endif
 	entry = find_erratum_entry(errata_id);
-	if (entry == NULL)
+	if (entry == NULL) {
 		return EM_UNKNOWN_ERRATUM;
-
-	if (entry->check_func(rev_var)) {
-		if (entry->chosen & WA_ENABLED_MASK)
-			if (entry->chosen & SPLIT_WA_MASK)
+	}
+	if (entry->check_func(rev_var) != ERRATA_NOT_APPLIES) {
+		if ((entry->chosen & WA_ENABLED_MASK) != 0U) {
+			if ((entry->chosen & SPLIT_WA_MASK) != 0U) {
 				return EM_AFFECTED;
-			else
+			} else {
 				return EM_HIGHER_EL_MITIGATION;
-		else
+			}
+		} else {
 			return EM_AFFECTED;
+		}
 	}
 	return EM_NOT_AFFECTED;
 }

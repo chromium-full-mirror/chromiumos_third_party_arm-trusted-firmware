@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -347,6 +347,7 @@ static int bl1_fwu_image_copy(unsigned int image_id,
 		if (bl1_plat_handle_pre_image_load(image_id) != 0) {
 			ERROR("BL1-FWU: Failure in pre-image load of image id %d\n",
 					image_id);
+			(void)bl1_fwu_remove_loaded_id(image_id);
 			return -EPERM;
 		}
 	}

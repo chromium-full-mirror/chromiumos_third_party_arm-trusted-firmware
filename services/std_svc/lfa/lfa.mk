@@ -9,6 +9,6 @@ LFA_SOURCES	+=	$(addprefix services/std_svc/lfa/, \
 			  bl31_lfa.c \
 			  lfa_holding_pen.c)
 
-ifeq (${ENABLE_RME}, 1)
+ifeq (${ENABLE_RMM}, 1)
 LFA_SOURCES	+=	services/std_svc/rmmd/rmmd_rmm_lfa.c
 endif

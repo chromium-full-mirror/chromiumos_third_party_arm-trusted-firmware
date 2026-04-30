@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2021, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2025, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -19,7 +19,7 @@
 #define SECURE		EP_SECURE
 #define NON_SECURE	EP_NON_SECURE
 #define REALM		EP_REALM
-#if ENABLE_RME
+#if ENABLE_RMM
 #define sec_state_is_valid(s)	(((s) == SECURE) ||	\
 				((s) == NON_SECURE) ||	\
 				((s) == REALM))

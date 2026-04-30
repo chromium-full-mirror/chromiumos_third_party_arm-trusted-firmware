@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Arm Limited. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -14,15 +14,14 @@ void __attribute__((target("arm"))) spin_lock(spinlock_t *lock)
 
 	__asm__ volatile (
 	"1:\n"
-	"	ldrex		%[tmp], [%[dst]]\n"
+	"	ldrex		%[tmp], %[dst]\n"
 	"	cmp		%[tmp], #0\n"
 	"	wfene\n"
-	"	strexeq		%[tmp], %[src], [%[dst]]\n"
+	"	strexeq		%[tmp], %[src], %[dst]\n"
 	"	cmpeq		%[tmp], #0\n"
 	"	bne		1b\n"
 	"	dmb\n"
-	: "+m" (*dst), [tmp] "=&r" (tmp), [src] "+r" (src)
-	: [dst] "r" (dst));
+	: [dst] "+Q" (*dst), [tmp] "=&r" (tmp), [src] "+r" (src));
 }
 
 void __attribute__((target("arm"))) spin_unlock(spinlock_t *lock)
@@ -41,33 +40,32 @@ void __attribute__((target("arm"))) spin_unlock(spinlock_t *lock)
 /* ARMv7 does not support stl instruction */
 #if ARM_ARCH_MAJOR == 7
 	"dmb\n"
-	"str	%[val], [%[dst]]\n"
+	"str	%[val], %[dst]\n"
 	"dsb\n"
 	"sev\n"
 #else
-	"stl	%[val], [%[dst]]\n"
+	"stl	%[val], %[dst]\n"
 #endif
-	: "=m" (dst)
-	: [val] "r" (val), [dst] "r" (dst));
+	: [dst] "=Q" (*dst)
+	: [val] "r" (val));
 }
 
 bool __attribute__((target("arm"))) spin_trylock(spinlock_t *lock)
 {
 	volatile uint32_t *dst = &(lock->lock);
-	uint32_t src = 1;
 	uint32_t tmp;
 	bool out;
 
 	__asm__ volatile (
-	"ldrex		%[tmp], [%[dst]]\n"
+	"ldrex		%[tmp], %[dst]\n"
 	"cmp		%[tmp], #0\n"
-	"strexeq	%[tmp], %[src], [%[dst]]\n"
+	"strexeq	%[tmp], %[src], %[dst]\n"
 	"cmpeq		%[tmp], #0\n"
 	"dmb\n"
 	"moveq		%[out], #1\n"
 	"movne		%[out], #0\n"
-	: "+m" (*dst), [tmp] "=&r" (tmp), [out] "=r" (out)
-	:  [src] "r" (src), [dst] "r" (dst));
+	: [dst] "+Q" (*dst), [tmp] "=&r" (tmp), [out] "=r" (out)
+	: [src] "r" (1));
 
 	return out;
 }

@@ -22,7 +22,7 @@
 
 #include "fvp_private.h"
 
-#if ENABLE_RME
+#if ENABLE_FEAT_RME
 /*
  * The GPT library might modify the gpt regions structure to optimize
  * the layout, so the array cannot be constant.
@@ -30,7 +30,9 @@
 static pas_region_t pas_regions[] = {
 	ARM_PAS_KERNEL,
 	ARM_PAS_SECURE,
+#if ENABLE_RMM
 	ARM_PAS_REALM,
+#endif
 	ARM_PAS_EL3_DRAM,
 #ifdef ARM_PAS_GPTS
 	ARM_PAS_GPTS,
@@ -50,7 +52,7 @@ static const arm_gpt_info_t arm_gpt_info = {
 	.pps = GPCCR_PPS_1TB,
 	.pgs = GPCCR_PGS_4K
 };
-#endif /* ENABLE_RME */
+#endif /* ENABLE_FEAT_RME */
 
 void bl2_early_platform_setup2(u_register_t arg0, u_register_t arg1, u_register_t arg2, u_register_t arg3)
 {
@@ -79,12 +81,12 @@ void bl2_platform_setup(void)
 	fvp_timer_init();
 }
 
-#if ENABLE_RME
+#if ENABLE_FEAT_RME
 const arm_gpt_info_t *plat_arm_get_gpt_info(void)
 {
 	return &arm_gpt_info;
 }
-#endif /* ENABLE_RME */
+#endif /* ENABLE_FEAT_RME */
 
 /*******************************************************************************
  * This function returns the list of executable images

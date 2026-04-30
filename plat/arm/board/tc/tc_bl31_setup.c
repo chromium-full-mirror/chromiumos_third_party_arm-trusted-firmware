@@ -229,8 +229,6 @@ void tc_bl31_common_platform_setup(void)
 {
 	arm_bl31_platform_setup();
 
-	gic_set_gicr_frames(arm_gicr_base_addrs);
-
 #ifdef PLATFORM_TESTS
 	tc_run_platform_tests();
 #endif
@@ -244,6 +242,8 @@ const plat_psci_ops_t *plat_arm_psci_override_pm_ops(plat_psci_ops_t *ops)
 void __init bl31_plat_arch_setup(void)
 {
 	arm_bl31_plat_arch_setup();
+
+	gic_set_gicr_frames(arm_gicr_base_addrs);
 
 	/*
 	 * When TRANSFER_LIST is enabled, HW_CONFIG is included in Transfer List

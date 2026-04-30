@@ -164,11 +164,11 @@ typedef struct mmap_region {
 #define EL_REGIME_INVALID	-1
 
 /* Memory type for EL3 regions. With RME, EL3 is in ROOT PAS */
-#if ENABLE_RME
+#if ENABLE_FEAT_RME
 #define EL3_PAS			MT_ROOT
 #else
 #define EL3_PAS			MT_SECURE
-#endif /* ENABLE_RME */
+#endif /* ENABLE_FEAT_RME */
 
 /*
  * Declare the translation context type.

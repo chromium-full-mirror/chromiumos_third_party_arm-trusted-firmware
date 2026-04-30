@@ -46,9 +46,9 @@
 #if defined(SPD_tspd) || defined(SPD_spmd)
 		tos_fw-config {
 			load-address = <0x0 TOS_FW_ADDR>;
-#if ENABLE_RME
+#if ENABLE_FEAT_RME
 			secondary-load-address = <0x0 0x7e00000>;
-#endif /* ENABLE_RME */
+#endif /* ENABLE_FEAT_RME */
 			max-size = <0xB00>;
 			id = <TOS_FW_CONFIG_ID>;
 		};

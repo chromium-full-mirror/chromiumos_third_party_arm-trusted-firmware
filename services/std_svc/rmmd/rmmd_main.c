@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -372,7 +372,11 @@ static void *rmmd_cpu_on_finish_handler(const void *arg)
 	uint32_t linear_id = plat_my_core_pos();
 	rmmd_rmm_context_t *ctx = PER_CPU_CUR(rmm_context);
 	/* Create a local copy of ep info to avoid race conditions */
-	entry_point_info_t local_rmm_ep_info = *rmm_ep_info;
+	entry_point_info_t local_rmm_ep_info;
+
+	if (!is_feat_rme_supported()) {
+		return NULL;
+	}
 
 	if (rmm_boot_failed) {
 		/* RMM Boot failed on a previous CPU. Abort. */
@@ -387,6 +391,7 @@ static void *rmmd_cpu_on_finish_handler(const void *arg)
 	 * arg1: opaque activation token, as returned by previous calls
 	 * arg2 to arg3: Not used.
 	 */
+	local_rmm_ep_info = *rmm_ep_info;
 	local_rmm_ep_info.args.arg0 = linear_id;
 	local_rmm_ep_info.args.arg1 = ctx->activation_token;
 	local_rmm_ep_info.args.arg2 = 0ULL;
@@ -514,13 +519,14 @@ uint64_t rmmd_rmm_el3_handler(uint32_t smc_fid, uint64_t x1, uint64_t x2,
 		WARN("RMMD: RMM-EL3 call originated from secure or normal world\n");
 		SMC_RET1(handle, SMC_UNK);
 	}
-
+	uint64_t cnt = 1;
 	switch (smc_fid) {
 	case RMM_GTSI_DELEGATE:
-		ret = gpt_delegate_pas(x1, PAGE_SIZE_4KB, SMC_FROM_REALM);
+		ret = gpt_transition_pas(x1, &cnt, GPT_GPI_REALM,
+					 SMC_FROM_REALM);
 		SMC_RET1(handle, gpt_to_gts_error(ret, smc_fid, x1));
 	case RMM_GTSI_UNDELEGATE:
-		ret = gpt_undelegate_pas(x1, PAGE_SIZE_4KB, SMC_FROM_REALM);
+		ret = gpt_transition_pas(x1, &cnt, GPT_GPI_NS, SMC_FROM_REALM);
 		SMC_RET1(handle, gpt_to_gts_error(ret, smc_fid, x1));
 	case RMM_ATTEST_GET_REALM_KEY:
 		ret = rmmd_attest_get_signing_key(x1, &x2, x3);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -92,24 +92,14 @@ void __init bl31_early_platform_setup2(u_register_t arg0,
 	}
 }
 
-void __init bl31_platform_setup(void)
-{
-	arm_bl31_platform_setup();
-
-#if USE_GIC_DRIVER == 3
-	fvp_pcpu_init();
-	fvp_gic_driver_pre_init();
-#endif
-}
-
-#if !TRANSFER_LIST
 void __init bl31_plat_arch_setup(void)
 {
+	arm_bl31_plat_arch_setup();
+
+#if !TRANSFER_LIST
 	int rc __unused;
 	uintptr_t hw_config_base_align __unused;
 	size_t mapped_size_align __unused;
-
-	arm_bl31_plat_arch_setup();
 
 	/*
 	 * For RESET_TO_BL31 systems, BL31 is the first bootloader to run.
@@ -157,8 +147,12 @@ void __init bl31_plat_arch_setup(void)
 		panic();
 	}
 #endif /* !RESET_TO_BL31 && !RESET_TO_BL2 && !ARM_XLAT_TABLES_LIB_V1 */
-}
 #endif /* TRANSFER_LIST */
+
+#if USE_GIC_DRIVER == 3
+	fvp_gic_driver_pre_init();
+#endif
+}
 
 unsigned int plat_get_syscnt_freq2(void)
 {

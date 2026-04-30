@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2025, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2026, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -127,6 +127,13 @@ void n1sdp_bl31_multichip_setup(void)
 	gic600_multichip_init(&n1sdp_multichip_data);
 }
 
+void __init bl31_plat_arch_setup(void)
+{
+	arm_bl31_plat_arch_setup();
+
+	gic_set_gicr_frames(n1sdp_multichip_gicr_frames);
+}
+
 void bl31_platform_setup(void)
 {
 	int ret;
@@ -165,12 +172,12 @@ void bl31_platform_setup(void)
 
 	/*
 	 * Initialise the GIC's frame. Hide the second frame when not operating
-	 * in multichip mode.
+	 * in multichip mode. Do this after main GIC init as it only affects
+	 * secondary cores
 	 */
 	if (!plat_info.multichip_mode) {
 		n1sdp_multichip_gicr_frames[1] = 0;
 	}
-	gic_set_gicr_frames(n1sdp_multichip_gicr_frames);
 
 	/* Check if remote memory is present */
 	if ((plat_info.multichip_mode) && (plat_info.remote_ddr_size != 0))

@@ -405,7 +405,7 @@ static uint64_t spmd_handle_group0_intr_swd(void *handle)
 		 FFA_PARAM_MBZ);
 }
 
-#if ENABLE_RME && SPMD_SPM_AT_SEL2 && !RESET_TO_BL31
+#if SPMD_SPM_AT_SEL2 && !RESET_TO_BL31
 static int spmd_dynamic_map_mem(uintptr_t base_addr, size_t size,
 				 unsigned int attr, uintptr_t *align_addr,
 				 size_t *align_size)
@@ -489,7 +489,7 @@ static void spmd_do_sec_cpy(uintptr_t root_base_addr, uintptr_t sec_base_addr,
 		panic();
 	}
 }
-#endif /* ENABLE_RME && SPMD_SPM_AT_SEL2 && !RESET_TO_BL31 */
+#endif /* SPMD_SPM_AT_SEL2 && !RESET_TO_BL31 */
 
 /*******************************************************************************
  * Loads SPMC manifest and inits SPMC.
@@ -589,25 +589,27 @@ static int spmd_spmc_init(void *pm_addr)
 					     DISABLE_ALL_EXCEPTIONS);
 	}
 
-#if ENABLE_RME && SPMD_SPM_AT_SEL2 && !RESET_TO_BL31
-	image_info = FCONF_GET_PROPERTY(dyn_cfg, dtb, TOS_FW_CONFIG_ID);
-	assert(image_info != NULL);
+#if SPMD_SPM_AT_SEL2 && !RESET_TO_BL31
+	if (is_feat_rme_supported()) {
+		image_info = FCONF_GET_PROPERTY(dyn_cfg, dtb, TOS_FW_CONFIG_ID);
+		assert(image_info != NULL);
 
-	if ((image_info->config_addr == 0UL) ||
-	    (image_info->secondary_config_addr == 0UL) ||
-	    (image_info->config_max_size == 0UL)) {
-		return -EINVAL;
+		if ((image_info->config_addr == 0UL) ||
+		    (image_info->secondary_config_addr == 0UL) ||
+		    (image_info->config_max_size == 0UL)) {
+			return -EINVAL;
+		}
+
+		/* Copy manifest from root->secure region */
+		spmd_do_sec_cpy(image_info->config_addr,
+				image_info->secondary_config_addr,
+				image_info->config_max_size);
+
+		/* Update ep info of BL32 */
+		assert(spmc_ep_info != NULL);
+		spmc_ep_info->args.arg0 = image_info->secondary_config_addr;
 	}
-
-	/* Copy manifest from root->secure region */
-	spmd_do_sec_cpy(image_info->config_addr,
-			image_info->secondary_config_addr,
-			image_info->config_max_size);
-
-	/* Update ep info of BL32 */
-	assert(spmc_ep_info != NULL);
-	spmc_ep_info->args.arg0 = image_info->secondary_config_addr;
-#endif /* ENABLE_RME && SPMD_SPM_AT_SEL2 && !RESET_TO_BL31 */
+#endif /* SPMD_SPM_AT_SEL2 && !RESET_TO_BL31 */
 
 	spmd_setup_context(plat_my_core_pos());
 

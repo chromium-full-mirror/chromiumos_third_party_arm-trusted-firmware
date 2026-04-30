@@ -7,6 +7,7 @@
 .section .text, "ax"
 
 #include <asm_macros.S>
+#include <cortex_a53.h>
 #include <lib/psci/psci.h>
 #include <nxp_timer.h>
 #include <plat_gic.h>

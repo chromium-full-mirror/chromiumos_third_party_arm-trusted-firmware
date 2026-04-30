@@ -23,8 +23,6 @@
  * TODO: SMMU_ROOT_PAGE_OFFSET is platform specific.
  * Currently defined as a command line model parameter.
  */
-#if ENABLE_RME
-
 #define SMMU_ROOT_PAGE_OFFSET	(PLAT_ARM_SMMUV3_ROOT_REG_OFFSET)
 #define SMMU_ROOT_IDR0		U(SMMU_ROOT_PAGE_OFFSET + 0x0000)
 #define SMMU_ROOT_IIDR		U(SMMU_ROOT_PAGE_OFFSET + 0x0008)
@@ -36,8 +34,6 @@
 #define SMMU_ROOT_GPT_CFG_FAR	U(SMMU_ROOT_PAGE_OFFSET + 0x0040)
 #define SMMU_ROOT_TLBI		U(SMMU_ROOT_PAGE_OFFSET + 0x0050)
 #define SMMU_ROOT_TLBI_CTRL	U(SMMU_ROOT_PAGE_OFFSET + 0x0058)
-
-#endif /* ENABLE_RME */
 
 /* SMMU_CR0 and SMMU_CR0ACK register fields */
 #define SMMU_CR0_SMMUEN			(1UL << 0)

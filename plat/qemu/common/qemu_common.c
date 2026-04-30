@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2015-2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2025, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -13,7 +13,7 @@
 #include <common/bl_common.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
 #include <services/el3_spmc_ffa_memory.h>
-#if ENABLE_RME
+#if ENABLE_RMM
 #include <services/rmm_core_manifest.h>
 #endif
 #ifdef PLAT_qemu_sbsa
@@ -213,7 +213,7 @@ int plat_spmd_handle_group0_interrupt(uint32_t intid)
 }
 #endif /*defined(SPD_spmd)*/
 
-#if ENABLE_RME
+#if ENABLE_RMM
 /*
  * Get a pointer to the RMM-EL3 Shared buffer and return it
  * through the pointer passed as parameter.
@@ -412,7 +412,7 @@ int plat_rmmd_mecid_key_update(uint16_t mecid, unsigned int reason)
 	 */
 	return 0;
 }
-#endif  /* ENABLE_RME */
+#endif  /* ENABLE_RMM */
 
 /**
  * plat_qemu_dt_runtime_address() - Get the final DT location in RAM
@@ -424,7 +424,7 @@ int plat_rmmd_mecid_key_update(uint16_t mecid, unsigned int reason)
  *
  * Return: The address of the final location in RAM of the device tree
  */
-#if (ENABLE_RME && PLAT_qemu_sbsa)
+#if (ENABLE_RMM && PLAT_qemu_sbsa)
 void *plat_qemu_dt_runtime_address(void)
 {
 	return (void *)(uintptr_t)PLAT_QEMU_DT_BASE;
@@ -434,4 +434,4 @@ void *plat_qemu_dt_runtime_address(void)
 {
 	return (void *)(uintptr_t)ARM_PRELOADED_DTB_BASE;
 }
-#endif /* (ENABLE_RME && PLAT_qemu_sbsa) */
+#endif /* (ENABLE_RMM && PLAT_qemu_sbsa) */

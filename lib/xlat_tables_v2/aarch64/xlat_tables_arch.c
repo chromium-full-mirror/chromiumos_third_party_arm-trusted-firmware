@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2025, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -62,53 +62,67 @@ uint32_t xlat_arch_get_pas(const xlat_ctx_t *ctx, uint32_t attr)
 	(void)ctx;
 	assert(ctx != NULL);
 
-#if ENABLE_RME
-	/*
-	 * When RME is enabled xlat library do not support any translation
-	 * regimes other than EL3 stage 1.
-	 */
-	assert(ctx->xlat_regime == EL3_REGIME);
-	assert((pas == MT_NS) || (pas == MT_SECURE) || (pas == MT_ROOT) ||
-	       (pas == MT_REALM));
+	if (is_feat_rme_supported()) {
+		/*
+		 * When RME is enabled xlat library do not support any
+		 * translation regimes other than EL3 stage 1.
+		 */
+		assert(ctx->xlat_regime == EL3_REGIME);
+		assert((pas == MT_NS) || (pas == MT_SECURE) || (pas == MT_ROOT)
+		       || (pas == MT_REALM));
 
-	switch (pas) {
-	case MT_REALM:
-		/* TTD.NSE = 1 and TTD.NS = 1 for Realm PAS */
-		return LOWER_ATTRS(EL3_S1_NSE | NS);
-	case MT_ROOT:
-		/* TTD.NSE = 1 and TTD.NS = 0 for Root PAS */
-		return LOWER_ATTRS(EL3_S1_NSE);
-	case MT_NS:
-		/* Non-secure PAS */
-		return LOWER_ATTRS(NS);
-	default:
-		if (is_feat_sel2_supported()) {
+		switch (pas) {
+		case MT_REALM:
+#if ENABLE_RMM
+			/* TTD.NSE = 1 and TTD.NS = 1 for Realm PAS */
+			return LOWER_ATTRS(EL3_S1_NSE | NS);
+#else
+			/* Do not support MT_REALM mapping when ENABLE_RMM=0 */
+			panic();
+#endif
+		case MT_ROOT:
+			/* TTD.NSE = 1 and TTD.NS = 0 for Root PAS */
+			return LOWER_ATTRS(EL3_S1_NSE);
+		case MT_NS:
+			/* Non-secure PAS */
+			return LOWER_ATTRS(NS);
+		default:
+			if (is_feat_sel2_supported()) {
+				/* Secure PAS  */
+				return LOWER_ATTRS(0U);
+			} else {
+				/*
+				 * Secure mappings are not supported when NSE
+				 * and NS=0 and SEL2 not implemented. Creating
+				 * such mapping will result output PA space as
+				 * non-secure.
+				 *
+				 * This case should not occur, as FEAT_SEL2 is a
+				 * mandatory architectural feature from Armv8.4
+				 * onward.
+				 */
+				assert(false);
+				return LOWER_ATTRS(NS);
+			}
+		}
+	} else {
+		/*
+		 * To support feature detection of RME, if pas is MT_ROOT then
+		 * convert to MT_SECURE when RME is not present
+		 */
+		if ((ctx->xlat_regime == EL3_REGIME) && (pas == MT_ROOT)) {
+			pas = MT_SECURE;
+		}
+
+		assert((pas == MT_NS) || (pas == MT_SECURE));
+
+		if (pas == MT_NS) {
+			return LOWER_ATTRS(NS);
+		} else {
 			/* Secure PAS  */
 			return LOWER_ATTRS(0U);
-		} else {
-			/*
-			 * Secure mappings are not supported when NSE
-			 * and NS=0 and SEL2 not implemented. Creating
-			 * such mapping will result output PA space as
-			 * non-secure.
-			 *
-			 * This case should not occur, as FEAT_SEL2 is a
-			 * mandatory architectural feature from Armv8.4 onward.
-			 */
-			assert(false);
-			return LOWER_ATTRS(NS);
 		}
 	}
-#else
-	assert((pas == MT_NS) || (pas == MT_SECURE));
-
-	if (pas == MT_NS) {
-		return LOWER_ATTRS(NS);
-	} else {
-		/* Secure PAS  */
-		return LOWER_ATTRS(0U);
-	}
-#endif
 }
 
 unsigned long long tcr_physical_addr_size_bits(unsigned long long max_addr)

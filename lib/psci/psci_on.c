@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -174,6 +174,16 @@ void psci_cpu_on_finish(unsigned int cpu_idx, const psci_power_state_t *state_in
 	psci_do_pwrup_cache_maintenance();
 #endif
 
+#if USE_GIC_DRIVER
+	/*
+	 * Set up this core's GIC interface, with caching on, before the late
+	 * platform setup so that it has a chance to configure interrupts. The
+	 * GIC provides a hook to set itself up early.
+	 */
+	gic_pcpu_init(cpu_idx);
+	gic_cpuif_enable(cpu_idx);
+#endif /* USE_GIC_DRIVER */
+
 	/*
 	 * Plat. management: Perform any platform specific actions which
 	 * can only be done with the cpu and the cluster guaranteed to
@@ -182,12 +192,6 @@ void psci_cpu_on_finish(unsigned int cpu_idx, const psci_power_state_t *state_in
 	if (psci_plat_pm_ops->pwr_domain_on_finish_late != NULL) {
 		psci_plat_pm_ops->pwr_domain_on_finish_late(state_info);
 	}
-
-#if USE_GIC_DRIVER
-	/* GIC init after platform has had a say with MMU on */
-	gic_pcpu_init(cpu_idx);
-	gic_cpuif_enable(cpu_idx);
-#endif /* USE_GIC_DRIVER */
 
 	/*
 	 * All the platform specific actions for turning this cpu

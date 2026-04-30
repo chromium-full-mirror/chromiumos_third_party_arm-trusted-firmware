@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2024-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -11,6 +11,11 @@ void gic_init(unsigned int cpu_idx);
 void gic_cpuif_enable(unsigned int cpu_idx);
 void gic_cpuif_disable(unsigned int cpu_idx);
 void gic_pcpu_off(unsigned int cpu_idx);
+/*
+ * Platform hook to perform any GIC-specific setup before the main core setup
+ * can take place.
+ */
+void plat_gic_pre_pcpu_init(unsigned int cpu_idx);
 void gic_pcpu_init(unsigned int cpu_idx);
 void gic_save(void);
 void gic_resume(void);

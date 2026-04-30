@@ -12,6 +12,7 @@ Components
    exception-handling
    fconf/index
    firmware-update
+   firme
    measured_boot/index
    mpmm
    platform-interrupt-controller-API

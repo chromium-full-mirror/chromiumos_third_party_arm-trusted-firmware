@@ -916,6 +916,15 @@ Renesas rcar-gen3 platform port
 :|F|: drivers/renesas/rcar
 :|F|: tools/renesas/rcar_layout_create
 
+Renesas RZ/A platform port
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+:|M|: Nhut Nguyen <nhut.nguyen.kc@renesas.com>
+:|G|: `nhutnguyenkc`_
+:|F|: docs/plat/rz-a3.rst
+:|F|: plat/renesas/rza
+:|F|: drivers/renesas/rza
+:|F|: tools/renesas/rza
+
 Renesas RZ/G2 platform port
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 :|M|: Biju Das <biju.das.jz@bp.renesas.com>
@@ -1168,6 +1177,7 @@ Conventional Changelog Extensions
 .. _mmind: https://github.com/mmind
 .. _MrVan: https://github.com/MrVan
 .. _Neal-liu: https://github.com/neal-liu
+.. _nhutnguyenkc: https://github.com/nhutnguyenkc
 .. _niej: https://github.com/niej
 .. _nmenon: https://github.com/nmenon
 .. _npoushin: https://github.com/npoushin

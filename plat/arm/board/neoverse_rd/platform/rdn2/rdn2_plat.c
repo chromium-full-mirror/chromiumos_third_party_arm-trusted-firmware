@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2020-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -148,6 +148,20 @@ unsigned int plat_arm_nrd_get_multi_chip_mode(void)
 }
 
 #if defined(IMAGE_BL31)
+
+void __init bl31_plat_arch_setup(void)
+{
+	arm_bl31_plat_arch_setup();
+
+#if (NRD_PLATFORM_VARIANT == 2)
+	if (plat_arm_nrd_get_multi_chip_mode()) {
+		gic600_multichip_init(&rdn2mc_multichip_data);
+	}
+#endif
+
+	gic_set_gicr_frames(rdn2mc_multichip_gicr_frames);
+}
+
 void bl31_platform_setup(void)
 {
 #if (NRD_PLATFORM_VARIANT == 2)
@@ -173,15 +187,10 @@ void bl31_platform_setup(void)
 				panic();
 			}
 		}
-
-		gic600_multichip_init(&rdn2mc_multichip_data);
 	}
 #endif
 
 	nrd_bl31_common_platform_setup();
-
-	gic_set_gicr_frames(
-		rdn2mc_multichip_gicr_frames);
 
 #if ENABLE_FEAT_RAS && FFH_SUPPORT
 	nrd_ras_platform_setup(&ras_config);

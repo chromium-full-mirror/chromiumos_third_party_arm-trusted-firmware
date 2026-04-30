@@ -614,26 +614,8 @@ The parameters are platform specific and passed from ``bl31_entrypoint()`` to
 ``bl31_early_platform_setup()``. The value of these parameters is never directly
 used by the common BL31 code.
 
-The convention is that ``X0`` conveys information regarding the BL31, BL32 and
-BL33 images from the Trusted Boot firmware and ``X1`` can be used for other
-platform specific purpose. This convention allows platforms which use TF-A's
-BL1 and BL2 images to transfer additional platform specific information from
-Secure Boot without conflicting with future evolution of TF-A using ``X0`` to
-pass a ``bl31_params`` structure.
-
-BL31 common and SPD initialization code depends on image and entrypoint
-information about BL33 and BL32, which is provided via BL31 platform APIs.
-This information is required until the start of execution of BL33. This
-information can be provided in a platform defined manner, e.g. compiled into
-the platform code in BL31, or provided in a platform defined memory location
-by the Trusted Boot firmware, or passed from the Trusted Boot Firmware via the
-Cold boot Initialization parameters. This data may need to be cleaned out of
-the CPU caches if it is provided by an earlier boot stage and then accessed by
-BL31 platform code before the caches are enabled.
-
-TF-A's BL2 implementation passes a ``bl31_params`` structure in
-``X0`` and the Arm development platforms interpret this in the BL31 platform
-code.
+Legacy platforms may still pass a ``bl31_params`` structure in ``X0``, while TL
+adopted platforms may use Transfer List; both are platform-specific.
 
 MMU, Data caches & Coherency
 ''''''''''''''''''''''''''''
@@ -2922,7 +2904,7 @@ kernel at boot time. These can be found in the ``fdts`` directory.
 
 --------------
 
-*Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.*
+*Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.*
 
 .. _SMCCC: https://developer.arm.com/docs/den0028/latest
 .. _PSCI: https://developer.arm.com/documentation/den0022/latest/

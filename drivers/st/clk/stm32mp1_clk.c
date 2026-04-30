@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2018-2026, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: GPL-2.0+ OR BSD-3-Clause
  */
@@ -96,13 +96,13 @@ static int clk_stm32_init(struct stm32_clk_priv *priv, uintptr_t base)
 #define USB_PHY_48_MHZ		48000000
 
 #define TIMEOUT_US_200MS	U(200000)
-#define TIMEOUT_US_1S		U(1000000)
+#define TIMEOUT_US_2S		U(2000000)
 
 #define PLLRDY_TIMEOUT		TIMEOUT_US_200MS
 #define CLKSRC_TIMEOUT		TIMEOUT_US_200MS
 #define CLKDIV_TIMEOUT		TIMEOUT_US_200MS
 #define HSIDIV_TIMEOUT		TIMEOUT_US_200MS
-#define OSCRDY_TIMEOUT		TIMEOUT_US_1S
+#define OSCRDY_TIMEOUT		TIMEOUT_US_2S
 
 struct mux_cfg {
 	uint16_t offset;
@@ -1312,6 +1312,9 @@ static void __clk_enable(struct stm32mp1_clk_gate const *gate)
 	} else {
 		mmio_setbits_32(rcc_base + gate->offset, BIT(gate->bit));
 	}
+
+	/* Make sure the clock register has been written */
+	(void)mmio_read_32(rcc_base + gate->offset);
 }
 
 static void __clk_disable(struct stm32mp1_clk_gate const *gate)
@@ -1320,12 +1323,17 @@ static void __clk_disable(struct stm32mp1_clk_gate const *gate)
 
 	VERBOSE("Disable clock %u\n", gate->index);
 
+	dmbsy(); /* Ensure previous transactions are performed. */
+
 	if (gate->set_clr != 0U) {
 		mmio_write_32(rcc_base + gate->offset + RCC_MP_ENCLRR_OFFSET,
 			      BIT(gate->bit));
 	} else {
 		mmio_clrbits_32(rcc_base + gate->offset, BIT(gate->bit));
 	}
+
+	/* Make sure the clock register has been written */
+	(void)mmio_read_32(rcc_base + gate->offset);
 }
 
 static bool __clk_is_enabled(struct stm32mp1_clk_gate const *gate)
@@ -1357,6 +1365,7 @@ static bool clock_is_always_on(unsigned long id)
 	case CK_MPU:
 	case CK_MCU:
 	case RTC:
+	case RTCAPB:
 		return true;
 	default:
 		return false;
@@ -2764,7 +2773,7 @@ static int stm32_clk_parse_fdt_all_pll(void *fdt, int node, struct stm32_clk_pla
 		snprintf(name, sizeof(name), "st,pll@%u", i);
 
 		subnode = fdt_subnode_offset(fdt, node, name);
-		if (!fdt_check_node(subnode)) {
+		if ((subnode < 0) || !fdt_check_node(subnode)) {
 			continue;
 		}
 

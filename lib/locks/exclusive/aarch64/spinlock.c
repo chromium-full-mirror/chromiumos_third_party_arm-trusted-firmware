@@ -16,9 +16,9 @@ static uint32_t ldaxr_32(volatile uint32_t *dst)
 	uint32_t ret;
 
 	__asm__ volatile (
-	"ldaxr	%w[ret], [%[dst]]\n"
+	"ldaxr	%w[ret], %[dst]\n"
 	: [ret] "=r" (ret)
-	: "m" (*dst), [dst] "r" (dst));
+	: [dst] "Q" (*dst));
 
 	return ret;
 }
@@ -28,9 +28,9 @@ static uint32_t stxr_32(uint32_t src, volatile uint32_t *dst)
 	uint32_t ret;
 
 	__asm__ volatile (
-	"stxr	%w[ret], %w[src], [%[dst]]\n"
-	: "+m" (*dst), [ret] "=&r" (ret)
-	: [src] "r" (src), [dst] "r" (dst));
+	"stxr	%w[ret], %w[src], %[dst]\n"
+	: [dst] "=Q" (*dst), [ret] "=&r" (ret)
+	: [src] "r" (src));
 
 	return ret;
 }
@@ -41,9 +41,9 @@ static uint32_t casa_32(uint32_t src, volatile uint32_t *dst)
 
 	__asm__ volatile (
 	".arch_extension lse\n"
-	"	casa	%w[ret], %w[src], [%[dst]]\n"
-	: "+m" (*dst), [ret] "+r" (ret)
-	: [src] "r" (src), [dst] "r" (dst));
+	"	casa	%w[ret], %w[src], %[dst]\n"
+	: [dst] "+Q" (*dst), [ret] "+r" (ret)
+	: [src] "r" (src));
 
 	return ret;
 }
@@ -105,9 +105,8 @@ void spin_unlock(spinlock_t *lock)
 	 * WFE when address is monitored by the global monitor.
 	 */
 	__asm__ volatile (
-	"stlr	wzr, [%[dst]]"
-	: "=m" (dst)
-	: [dst] "r" (dst));
+	"stlr	wzr, %[dst]"
+	: [dst] "=Q" (*dst));
 
 	/* atomics don't generate events so wake others manually */
 	if (is_feat_lse_supported()) {
@@ -117,16 +116,15 @@ void spin_unlock(spinlock_t *lock)
 
 static bool spin_trylock_atomic(volatile uint32_t *dst)
 {
-	uint32_t src = 1;
 	uint32_t tmp = 0;
 	bool out;
 
 	__asm__ volatile (
 	".arch_extension lse\n"
-	"casa	%w[tmp], %w[src], [%[dst]]\n"
+	"casa	%w[tmp], %w[src], %[dst]\n"
 	"eor	%w[out], %w[tmp], #1\n" /* convert the result to bool */
-	: "+m" (*dst), [tmp] "+r" (tmp), [out] "=r" (out)
-	: [src] "r" (src), [dst] "r" (dst));
+	: [dst] "+Q" (*dst), [tmp] "+r" (tmp), [out] "=r" (out)
+	: [src] "r" (1));
 
 	return out;
 }
@@ -180,17 +178,17 @@ void bit_lock(bitlock_t *lock, uint8_t mask)
 	assert(is_feat_lse_supported());
 
 	__asm__ volatile (
-	"1:	ldsetab	%w[mask], %w[tmp], [%[dst]]\n"
+	"1:	ldsetab	%w[mask], %w[tmp], %[dst]\n"
 	"	tst	%w[tmp], %w[mask]\n"
 	"	b.eq	2f\n"
-	"	ldxrb	%w[tmp], [%[dst]]\n"
+	"	ldxrb	%w[tmp], %[dst]\n"
 	"	tst	%w[tmp], %w[mask]\n"
 	"	b.eq	1b\n"
 	"	wfe\n"
 	"	b	1b\n"
 	"2:\n"
-	: "+m" (*dst), [tmp] "=&r" (tmp)
-	: [mask] "r" (mask), [dst] "r" (dst));
+	: [dst] "+Q" (*dst), [tmp] "=&r" (tmp)
+	: [mask] "r" (mask));
 }
 
 /*
@@ -206,8 +204,8 @@ void bit_unlock(bitlock_t *lock, uint8_t mask)
 	assert(is_feat_lse_supported());
 
 	__asm__ volatile (
-	"stclrlb	%w[mask], [%[dst]]"
-	: "=m" (dst)
-	: [mask] "r" (mask), [dst] "r" (dst));
+	"stclrlb	%w[mask], %[dst]"
+	: [dst] "+Q" (*dst)
+	: [mask] "r" (mask));
 }
 #endif

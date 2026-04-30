@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2024-2025, Linaro Limited. All rights reserved.
+ * Copyright (c) 2025, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -276,7 +277,7 @@ static void read_platform_version(void *dtb)
 	}
 }
 
-#if !ENABLE_RME
+#if !ENABLE_RMM
 static int set_system_memory_base(void *dtb, uintptr_t new_base)
 {
 	(void)dtb;
@@ -284,7 +285,7 @@ static int set_system_memory_base(void *dtb, uintptr_t new_base)
 
 	return 0;
 }
-#else /* !ENABLE_RME */
+#else /* !ENABLE_RMM */
 static int set_system_memory_base(void *dtb, uintptr_t new_base)
 {
 	uint64_t cur_base, cur_size, new_size, delta;
@@ -389,7 +390,7 @@ static int set_system_memory_base(void *dtb, uintptr_t new_base)
 
 	return fdt_pack(dtb);
 }
-#endif /* !ENABLE_RME */
+#endif /* !ENABLE_RMM */
 
 void sbsa_platform_init(void)
 {

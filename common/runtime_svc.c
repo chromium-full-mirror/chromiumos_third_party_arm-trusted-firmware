@@ -184,13 +184,13 @@ static u_register_t get_flags(uint32_t smc_fid, u_register_t scr_el3)
 
 	/* Copy SCR_EL3.NS bit to the flag to indicate caller's security */
 	flags |= scr_el3 & SCR_NS_BIT;
-#if ENABLE_RME
+#if ENABLE_RMM
 	/* Copy SCR_EL3.NSE bit to the flag to indicate caller's security Shift
 	 * copied SCR_EL3.NSE bit by 5 to create space for SCR_EL3.NS bit. Bit 5
 	 * of the flag corresponds to the SCR_EL3.NSE bit.
 	 */
 	flags |= ((scr_el3 & SCR_NSE_BIT) >> SCR_NSE_SHIFT) << 5;
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 
 	/*
 	 * Per SMCCCv1.3 a caller can set the SVE hint bit in the SMC FID passed

@@ -51,15 +51,18 @@
 #define PLAT_ARM_TRUSTED_DRAM_BASE	UL(0x06000000)
 #define PLAT_ARM_TRUSTED_DRAM_SIZE	UL(0x02000000)	/* 32 MB */
 
-#if ENABLE_RME
+#if ENABLE_RMM
 #define PLAT_ARM_RMM_BASE		(RMM_BASE)
 #define PLAT_ARM_RMM_SIZE		(RMM_LIMIT - RMM_BASE)
 
 #define PLAT_ARM_RMM_PAYLOAD_SIZE	UL(0x600000)	/* 2 * 3MB */
 
+#endif /* ENABLE_RMM */
+
+#if ENABLE_FEAT_RME
 /* Protected physical address size */
 #define PLAT_ARM_PPS			(SZ_1T)
-#endif /* ENABLE_RME */
+#endif
 
 /*
  * Max size of SPMC is 16MB for fvp. With SPMD enabled this value corresponds to
@@ -221,13 +224,13 @@
 # else
 #  define PLAT_ARM_MMAP_ENTRIES		9
 #  if USE_DEBUGFS
-#   if ENABLE_RME
+#   if ENABLE_RMM
 #    define MAX_XLAT_TABLES		9
 #   else
 #    define MAX_XLAT_TABLES		8
 #   endif
 #  else
-#   if ENABLE_RME
+#   if ENABLE_RMM
 #    define MAX_XLAT_TABLES		8
 #   elif DRTM_SUPPORT
 #    define MAX_XLAT_TABLES		8
@@ -245,13 +248,13 @@
 #  define MAX_XLAT_TABLES		6
 # endif
 #elif !USE_ROMLIB
-# if defined(IMAGE_BL2) && (ENABLE_RME || SPMC_AT_EL3)
+# if defined(IMAGE_BL2) && (ENABLE_RMM || SPMC_AT_EL3)
 #  define PLAT_ARM_MMAP_ENTRIES		12
 #  define MAX_XLAT_TABLES		6
 # else
 #  define PLAT_ARM_MMAP_ENTRIES		12
 #  define MAX_XLAT_TABLES		5
-# endif /* (IMAGE_BL2 && ENABLE_RME) */
+# endif /* (IMAGE_BL2 && ENABLE_RMM) */
 #else
 # define PLAT_ARM_MMAP_ENTRIES		12
 # if (defined(SPD_tspd) || defined(SPD_opteed) || defined(SPD_spmd)) && \
@@ -568,13 +571,13 @@ FVP_TRUSTED_SRAM_SIZE == 512
  */
 #if defined(IMAGE_BL1) && TRANSFER_LIST
 #define PLAT_ARM_EVENT_LOG_MAX_SIZE		SZ_512
-#elif (defined(SPD_spmd)) || (ENABLE_RME && (defined(SPD_tspd) || defined(SPD_opteed)))
+#elif (defined(SPD_spmd)) || (ENABLE_RMM && (defined(SPD_tspd) || defined(SPD_opteed)))
 /*
  * Account for additional measurements of secure partitions and SPM.
  * Also, account for OP-TEE running with maximum number of SPs.
  */
 #define PLAT_ARM_EVENT_LOG_MAX_SIZE		SZ_4K
-#elif ENABLE_RME
+#elif ENABLE_RMM
 #define PLAT_ARM_EVENT_LOG_MAX_SIZE		SZ_2K
 #else
 #define PLAT_ARM_EVENT_LOG_MAX_SIZE		SZ_1K

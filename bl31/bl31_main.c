@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -52,7 +52,7 @@ static int32_t (*bl32_init)(void);
 /*****************************************************************************
  * Function used to initialise RMM if RME is enabled
  *****************************************************************************/
-#if ENABLE_RME
+#if ENABLE_RMM
 static int32_t (*rmm_init)(void);
 #endif
 
@@ -143,22 +143,23 @@ void __no_pauth bl31_main(u_register_t arg0, u_register_t arg1, u_register_t arg
 	}
 #endif
 
+#if USE_GIC_DRIVER
+	/*
+	 * Initialize the GIC driver and this core's GIC interface before fully
+	 * setting up the platform. This allows early platform setup to
+	 * configure interrupts.
+	 */
+	gic_init(core_pos);
+	gic_pcpu_init(core_pos);
+	gic_cpuif_enable(core_pos);
+#endif /* USE_GIC_DRIVER */
+
 	/* Perform platform setup in BL31 */
 	bl31_platform_setup();
 
 #if USE_DSU_DRIVER
 	dsu_driver_init(&plat_dsu_data);
 #endif
-
-#if USE_GIC_DRIVER
-	/*
-	 * Initialize the GIC driver as well as per-cpu and global interfaces.
-	 * Platform has had an opportunity to initialise specifics.
-	 */
-	gic_init(core_pos);
-	gic_pcpu_init(core_pos);
-	gic_cpuif_enable(core_pos);
-#endif /* USE_GIC_DRIVER */
 
 	/* Initialise helper libraries */
 	bl31_lib_init();
@@ -203,7 +204,7 @@ void __no_pauth bl31_main(u_register_t arg0, u_register_t arg1, u_register_t arg
 	 * If RME is enabled and init hook is registered, initialize RMM
 	 * in R-EL2.
 	 */
-#if ENABLE_RME
+#if ENABLE_RMM
 	if (rmm_init != NULL) {
 		INFO("BL31: Initializing RMM\n");
 
@@ -249,15 +250,17 @@ void __no_pauth bl31_warmboot(void)
 	/* Init registers that never change for the lifetime of the core. */
 	cm_manage_extensions_el3(core_pos);
 
-#if ENABLE_RME
 	/*
 	 * At warm boot GPT data structures have already been initialized in RAM
 	 * but the sysregs for this CPU need to be initialized. Note that the GPT
 	 * accesses are controlled attributes in GPCCR and do not depend on the
 	 * SCR_EL3.C bit.
 	 */
-	if (gpt_enable() != 0) {
-		panic();
+#if ENABLE_FEAT_RME
+	if (is_feat_rme_supported()) {
+		if (gpt_enable() != 0) {
+			panic();
+		}
 	}
 #endif
 
@@ -342,7 +345,7 @@ void bl31_register_bl32_init(int32_t (*func)(void))
 	bl32_init = func;
 }
 
-#if ENABLE_RME
+#if ENABLE_RMM
 /*******************************************************************************
  * This function initializes the pointer to RMM init function. This is expected
  * to be called by the RMMD after it finishes all its initialization

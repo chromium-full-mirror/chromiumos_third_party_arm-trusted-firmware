@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2023, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2016-2025, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -77,7 +77,7 @@ static bl_mem_params_node_t bl2_mem_params_descs[] = {
 
 # if defined(BL32_BASE)
 		.next_handoff_image_id = BL32_IMAGE_ID,
-# elif ENABLE_RME
+# elif ENABLE_RMM
 		.next_handoff_image_id = RMM_IMAGE_ID,
 # else
 		.next_handoff_image_id = BL33_IMAGE_ID,
@@ -103,7 +103,7 @@ static bl_mem_params_node_t bl2_mem_params_descs[] = {
 		.next_handoff_image_id = INVALID_IMAGE_ID,
 	},
 
-# if ENABLE_RME
+# if ENABLE_RMM
 	/* Fill RMM related information */
 	{
 		.image_id = RMM_IMAGE_ID,
@@ -132,7 +132,7 @@ static bl_mem_params_node_t bl2_mem_params_descs[] = {
 		.image_info.image_base = BL32_BASE,
 		.image_info.image_max_size = BL32_LIMIT - BL32_BASE,
 
-# if ENABLE_RME
+# if ENABLE_RMM
 		.next_handoff_image_id = RMM_IMAGE_ID,
 # else
 		.next_handoff_image_id = BL33_IMAGE_ID,

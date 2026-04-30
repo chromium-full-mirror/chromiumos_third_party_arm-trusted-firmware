@@ -11,6 +11,7 @@
 #include <plat_gic.h>
 #include <scfg.h>
 
+#include <cortex_a72.h>
 #include <bl31_data.h>
 #include <plat_psci.h>
 #include <platform_def.h>

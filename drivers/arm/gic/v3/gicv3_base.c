@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -98,7 +98,8 @@ void gic_set_gicr_frames(const uintptr_t *plat_gicr_frames)
 }
 
 /******************************************************************************
- * ARM common helper to initialize the GIC. Only invoked by BL31
+ * ARM common helper to initialize the GIC. Only invoked by BL31. The platform
+ * should have already done any prerequisites.
  *****************************************************************************/
 void __init gic_init(unsigned int cpu_idx)
 {
@@ -135,6 +136,10 @@ void gic_pcpu_init(unsigned int cpu_idx)
 
 	/* did the platform initialise the array with gic_set_gicr_frames() */
 	assert(gicr_frames != NULL);
+
+#if __aarch64__
+	plat_gic_pre_pcpu_init(cpu_idx);
+#endif
 
 	while (*frame != 0U) {
 		result = gicv3_rdistif_probe(*frame);

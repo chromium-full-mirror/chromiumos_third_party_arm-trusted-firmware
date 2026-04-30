@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2024, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2021-2026, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -71,11 +71,12 @@ static void atxslewrate_program(struct stm32mp_ddr_config *config)
 	uint32_t anib;
 	uint32_t atxpren; /* Default to 0xf (max). Optimal setting is technology specific */
 	uint32_t atxprep; /* Default to 0xf (max). Optimal setting is technology specific */
-	uint32_t ck_anib_inst[2] = {0};
+	uint32_t ck_anib_inst[2] __maybe_unused = {0U};
 
 	atxprep = config->uia.txslewriseac;
 	atxpren = config->uia.txslewfallac;
 
+#if STM32MP_DDR3_TYPE || STM32MP_DDR4_TYPE
 	/*
 	 * # of ANIBs      CK ANIB Instance
 	 * ACX8            ANIB 1
@@ -84,6 +85,7 @@ static void atxslewrate_program(struct stm32mp_ddr_config *config)
 		ck_anib_inst[0] = 1U;
 		ck_anib_inst[1] = 1U;
 	}
+#endif /* STM32MP_DDR3_TYPE || STM32MP_DDR4_TYPE */
 
 	for (anib = 0U; anib < config->uib.numanib; anib++) {
 		uint32_t atxpredrvmode;
@@ -92,21 +94,17 @@ static void atxslewrate_program(struct stm32mp_ddr_config *config)
 
 		c_addr = anib << 12;
 
+#if STM32MP_DDR3_TYPE || STM32MP_DDR4_TYPE
 		if ((anib == ck_anib_inst[0]) || (anib == ck_anib_inst[1])) {
 			/* CK ANIB instance */
-#if STM32MP_DDR3_TYPE || STM32MP_DDR4_TYPE
 			atxpredrvmode = 0x0U;
-#else /* STM32MP_LPDDR4_TYPE */
-			atxpredrvmode = 0x1U;
-#endif /* STM32MP_DDR3_TYPE || STM32MP_DDR4_TYPE */
 		} else {
 			/* non-CK ANIB instance */
-#if STM32MP_DDR3_TYPE || STM32MP_DDR4_TYPE
 			atxpredrvmode = 0x3U;
-#else /* STM32MP_LPDDR4_TYPE */
-			atxpredrvmode = 0x1U;
-#endif /* STM32MP_DDR3_TYPE || STM32MP_DDR4_TYPE */
 		}
+#else /* STM32MP_LPDDR4_TYPE */
+		atxpredrvmode = 0x1U;
+#endif /* STM32MP_DDR3_TYPE || STM32MP_DDR4_TYPE */
 
 		atxslewrate = (uint16_t)((atxpredrvmode << CSR_ATXPREDRVMODE_LSB) |
 					 (atxpren << CSR_ATXPREN_LSB) |

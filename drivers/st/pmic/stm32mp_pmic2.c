@@ -132,10 +132,10 @@ bool initialize_pmic_i2c(void)
 {
 	int ret;
 	uint8_t val;
-	struct dt_node_info i2c_info;
+	struct dt_node_info i2c_info = { 0 };
 	struct i2c_handle_s *i2c = &i2c_handle;
 	uint32_t i2c_addr = 0U;
-	struct stm32_i2c_init_s i2c_init;
+	struct stm32_i2c_init_s i2c_init = { 0 };
 
 	ret = dt_pmic2_i2c_config(&i2c_info, &i2c_init, &i2c_addr);
 	if (ret < 0) {
@@ -480,6 +480,10 @@ static int register_pmic2(void)
 			bool high;
 
 			ret = stpmic2_is_buck1_high_voltage(pmic2, &high);
+			if (ret != 0) {
+				ERROR("Failed to get buck1 info\n");
+				return ret;
+			}
 			if (high) {
 				reg_name = "buck1h";
 			}

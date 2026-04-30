@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Arm Limited. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -22,10 +22,6 @@
        "CTX_INCLUDE_AARCH32_REGS=0"
 #endif
 
-#if ERRATA_SME_POWER_DOWN == 0
-#error "LSC25 P-core needs ERRATA_SME_POWER_DOWN=1 to powerdown correctly"
-#endif
-
 cpu_reset_prologue lsc25_p_core
 
 cpu_reset_func_start lsc25_p_core
@@ -38,6 +34,16 @@ cpu_reset_func_start lsc25_p_core
 cpu_reset_func_end lsc25_p_core
 
 func lsc25_p_core_core_pwr_dwn
+	/*
+	 * When software running at lower ELs requests power down without first
+	 * disabling SME, the CME connected to it will reject its power down
+	 * request. Skip setting the PWRDN_EN bit, downgrading the powerdown
+	 * request to a simple WFI wait, to get a minimal amount of power saving
+	 * rather than an instant pabandon.
+	 */
+	mrs	x0, SVCR
+	cbnz	x0, lsc25_p_core_skip_pwr_dwn
+
 	/* ---------------------------------------------------
 	 * Flip CPU power down bit in power control register.
 	 * It will be set on powerdown and cleared on wakeup
@@ -46,6 +52,7 @@ func lsc25_p_core_core_pwr_dwn
 	sysreg_bit_toggle LSC25_P_CORE_IMP_CPUPWRCTLR_EL1, \
 		LSC25_P_CORE_IMP_CPUPWRCTLR_EL1_CORE_PWRDN_EN_BIT
 	isb
+lsc25_p_core_skip_pwr_dwn:
 	signal_pabandon_handled
 	ret
 endfunc lsc25_p_core_core_pwr_dwn

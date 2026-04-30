@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2018-2026, Arm Limited and Contributors. All rights reserved.
  * Copyright (c) 2018-2022, Xilinx, Inc. All rights reserved.
  * Copyright (c) 2022-2025, Advanced Micro Devices, Inc. All rights reserved.
  *
@@ -256,11 +256,13 @@ static uint64_t rdo_el3_interrupt_handler(uint32_t id, uint32_t flags,
 	return 0;
 }
 
+void plat_gic_pre_pcpu_init(unsigned int cpu_idx)
+{
+}
+
 void bl31_platform_setup(void)
 {
 	prepare_dtb();
-
-	gic_set_gicr_frames(gicr_base_addrs);
 }
 
 void bl31_plat_runtime_setup(void)
@@ -301,4 +303,6 @@ void bl31_plat_arch_setup(void)
 
 	setup_page_tables(bl_regions, plat_get_mmap());
 	enable_mmu(0);
+
+	gic_set_gicr_frames(gicr_base_addrs);
 }

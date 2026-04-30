@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2026, BayLibre SAS
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -7,6 +8,7 @@
 #include <arch.h>
 #include <asm_macros.S>
 #include <assert_macros.S>
+#include <plat/common/plat_hold_pen.S>
 #include <platform_def.h>
 
 	.globl	plat_my_core_pos
@@ -64,28 +66,9 @@ endfunc plat_is_my_cpu_primary
 	 * -----------------------------------------------------
 	 */
 func plat_secondary_cold_boot_setup
-	/* Calculate address of our hold entry */
 	bl	plat_my_core_pos
-	lsl	r0, r0, #PLAT_QEMU_HOLD_ENTRY_SHIFT
-	mov_imm	r2, PLAT_QEMU_HOLD_BASE
-
-	/* Wait until we have a go */
-poll_mailbox:
-	ldr	r1, [r2, r0]
-        cmp     r1, #PLAT_QEMU_HOLD_STATE_WAIT
-        beq     1f
-
-	/* Clear the mailbox again ready for next time. */
-	mov r1, #PLAT_QEMU_HOLD_STATE_WAIT
-	str r1, [r2, r0]
-
-	/* Jump to the provided entrypoint. */
-	mov_imm	r0, PLAT_QEMU_TRUSTED_MAILBOX_BASE
-	ldr	r1, [r0]
-	bx	r1
-1:
-	wfe
-	b	poll_mailbox
+	mov_imm	r1, PLAT_QEMU_HOLD_BASE
+	plat_hold_pen_wait_and_jump r1, r0, r2
 endfunc plat_secondary_cold_boot_setup
 
 func plat_get_my_entrypoint

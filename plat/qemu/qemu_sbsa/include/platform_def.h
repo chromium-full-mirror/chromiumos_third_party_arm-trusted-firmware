@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause
  *
- * Copyright (c) 2019-2020, Linaro Limited and Contributors.
- * All rights reserved.
+ * Copyright (c) 2019-2025, Linaro Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
  */
 
 #ifndef PLATFORM_DEF_H
@@ -208,7 +208,7 @@
 #if SPM_MM
 #define MAX_MMAP_REGIONS		13
 #define MAX_XLAT_TABLES			13
-#elif ENABLE_RME
+#elif ENABLE_RMM
 #define MAX_MMAP_REGIONS		15
 #define MAX_XLAT_TABLES			15
 #else
@@ -421,10 +421,10 @@
 #define QEMU_PRI_BITS		2
 #define PLAT_SP_PRI		0x20
 
-#if !ENABLE_RME
+#if !ENABLE_FEAT_RME
 #define RME_GPT_DRAM_SIZE	0
 #define NS_DRAM0_BASE_OFFSET	0
-#else /* !ENABLE_RME */
+#else /* !ENABLE_FEAT_RME */
 /*
  * SBSA RAM starts at 1TB and we support up to 1TB of RAM.  As such we
  * have 2TB of physical address space to cover.  Since the GPT size can be
@@ -460,6 +460,17 @@ CASSERT((PLAT_QEMU_L0_GPT_BASE & (PLAT_QEMU_L0_GPT_SIZE - 1)) == 0,
 	assert_l0_gpt_naturally_aligned);
 #endif
 
+#define MAP_GPT_L0_REGION		MAP_REGION_FLAT(		\
+					PLAT_QEMU_L0_GPT_BASE,		\
+					(PLAT_QEMU_L0_GPT_SIZE),	\
+					MT_MEMORY | MT_RW | EL3_PAS)
+
+#define MAP_GPT_L1_REGION		MAP_REGION_FLAT(		\
+					PLAT_QEMU_L1_GPT_BASE,		\
+					PLAT_QEMU_L1_GPT_SIZE,		\
+					MT_MEMORY | MT_RW | EL3_PAS)
+
+#if ENABLE_RMM
 /* Reserved some DRAM space for RMM (1072MB) */
 #define REALM_DRAM_BASE			PLAT_QEMU_DRAM0_BASE
 #define REALM_DRAM_SIZE			0x43000000
@@ -472,15 +483,6 @@ CASSERT((PLAT_QEMU_L0_GPT_BASE & (PLAT_QEMU_L0_GPT_SIZE - 1)) == 0,
 #define RMM_SHARED_BASE			(RMM_LIMIT)
 #define RMM_SHARED_SIZE			PLAT_QEMU_RMM_SHARED_SIZE
 
-#define MAP_GPT_L0_REGION		MAP_REGION_FLAT(		\
-					PLAT_QEMU_L0_GPT_BASE,		\
-					(PLAT_QEMU_L0_GPT_SIZE),	\
-					MT_MEMORY | MT_RW | EL3_PAS)
-
-#define MAP_GPT_L1_REGION		MAP_REGION_FLAT(		\
-					PLAT_QEMU_L1_GPT_BASE,		\
-					PLAT_QEMU_L1_GPT_SIZE,		\
-					MT_MEMORY | MT_RW | EL3_PAS)
 /*
  * We add the RMM_SHARED size to RMM mapping to map the region as a block.
  * Else we end up requiring more pagetables in BL2 for ROMLIB build.
@@ -496,8 +498,12 @@ CASSERT((PLAT_QEMU_L0_GPT_BASE & (PLAT_QEMU_L0_GPT_SIZE - 1)) == 0,
 					RMM_SHARED_SIZE,		\
 					MT_MEMORY | MT_RW | MT_REALM)
 
-/* When RME is enabled, the base of NS DRAM is moved forward after the RMM */
+/* When RMM is enabled, the base of NS DRAM is moved forward after the RMM */
 #define NS_DRAM0_BASE_OFFSET	REALM_DRAM_SIZE
-#endif /* !ENABLE_RME */
+#else /* !ENABLE_RMM */
+#define NS_DRAM0_BASE_OFFSET	0
+#endif /* ENABLE_RMM */
+
+#endif /* !ENABLE_FEAT_RME */
 
 #endif /* PLATFORM_DEF_H */

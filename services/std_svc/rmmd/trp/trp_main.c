@@ -1,12 +1,13 @@
 /*
- * Copyright (c) 2021-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 #include <common/build_message.h>
 #include <common/debug.h>
+#include <lib/gpt_rme/gpt_rme.h>
 #include <plat/common/platform.h>
+#include <services/firme_svc.h>
 #include <services/rmm_core_manifest.h>
 #include <services/rmmd_svc.h>
 #include <services/trp/platform_trp.h>
@@ -157,13 +158,28 @@ static void trp_asc_mark_realm(unsigned long long x1,
 				struct trp_smc_result *smc_ret)
 {
 	VERBOSE("Delegating granule 0x%llx\n", x1);
+
+#if FIRME_SUPPORT
+	smc_ret->x[0] = trp_smc(set_smc_args(FIRME_GM_GPI_SET_FID, x1, 1UL,
+					     GPT_GPI_REALM, 0UL, 0UL, 0UL, 0UL,
+					     0UL, 0UL, 0UL, 0UL));
+#else
 	smc_ret->x[0] = trp_smc(set_smc_args(RMM_GTSI_DELEGATE, x1,
 				0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL));
+#endif
 
 	if (smc_ret->x[0] != 0ULL) {
 		ERROR("Granule transition from NON-SECURE type to REALM type "
 			"failed 0x%llx\n", smc_ret->x[0]);
+
+		/*
+		 * x[1] is not a return parameter for GRANULE_DELEGATE,
+		 * but populating it is harmless and simplifies the implementation.
+		 */
+		smc_ret->x[1] = x1;
+		return;
 	}
+	smc_ret->x[1] = x1 + PAGE_SIZE_4KB;
 }
 
 /*******************************************************************************
@@ -173,13 +189,28 @@ static void trp_asc_mark_nonsecure(unsigned long long x1,
 				   struct trp_smc_result *smc_ret)
 {
 	VERBOSE("Undelegating granule 0x%llx\n", x1);
+
+#if FIRME_SUPPORT
+	smc_ret->x[0] =
+		trp_smc(set_smc_args(FIRME_GM_GPI_SET_FID, x1, 1UL, GPT_GPI_NS,
+				     0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL));
+#else
 	smc_ret->x[0] = trp_smc(set_smc_args(RMM_GTSI_UNDELEGATE, x1,
 				0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL, 0UL));
+#endif
 
 	if (smc_ret->x[0] != 0ULL) {
 		ERROR("Granule transition from REALM type to NON-SECURE type "
 			"failed 0x%llx\n", smc_ret->x[0]);
+
+		/*
+		 * x[1] is not a return parameter for GRANULE_UNDELEGATE,
+		 * but populating it is harmless and simplifies the implementation.
+		 */
+		smc_ret->x[1] = x1;
+		return;
 	}
+	smc_ret->x[1] = x1 + PAGE_SIZE_4KB;
 }
 
 /*******************************************************************************
@@ -260,14 +291,27 @@ void trp_rmi_handler(unsigned long fid,
 	case RMI_RMM_REQ_VERSION:
 		trp_ret_rmi_version(x1, smc_ret);
 		break;
+	case RMI_RMM_ACTIVATE:
+		smc_ret->x[0] = RMI_SUCCESS;
+		break;
 	case RMI_RMM_GRANULE_DELEGATE:
 		trp_asc_mark_realm(x1, smc_ret);
 		break;
 	case RMI_RMM_GRANULE_UNDELEGATE:
 		trp_asc_mark_nonsecure(x1, smc_ret);
 		break;
+	case RMI_RMM_GRANULE_RANGE_DELEGATE:
+		trp_asc_mark_realm(x1, smc_ret);
+		break;
+	case RMI_RMM_GRANULE_RANGE_UNDELEGATE:
+		trp_asc_mark_nonsecure(x1, smc_ret);
+		break;
 	case RMI_RMM_PDEV_CREATE:
 		trp_ide_keymgmt_interface_fn(x1, x2, smc_ret);
+		break;
+	case RMI_RMM_CONFIG_SET:
+	case RMI_RMM_CONFIG_GET:
+		smc_ret->x[0] = RMI_SUCCESS;
 		break;
 	default:
 		ERROR("Invalid SMC code to %s, FID %lx\n", __func__, fid);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2025, Arm Limited. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -89,6 +89,7 @@
 #define GPT_L1_SA_DESC		GPT_BUILD_L1_DESC(GPT_GPI_SA)
 #define GPT_L1_NSP_DESC		GPT_BUILD_L1_DESC(GPT_GPI_NSP)
 #define GPT_L1_ANY_DESC		GPT_BUILD_L1_DESC(GPT_GPI_ANY)
+#define GPT_L1_INVALID_DESC	UL(0xFFFFFFFFFFFFFFFF)
 
 /******************************************************************************/
 /* GPT platform configuration                                                 */

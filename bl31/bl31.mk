@@ -167,11 +167,14 @@ ifeq ($(SMC_PCI_SUPPORT),1)
 BL31_SOURCES		+=	services/std_svc/pci_svc.c
 endif
 
-ifeq (${ENABLE_RME},1)
+ifneq (${ENABLE_FEAT_RME},0)
 include lib/gpt_rme/gpt_rme.mk
 
-BL31_SOURCES		+=	${GPT_LIB_SRCS}					\
-				${RMMD_SOURCES}
+BL31_SOURCES		+=	${GPT_LIB_SRCS}
+endif
+
+ifeq (${ENABLE_RMM},1)
+BL31_SOURCES		+=	${RMMD_SOURCES}
 endif
 
 ifeq (${USE_DSU_DRIVER},1)
@@ -208,6 +211,12 @@ ifeq ($(CROS_WIDEVINE_SMC),1)
 BL31_SOURCES		+=	services/oem/chromeos/widevine_smc_handlers.c
 endif
 
+ifeq (${FIRME_SUPPORT},1)
+BL31_SOURCES		+=	services/std_svc/firme/firme_main.c \
+				services/std_svc/firme/firme_base_service.c \
+				services/std_svc/firme/firme_granule_management_service.c
+endif
+
 BL31_DEFAULT_LINKER_SCRIPT_SOURCE := bl31/bl31.ld.S
 
 # CRYPTO_SUPPORT
@@ -231,6 +240,7 @@ $(eval $(call assert_booleans,\
     $(sort \
 	CRASH_REPORTING \
 	EL3_EXCEPTION_HANDLING \
+	FIRME_SUPPORT \
 	SDEI_SUPPORT \
 	USE_DSU_DRIVER \
 )))
@@ -247,4 +257,5 @@ $(eval $(call add_defines,\
 	EL3_EXCEPTION_HANDLING \
 	SDEI_SUPPORT \
 	USE_DSU_DRIVER \
+	FIRME_SUPPORT \
 )))

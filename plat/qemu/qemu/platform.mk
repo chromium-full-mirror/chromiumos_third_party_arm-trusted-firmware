@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2026, BayLibre SAS
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -159,6 +160,7 @@ endif
 ifeq (${ARCH},aarch64)
 BL31_SOURCES		+=	drivers/arm/pl061/pl061_gpio.c		\
 				drivers/gpio/gpio.c			\
+				plat/common/plat_hold_pen.c		\
 				${PLAT_QEMU_COMMON_PATH}/qemu_pm.c	\
 				${PLAT_QEMU_COMMON_PATH}/topology.c
 
@@ -208,7 +210,7 @@ endif
 BL32_RAM_LOCATION	:=	tdram
 ifeq (${BL32_RAM_LOCATION}, tsram)
   BL32_RAM_LOCATION_ID = SEC_SRAM_ID
-  ifeq (${ENABLE_RME},1)
+  ifeq (${ENABLE_RMM},1)
 	# Avoid overlap between BL2 and BL32 to ease GPT partition
 	$(error "With RME, BL32 must use secure DRAM")
   endif

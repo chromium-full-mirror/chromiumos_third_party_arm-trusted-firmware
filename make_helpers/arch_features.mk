@@ -53,7 +53,7 @@ endif
 
 # Enable the features which are mandatory from ARCH version 8.5 and upwards.
 ifeq "8.5" "$(word 1, $(sort 8.5 $(ARM_ARCH_MAJOR).$(ARM_ARCH_MINOR)))"
-armv8-5-a-feats         := ENABLE_FEAT_RNG ENABLE_FEAT_SB
+armv8-5-a-feats         := ENABLE_FEAT_SB
 # 8.4 Compliant
 armv8-5-a-feats         += ${armv8-4-a-feats}
 
@@ -436,7 +436,7 @@ ENABLE_FEAT_UINJ			?=	0
 #----
 
 # Flag to enable Realm Management Extension (FEAT_RME).
-ENABLE_RME				?=	0
+ENABLE_FEAT_RME				?=	0
 
 # Scalable Matrix Extension version 2 for non-secure world.
 ENABLE_SME2_FOR_NS			?=	0

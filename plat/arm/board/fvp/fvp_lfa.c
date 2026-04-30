@@ -23,10 +23,10 @@ static plat_lfa_component_info_t fvp_lfa_components[LFA_MAX_DEFINED_COMPONENTS] 
 #endif /* BL32_BASE */
 	[LFA_BL33_COMPONENT] = {LFA_BL33_COMPONENT, UUID_NON_TRUSTED_FIRMWARE_BL33,
 				NULL, false},
-#if ENABLE_RME
+#if ENABLE_RMM
 	[LFA_RMM_COMPONENT]  = {LFA_RMM_COMPONENT, UUID_REALM_MONITOR_MGMT_FIRMWARE,
 				NULL, false},
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 
 #if SUPPORT_SP_LIVE_ACTIVATION
 	[LFA_SP1] = { LFA_SP1, IMAGE_UUID_SECURE_PARTITION_1, NULL, false},
@@ -43,9 +43,9 @@ uint32_t plat_lfa_get_components(plat_lfa_component_info_t **components)
 	}
 
 	fvp_lfa_components[LFA_BL31_COMPONENT].activator = get_bl31_activator();
-#if ENABLE_RME
+#if ENABLE_RMM
 	fvp_lfa_components[LFA_RMM_COMPONENT].activator = get_rmm_activator();
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 
 #if SUPPORT_SP_LIVE_ACTIVATION
 	fvp_lfa_components[LFA_SP1].activator =
@@ -61,11 +61,11 @@ uint32_t plat_lfa_get_components(plat_lfa_component_info_t **components)
 
 bool is_plat_lfa_activation_pending(uint32_t lfa_component_id)
 {
-#if ENABLE_RME
+#if ENABLE_RMM
 	if (lfa_component_id == LFA_RMM_COMPONENT) {
 		return true;
 	}
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 
 #if SUPPORT_SP_LIVE_ACTIVATION
 	if (lfa_component_id == LFA_SP1 || lfa_component_id == LFA_SP2) {

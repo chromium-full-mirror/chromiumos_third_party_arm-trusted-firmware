@@ -105,10 +105,13 @@
  * REALM and Shared area share the same PAS, so consider them a single
  * PAS region to configure in GPT.
  */
+#if ENABLE_RMM
 #define ARM_PAS_REALM			GPT_MAP_REGION_GRANULE(ARM_REALM_BASE, \
 							       (ARM_PAS_SHARED_SIZE + \
 								ARM_REALM_SIZE), \
 							       GPT_GPI_REALM)
+#endif
+
 /* Check if the EL3 TZC DRAM is contiguous with L1 GPT region. */
 #if (ARM_L1_GPT_BASE != (ARM_EL3_TZC_DRAM1_BASE + ARM_EL3_TZC_DRAM1_SIZE))
 #define ARM_PAS_EL3_DRAM		GPT_MAP_REGION_GRANULE(ARM_EL3_TZC_DRAM1_BASE, \

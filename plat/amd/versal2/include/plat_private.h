@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2018-2019, Arm Limited and Contributors. All rights reserved.
  * Copyright (c) 2021-2022, Xilinx, Inc. All rights reserved.
- * Copyright (c) 2022-2025, Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2026, Advanced Micro Devices, Inc. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -25,6 +25,9 @@ typedef struct versal_intr_info_type_el3 {
 	interrupt_type_handler_t handler;
 } versal_intr_info_type_el3_t;
 
+extern uint32_t plat_cluster_count;
+extern uint32_t plat_cores_per_cluster;
+
 void config_setup(void);
 uint32_t get_uart_clk(void);
 
@@ -39,6 +42,9 @@ void plat_gic_save(void);
 void plat_gic_resume(void);
 void plat_gic_redistif_on(void);
 void plat_gic_redistif_off(void);
+
+/* Declaration of primary core variable */
+extern uint32_t plat_primary_cpu_core;
 
 extern uint32_t cpu_clock, platform_id, platform_version;
 extern uint32_t rtlversion, psversion, pmcversion;

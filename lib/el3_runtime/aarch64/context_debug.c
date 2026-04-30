@@ -22,9 +22,9 @@ static const char *get_context_name_by_idx(unsigned int security_state_idx)
 	static const char * const state_names[] = {
 		"Secure",
 		"Non Secure"
-#if ENABLE_RME
+#if ENABLE_RMM
 		, "Realm"
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 	};
 	return state_names[security_state_idx];
 }

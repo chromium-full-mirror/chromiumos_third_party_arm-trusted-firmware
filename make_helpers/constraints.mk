@@ -8,47 +8,73 @@ ifneq ($(AARCH32_INSTRUCTION_SET),$(filter $(AARCH32_INSTRUCTION_SET),A32 T32))
          $(error Error: Unknown AArch32 instruction set ${AARCH32_INSTRUCTION_SET})
 endif
 
-# Make sure RME configuration is valid
+# Check for ENABLE_RME that is replaced by ENABLE_FEAT_RME
 ifeq (${ENABLE_RME},1)
+        $(warning "ENABLE_RME will be deprecated. Use ENABLE_FEAT_RME=1 and ENABLE_RMM=1 instead.")
+endif
+
+# Make sure ENABLE_FEAT_RME configuration is valid
+ifneq (${ENABLE_FEAT_RME},0)
 	ifneq (${SEPARATE_CODE_AND_RODATA},1)
-                $(error ENABLE_RME requires SEPARATE_CODE_AND_RODATA)
+                $(error ENABLE_FEAT_RME requires SEPARATE_CODE_AND_RODATA)
 	endif
 
 	ifneq (${ARCH},aarch64)
-                $(error ENABLE_RME requires AArch64)
+                $(error ENABLE_FEAT_RME requires AArch64)
+	endif
+
+	ifeq ($(RESET_TO_BL2),0)
+		ifeq ($(ENABLE_FEAT_RME),2)
+                        $(warning ENABLE_FEAT_RME=2 forces BL2 to run at EL3 even if FEAT_RME is not present at runtime)
+		endif
 	endif
 
 	ifeq ($(SPMC_AT_EL3),1)
-                $(error SPMC_AT_EL3 and ENABLE_RME cannot both be enabled.)
+                $(error SPMC_AT_EL3 and ENABLE_FEAT_RME cannot both be enabled.)
 	endif
 
 	ifneq (${SPD}, none)
 		ifneq (${SPD}, spmd)
-                        $(error ENABLE_RME is incompatible with SPD=${SPD}. Use SPD=spmd)
+                        $(error ENABLE_FEAT_RME is incompatible with SPD=${SPD}. Use SPD=spmd)
 		endif
 	endif
+
+	ifeq ($(SPM_MM),1)
+                $(error SPM_MM and ENABLE_FEAT_RME cannot both be enabled.)
+	endif
+
+        $(warning "FEAT_RME is an experimental feature")
 else
 	ifeq (${ENABLE_FEAT_RME_GDI},1)
-                $(error ENABLE_FEAT_RME_GDI requires ENABLE_RME)
+                $(error ENABLE_FEAT_RME_GDI requires ENABLE_FEAT_RME)
 	endif
+endif
+
+# Make sure RMM configuration is valid
+ifeq (${ENABLE_RMM},1)
+	ifneq (${ENABLE_FEAT_RME},1)
+                $(error ENABLE_RMM requires ENABLE_FEAT_RME=1)
+	endif
+
+        $(warning "RMM is an experimental feature")
 endif
 
 ifeq (${CTX_INCLUDE_EL2_REGS}, 1)
 	ifeq (${SPD},none)
-		ifeq (${ENABLE_RME},0)
+		ifeq (${ENABLE_RMM},0)
                         $(error CTX_INCLUDE_EL2_REGS is available only when SPD \
-                        or RME is enabled)
+                        or RMM is enabled)
 		endif
 	endif
 endif
 
 ################################################################################
-# Verify FEAT_RME, FEAT_SCTLR2 and FEAT_TCR2 are enabled if FEAT_MEC is enabled.
+# Verify RMM, FEAT_SCTLR2 and FEAT_TCR2 are enabled if FEAT_MEC is enabled.
 ################################################################################
 
 ifneq (${ENABLE_FEAT_MEC},0)
-    ifeq (${ENABLE_RME},0)
-        $(error FEAT_RME must be enabled when FEAT_MEC is enabled.)
+    ifeq (${ENABLE_RMM},0)
+        $(error RMM must be enabled when FEAT_MEC is enabled.)
     endif
     ifeq (${ENABLE_FEAT_TCR2},0)
         $(error FEAT_TCR2 must be enabled when FEAT_MEC is enabled.)
@@ -233,6 +259,10 @@ ifeq ($(FEATURE_DETECTION),1)
         $(info FEATURE_DETECTION is an experimental feature)
 endif #(FEATURE_DETECTION)
 
+ifeq ($(FIRME_SUPPORT),1)
+        $(info FIRME_SUPPORT is an experimental feature)
+endif #(FIRME_SUPPORT)
+
 ifneq ($(ENABLE_SME2_FOR_NS), 0)
 	ifeq (${ENABLE_SME_FOR_NS}, 0)
                 $(warning "ENABLE_SME2_FOR_NS requires ENABLE_SME_FOR_NS also \
@@ -247,6 +277,11 @@ ifeq (${ARM_XLAT_TABLES_LIB_V1}, 1)
                 $(error "ALLOW_RO_XLAT_TABLES requires translation tables \
                 library v2")
 	endif
+
+        ifneq (${ENABLE_FEAT_RME},0)
+                $(error "ENABLE_FEAT_RME requires version 2 of the Translation \
+                         Tables Library")
+        endif
 endif #(ARM_XLAT_TABLES_LIB_V1)
 
 ifneq (${DECRYPTION_SUPPORT},none)

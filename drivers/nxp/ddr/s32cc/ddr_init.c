@@ -30,6 +30,8 @@ static struct ddrss_config load_ddr_config(uintptr_t load_from)
 	config.dmem_1d_size = ddr_layout.dmem_1d_size;
 	config.imem_2d_size = ddr_layout.imem_2d_size;
 	config.dmem_2d_size = ddr_layout.dmem_2d_size;
+	config.phy_csr_size = ddr_layout.phy_csr_size;
+	config.ddrc_csr_size = ddr_layout.ddrc_csr_size;
 
 	config.ddrc = (struct regconf *)(current_addr + ddr_layout.ddrc_offset);
 	config.dq_swap = (struct dqconf *)(current_addr + ddr_layout.dq_swap_offset);
@@ -39,6 +41,8 @@ static struct ddrss_config load_ddr_config(uintptr_t load_from)
 	config.dmem_1d = (uint16_t *)(current_addr + ddr_layout.dmem_1d_offset);
 	config.imem_2d = (uint16_t *)(current_addr + ddr_layout.imem_2d_offset);
 	config.dmem_2d = (uint16_t *)(current_addr + ddr_layout.dmem_2d_offset);
+	config.phy_csr = (uint32_t *)(current_addr + ddr_layout.phy_csr_offset);
+	config.ddrc_csr = (uint32_t *)(current_addr + ddr_layout.ddrc_csr_offset);
 
 	return config;
 }

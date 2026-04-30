@@ -114,7 +114,7 @@ skip_ls_rcg_alwayson_enable:
 	movk	x5, #0x0B01, LSL #16
 	cpp	rctx, x5
 
-#if ENABLE_RME
+#if ENABLE_RMM
 	/*
 	 * Execute CPP instructions for realm state
 	 * RL-EL2: 0x000100000e010000 {GVMID,NSE,NS,EL,GASID} = {1,1,1,10,1}
@@ -129,7 +129,7 @@ skip_ls_rcg_alwayson_enable:
 	/* RL-EL0: 0x000100000c010000 {GVMID,NSE,NS,EL,GASID} = {1,1,1,00,1} */
 	movk	x5, #0x0C01, LSL #16
 	cpp	rctx, x5
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 
 	/*
 	 * Execute CPP instructions for non-secure state
@@ -170,7 +170,7 @@ el3_handler_skip_sel2_cpp:
 	/* EL3 / root state TLBI */
 	tlbi	alle3
 
-#if ENABLE_RME
+#if ENABLE_RMM
 	/* Realm state TLBI {NSE,NS} = {1,1} */
 	orr	x5, x1, #SCR_NS_BIT
 	orr	x5, x5, #SCR_NSE_BIT
@@ -178,7 +178,7 @@ el3_handler_skip_sel2_cpp:
 	isb
 	tlbi	alle1
 	tlbi	alle2
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 
 	/* Non-secure state TLBI {NSE,NS} = {0,1} */
 	orr	x5, x1, #SCR_NS_BIT

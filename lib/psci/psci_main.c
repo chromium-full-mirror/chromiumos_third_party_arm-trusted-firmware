@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -64,19 +64,6 @@ int psci_cpu_suspend(unsigned int power_state,
 	psci_power_state_t state_info = { {PSCI_LOCAL_STATE_RUN} };
 	plat_local_state_t cpu_pd_state;
 	unsigned int cpu_idx = plat_my_core_pos();
-
-#if ERRATA_SME_POWER_DOWN
-	/*
-	 * If SME isn't off, attempting a real power down will only end up being
-	 * rejected. If we got called with SME on, fall back to a normal
-	 * suspend. We can't force SME off as in the event the power down is
-	 * rejected for another reason (eg GIC) we'd lose the SME context.
-	 */
-	if (is_feat_sme_supported() && read_svcr() != 0) {
-		power_state &= ~(PSTATE_TYPE_MASK << PSTATE_TYPE_SHIFT);
-		power_state &= ~(PSTATE_PWR_LVL_MASK << PSTATE_PWR_LVL_SHIFT);
-	}
-#endif /* ERRATA_SME_POWER_DOWN */
 
 	/* Validate the power_state parameter */
 	rc = psci_validate_power_state(power_state, &state_info);
@@ -401,20 +388,28 @@ int psci_features(unsigned int psci_fid)
 #if PSCI_OS_INIT_MODE
 int psci_set_suspend_mode(unsigned int mode)
 {
-	if (psci_suspend_mode == mode) {
+	suspend_mode_t new_mode;
+	unsigned int this_core = plat_my_core_pos();
+
+	if ((mode != (unsigned int)PLAT_COORD) &&
+	    (mode != (unsigned int)OS_INIT)) {
+		return PSCI_E_INVALID_PARAMS;
+	}
+
+	new_mode = (suspend_mode_t)mode;
+
+	if (psci_suspend_mode == new_mode) {
 		return PSCI_E_SUCCESS;
 	}
 
-	unsigned int this_core = plat_my_core_pos();
-
-	if (mode == PLAT_COORD) {
+	if (new_mode == PLAT_COORD) {
 		/* Check if the current CPU is the last ON CPU in the system */
 		if (!psci_is_last_on_cpu_safe(this_core)) {
 			return PSCI_E_DENIED;
 		}
 	}
 
-	if (mode == OS_INIT) {
+	if (new_mode == OS_INIT) {
 		/*
 		 * Check if all CPUs in the system are ON or if the current
 		 * CPU is the last ON CPU in the system.
@@ -425,7 +420,7 @@ int psci_set_suspend_mode(unsigned int mode)
 		}
 	}
 
-	psci_suspend_mode = mode;
+	psci_suspend_mode = new_mode;
 	psci_flush_dcache_range((uintptr_t)&psci_suspend_mode,
 				sizeof(psci_suspend_mode));
 

@@ -1,13 +1,15 @@
 /*
- * Copyright (c) 2021-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2021-2026, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2026, BayLibre SAS
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <lib/psci/psci.h>
 #include <plat/arm/common/plat_arm.h>
-#include <platform_def.h>
+#include <plat/common/plat_hold_pen.h>
 #include <plat/common/platform.h>
+#include <platform_def.h>
 #ifdef CORSTONE1000_CORTEX_A320
 #include <drivers/arm/gicv3.h>
 #else
@@ -41,7 +43,7 @@ static void corstone1000_system_reset(void)
 	*watchdog_ctrl_reg = SECURE_WATCHDOG_MASK_ENABLE;
 }
 
-#if defined(CORSTONE1000_FVP_MULTICORE)
+#if defined(CORSTONE1000_MULTICORE)
 int corstone1000_validate_ns_entrypoint(uintptr_t entrypoint)
 {
 	/*
@@ -57,15 +59,14 @@ int corstone1000_validate_ns_entrypoint(uintptr_t entrypoint)
 int corstone1000_pwr_domain_on(u_register_t mpidr)
 {
 	int core_index = plat_core_pos_by_mpidr(mpidr);
-	uint64_t *secondary_core_hold_base = (uint64_t *)CORSTONE1000_SECONDARY_CORE_HOLD_BASE;
 
-	/* Validate the core index */
-	if (core_index < 0 || core_index > PLATFORM_CORE_COUNT) {
+	if (core_index < 0 || core_index >= PLATFORM_CORE_COUNT) {
 		return PSCI_E_INVALID_PARAMS;
 	}
-	secondary_core_hold_base[core_index] = CORSTONE1000_SECONDARY_CORE_STATE_GO;
-	dsbish();
-	sev();
+
+	plat_hold_pen_signal((struct hold_slot *)CORSTONE1000_HOLD_BASE,
+			core_index,
+			*(uintptr_t *)PLAT_ARM_TRUSTED_MAILBOX_BASE);
 
 	return PSCI_E_SUCCESS;
 }
@@ -77,7 +78,7 @@ void corstone1000_pwr_domain_on_finish(const psci_power_state_t *target_state)
 #endif
 
 plat_psci_ops_t plat_arm_psci_pm_ops = {
-#if defined(CORSTONE1000_FVP_MULTICORE)
+#if defined(CORSTONE1000_MULTICORE)
 	.pwr_domain_on = corstone1000_pwr_domain_on,
 	.pwr_domain_on_finish = corstone1000_pwr_domain_on_finish,
 	.validate_ns_entrypoint = corstone1000_validate_ns_entrypoint,
@@ -90,6 +91,10 @@ plat_psci_ops_t plat_arm_psci_pm_ops = {
 
 const plat_psci_ops_t *plat_arm_psci_override_pm_ops(plat_psci_ops_t *ops)
 {
+#if defined(CORSTONE1000_MULTICORE)
+	plat_hold_pen_init((struct hold_slot *)CORSTONE1000_HOLD_BASE,
+		      PLATFORM_CORE_COUNT);
+#endif
 	ops = &plat_arm_psci_pm_ops;
 	return ops;
 }

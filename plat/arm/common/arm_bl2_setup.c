@@ -255,10 +255,10 @@ void bl2_plat_preload_setup(void)
  */
 void arm_bl2_platform_setup(void)
 {
-#if !ENABLE_RME
 	/* Initialize the secure environment */
-	plat_arm_security_setup();
-#endif
+	if (!is_feat_rme_supported()) {
+		plat_arm_security_setup();
+	}
 
 #if defined(PLAT_ARM_MEM_PROT_ADDR)
 	arm_nor_psci_do_static_mem_protect();
@@ -293,32 +293,35 @@ static void arm_bl2_plat_arch_setup(void)
 #if !TRANSFER_LIST
 		ARM_MAP_BL_CONFIG_REGION,
 #endif /* TRANSFER_LIST */
-#if ENABLE_RME
+#if ENABLE_FEAT_RME
 		ARM_MAP_L0_GPT_REGION,
 #endif
 		{ 0 }
 	};
 
-#if ENABLE_RME
 	/* Initialise the secure environment */
-	plat_arm_security_setup();
-#endif
+	if (is_feat_rme_supported()) {
+		plat_arm_security_setup();
+	}
 
 	setup_page_tables(bl_regions, plat_arm_get_mmap());
 
 #ifdef __aarch64__
-	/* BL2 runs at EL3 incase of RESET_TO_BL2 or ENABLE_RME is set */
+	/* BL2 runs at EL3 incase of RESET_TO_BL2 or ENABLE_FEAT_RME is set */
 #if BL2_RUNS_AT_EL3
 	enable_mmu_el3(0);
 #else
 	enable_mmu_el1(0);
 #endif /* BL2_RUNS_AT_EL3 */
 
-#if ENABLE_RME
+#if ENABLE_FEAT_RME
 	/* Initialise and enable granule protection after MMU. */
-	assert(is_feat_rme_present());
-	arm_gpt_setup();
-#endif /* ENABLE_RME */
+	if (is_feat_rme_supported()) {
+		assert(is_feat_rme_present());
+
+		arm_gpt_setup();
+	}
+#endif /* ENABLE_FEAT_RME */
 
 #else /* !__aarch64__ */
 	enable_mmu_svc_mon(0);

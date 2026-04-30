@@ -41,7 +41,7 @@ struct rse_mboot_metadata rdv3_rse_mboot_metadata[] = {
 		.sw_type = MBOOT_SOC_FW_CONFIG_STRING,
 		.lock_measurement = false
 	},
-#if ENABLE_RME
+#if ENABLE_RMM
 	{
 		.id = RMM_IMAGE_ID,
 		.slot = U(14),
@@ -49,7 +49,7 @@ struct rse_mboot_metadata rdv3_rse_mboot_metadata[] = {
 		.sw_type = MBOOT_RMM_IMAGE_STRING,
 		.lock_measurement = false
 	},
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 	{
 		.id = RSE_MBOOT_INVALID_ID
 	}

@@ -266,6 +266,13 @@ ifneq (${SPD},none)
 	# over the sources.
 endif #(SPD=none)
 
+# Force set ENABLE_FEAT_RME and ENABLE_RMM to 1 until build option ENABLE_RME is
+# deprecated. constraints.mk prints a warning when this build option is used.
+ifeq (${ENABLE_RME},1)
+        override ENABLE_FEAT_RME := 1
+        override ENABLE_RMM := 1
+endif
+
 ################################################################################
 # Include the platform specific Makefile after the SPD Makefile (the platform
 # makefile may use all previous definitions in this file)
@@ -324,15 +331,21 @@ ifneq (${ENABLE_PAUTH},0)
 	BL_COMMON_SOURCES	+=	lib/extensions/pauth/pauth.c
 endif
 
+ifneq (${ENABLE_FEAT_RME},0)
+        # bitlocks are only useful with atomics
+	ifneq ($(RME_GPT_BITLOCK_BLOCK), 0)
+		USE_SPINLOCK_CAS := 1
+	endif
+endif
+
 ################################################################################
-# RME dependent flags configuration, Enable optional features for RME.
+# RMM dependent flags configuration, Enable optional features for RMM.
 ################################################################################
-# FEAT_RME
-ifeq (${ENABLE_RME},1)
+ifeq (${ENABLE_RMM},1)
 	# RMM relies on SMCCC_ARCH_FEATURE_AVAILABILITY to discover EL3 enablement
 	ARCH_FEATURE_AVAILABILITY := 1
 
-	# RME requires el2 context to be saved for now.
+	# RMM requires el2 context to be saved for now.
 	CTX_INCLUDE_EL2_REGS := 1
 	CTX_INCLUDE_AARCH32_REGS := 0
 	CTX_INCLUDE_PAUTH_REGS := 1
@@ -340,22 +353,15 @@ ifeq (${ENABLE_RME},1)
 	ifneq ($(ENABLE_FEAT_MPAM), 0)
 		CTX_INCLUDE_MPAM_REGS := 1
 	endif
-	# bitlocks are only useful with atomics
-	ifneq ($(RME_GPT_BITLOCK_BLOCK), 0)
-		USE_SPINLOCK_CAS := 1
-	endif
 
-	# RME enables CSV2_2 extension by default.
+	# RMM enables CSV2_2 extension by default.
 	ENABLE_FEAT_CSV2_2 = 1
-endif #(FEAT_RME)
+	# Enable FIRME interface for CCA.
+	FIRME_SUPPORT := 1
 
-################################################################################
-# Include rmmd Makefile if RME is enabled
-################################################################################
-ifneq (${ENABLE_RME},0)
-include services/std_svc/rmmd/rmmd.mk
-$(warning "RME is an experimental feature")
-endif
+	# Include rmmd Makefile if RMM is enabled
+        include services/std_svc/rmmd/rmmd.mk
+endif #(ENABLE_RMM)
 
 ################################################################################
 # Make 128-Bit sysreg read/writes availabe when FEAT_D128 is enabled.
@@ -369,7 +375,7 @@ endif
 # 4 world system running BL2 at EL3 and two world system without BL1 running
 # BL2 in EL3
 
-ifneq ($(filter 1,${RESET_TO_BL2} ${ENABLE_RME}),)
+ifneq ($(filter 1 2,${RESET_TO_BL2} ${ENABLE_FEAT_RME}),)
 	BL2_RUNS_AT_EL3	:=	1
 else
 	BL2_RUNS_AT_EL3	:=	0
@@ -573,6 +579,7 @@ $(eval $(call assert_booleans,\
 	ENABLE_SME_FOR_SWD \
 	ENABLE_SVE_FOR_SWD \
 	ENABLE_FEAT_GCIE \
+	ENABLE_RMM \
 	FFH_SUPPORT	\
 	ERROR_DEPRECATED \
 	FAULT_INJECTION_SUPPORT \
@@ -626,7 +633,6 @@ $(eval $(call assert_booleans,\
 	ENCRYPT_BL31 \
 	ENCRYPT_BL32 \
 	ERRATA_SPECULATIVE_AT \
-	ERRATA_SME_POWER_DOWN \
 	RAS_TRAP_NS_ERR_REC_ACCESS \
 	COT_DESC_IN_DTB \
 	USE_SP804_TIMER \
@@ -713,7 +719,7 @@ $(eval $(call assert_numerics,\
 	ENABLE_FEAT_MPAM \
 	ENABLE_FEAT_MPAM_PE_BW_CTRL \
 	ENABLE_FEAT_RAS	\
-	ENABLE_RME \
+	ENABLE_FEAT_RME \
 	ENABLE_SPE_FOR_NS \
 	ENABLE_SYS_REG_TRACE_FOR_NS \
 	ENABLE_SME_FOR_NS \
@@ -782,7 +788,8 @@ $(eval $(call add_defines,\
 	ENABLE_PIE \
 	ENABLE_PMF \
 	ENABLE_PSCI_STAT \
-	ENABLE_RME \
+	ENABLE_FEAT_RME \
+	ENABLE_RMM \
 	RMM_V1_COMPAT \
 	RMMD_ENABLE_EL3_TOKEN_SIGN \
 	RMMD_ENABLE_IDE_KEY_PROG \
@@ -853,7 +860,6 @@ $(eval $(call add_defines,\
 	BL2_INV_DCACHE \
 	USE_SPINLOCK_CAS \
 	ERRATA_SPECULATIVE_AT \
-	ERRATA_SME_POWER_DOWN \
 	RAS_TRAP_NS_ERR_REC_ACCESS \
 	COT_DESC_IN_DTB \
 	USE_SP804_TIMER \

@@ -216,5 +216,9 @@ __attribute__((always_inline))
 static inline bool is_feat_crypto_supported(void) { return false; }
 __attribute__((always_inline))
 static inline bool is_feat_step2_supported(void) { return false; }
+__attribute__((always_inline))
+static inline bool is_feat_rme_supported(void) { return false; }
+__attribute__((always_inline))
+static inline bool is_feat_rme_present(void) { return false; }
 
 #endif /* ARCH_FEATURES_H */

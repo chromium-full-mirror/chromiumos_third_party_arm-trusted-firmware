@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2014-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -15,6 +15,22 @@
 
 #include "psci_private.h"
 
+static void __dead2 system_power_down(void)
+{
+	/*
+	 * Turn the GIC off after the platform has had powered other cores off
+	 * but before caching has been disabled as part of powerdown prep.
+	 */
+#if USE_GIC_DRIVER
+	unsigned int core_pos = plat_my_core_pos();
+	gic_cpuif_disable(core_pos);
+	gic_pcpu_off(core_pos);
+#endif /* USE_GIC_DRIVER */
+
+	psci_pwrdown_cpu_start((unsigned int)PLAT_MAX_PWR_LVL);
+	psci_pwrdown_cpu_end_terminal();
+}
+
 void __dead2 psci_system_off(void)
 {
 	psci_print_power_domain_map();
@@ -28,15 +44,10 @@ void __dead2 psci_system_off(void)
 
 	console_flush();
 
-#if USE_GIC_DRIVER
-	/* turn the GIC off before we hand off to the platform */
-	gic_cpuif_disable(plat_my_core_pos());
-#endif /* USE_GIC_DRIVER */
-
 	/* Call the platform specific hook */
 	psci_plat_pm_ops->system_off();
 
-	psci_pwrdown_cpu_end_terminal();
+	system_power_down();
 }
 
 void __dead2 psci_system_reset(void)
@@ -52,15 +63,10 @@ void __dead2 psci_system_reset(void)
 
 	console_flush();
 
-#if USE_GIC_DRIVER
-	/* turn the GIC off before we hand off to the platform */
-	gic_cpuif_disable(plat_my_core_pos());
-#endif /* USE_GIC_DRIVER */
-
 	/* Call the platform specific hook */
 	psci_plat_pm_ops->system_reset();
 
-	psci_pwrdown_cpu_end_terminal();
+	system_power_down();
 }
 
 u_register_t psci_system_reset2(uint32_t reset_type, u_register_t cookie)
@@ -92,15 +98,10 @@ u_register_t psci_system_reset2(uint32_t reset_type, u_register_t cookie)
 	}
 	console_flush();
 
-#if USE_GIC_DRIVER
-	/* turn the GIC off before we hand off to the platform */
-	gic_cpuif_disable(plat_my_core_pos());
-#endif /* USE_GIC_DRIVER */
-
 	ret = psci_plat_pm_ops->system_reset2((int) is_vendor, reset_type, cookie);
 	if (ret != PSCI_E_SUCCESS) {
 		return (u_register_t) ret;
 	}
 
-	psci_pwrdown_cpu_end_terminal();
+	system_power_down();
 }

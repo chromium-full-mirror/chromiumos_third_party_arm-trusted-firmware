@@ -110,6 +110,10 @@ void bl31_plat_arch_setup(void)
 	enable_mmu_el3(0);
 }
 
+void plat_gic_pre_pcpu_init(unsigned int cpu_idx)
+{
+}
+
 void bl31_platform_setup(void)
 {
 	uint32_t gicr_ctlr;

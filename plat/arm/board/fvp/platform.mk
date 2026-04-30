@@ -106,7 +106,7 @@ ENABLE_FEAT_AIE			:= 2
 ENABLE_FEAT_PFAR		:= 2
 ENABLE_FEAT_EBEP		:= 2
 
-ifeq (${ENABLE_RME},1)
+ifeq (${ENABLE_RMM},1)
     ENABLE_FEAT_MEC		:= 2
     RMMD_ENABLE_IDE_KEY_PROG	:= 1
 endif
@@ -149,7 +149,7 @@ ifeq ($(filter 1,${RESET_TO_BL2} ${RESET_TO_BL31}),)
 include_fconf_srcs = 1
 endif
 
-ifneq ($(filter 1,${ARM_FW_CONFIG_LOAD_ENABLE} ${TRANSFER_LIST} ${ENABLE_RME}),)
+ifneq ($(filter 1,${ARM_FW_CONFIG_LOAD_ENABLE} ${TRANSFER_LIST} ${ENABLE_RMM}),)
 include_fconf_srcs = 1
 endif
 
@@ -180,7 +180,7 @@ FVP_DT_PREFIX		:=	fvp-base-gicv5-psci
 ifneq ($(SPD),none)
         $(error Error: GICv5 is not compatible with SPDs)
 endif
-ifeq ($(ENABLE_RME),1)
+ifeq ($(ENABLE_RMM),1)
        $(error Error: GICv5 is not compatible with RME)
 endif
 else ifeq (${FVP_USE_GIC_DRIVER}, FVP_GICV2)
@@ -274,7 +274,6 @@ endif
 
 #Build AArch64-only CPUs with no FVP model yet.
 ifeq (${BUILD_CPUS_WITH_NO_FVP_MODEL},1)
-	ERRATA_SME_POWER_DOWN := 1
 	FVP_CPU_LIBS    +=	lib/cpus/aarch64/c1_pro.S		\
 				lib/cpus/aarch64/c1_nano.S		\
 				lib/cpus/aarch64/c1_ultra.S		\
@@ -333,7 +332,7 @@ ifeq (${COT_DESC_IN_DTB},1)
 BL2_SOURCES		+=	plat/arm/common/fconf/fconf_nv_cntr_getter.c
 endif
 
-ifeq (${ENABLE_RME},1)
+ifeq (${ENABLE_RMM},1)
 BL2_SOURCES		+=	plat/arm/board/fvp/aarch64/fvp_helpers.S	\
 				plat/arm/board/fvp/fvp_cpu_pwr.c
 

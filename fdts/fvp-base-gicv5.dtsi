@@ -143,7 +143,7 @@
 				<0 0 46 &iwb0 46 IRQ_TYPE_LEVEL_HIGH>;
 	};
 
-#if (ENABLE_RME == 1)
+#if (ENABLE_RMM == 1)
 	pci: pci@40000000 {
 		interrupt-map = <0 0 0 1 &gic 0 GIC_SPI 200 IRQ_TYPE_LEVEL_HIGH>,
 				<0 0 0 2 &gic 0 GIC_SPI 201 IRQ_TYPE_LEVEL_HIGH>,
@@ -158,5 +158,5 @@
 			     <GIC_SPI 109 IRQ_TYPE_EDGE_RISING>;
 		msi-parent = <&its0 0x10000>;
 	};
-#endif /* ENABLE_RME */
+#endif /* ENABLE_RMM */
 };

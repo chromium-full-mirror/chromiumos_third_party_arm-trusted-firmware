@@ -9,9 +9,9 @@
 #include <stddef.h>
 #include <string.h>
 
-int memcpy_s(void *dst, size_t dsize, void *src, size_t ssize)
+int memcpy_s(void *dst, size_t dsize, const void *src, size_t ssize)
 {
-	unsigned int *s = (unsigned int *)src;
+	const unsigned int *s = (const unsigned int *)src;
 	unsigned int *d = (unsigned int *)dst;
 
 	/*

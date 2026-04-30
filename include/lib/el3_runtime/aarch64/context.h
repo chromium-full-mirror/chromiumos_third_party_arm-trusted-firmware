@@ -23,7 +23,7 @@
 
 #define	CPU_CONTEXT_SECURE	UL(0)
 #define	CPU_CONTEXT_NS		UL(1)
-#if ENABLE_RME
+#if ENABLE_RMM
 #define	CPU_CONTEXT_REALM	UL(2)
 #define	CPU_CONTEXT_NUM		UL(3)
 #else
@@ -348,7 +348,7 @@ static inline uint8_t get_cpu_context_index(size_t security_state)
 {
 	if (security_state == SECURE) {
 		return CPU_CONTEXT_SECURE;
-#if ENABLE_RME
+#if ENABLE_RMM
 	} else  if (security_state == REALM) {
 		return CPU_CONTEXT_REALM;
 #endif

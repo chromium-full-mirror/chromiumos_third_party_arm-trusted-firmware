@@ -30,7 +30,7 @@
 #define strlen  __builtin_strlen
 #define strrchr __builtin_strrchr
 
-int memcpy_s(void *dst, size_t dsize, void *src, size_t ssize);
+int memcpy_s(void *dst, size_t dsize, const void *src, size_t ssize);
 void *memmove(void *dst, const void *src, size_t len);
 void *memrchr(const void *src, int c, size_t len);
 size_t strnlen(const char *s, size_t maxlen);

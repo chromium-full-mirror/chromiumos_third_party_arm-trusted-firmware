@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2026, BayLibre SAS
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -11,6 +12,7 @@
 #include <common/debug.h>
 #include <lib/psci/psci.h>
 #include <lib/semihosting.h>
+#include <plat/common/plat_hold_pen.h>
 #include <plat/common/platform.h>
 #include <drivers/gpio.h>
 
@@ -21,7 +23,7 @@
 /*
  * The secure entry point to be used on warm reset.
  */
-static unsigned long secure_entrypoint;
+static uintptr_t secure_entrypoint;
 
 /* Make composite power state parameter till power level 0 */
 #if PSCI_EXTENDED_STATE_ID
@@ -123,14 +125,12 @@ static void qemu_cpu_standby(plat_local_state_t cpu_state)
  ******************************************************************************/
 static int qemu_pwr_domain_on(u_register_t mpidr)
 {
-	int rc = PSCI_E_SUCCESS;
-	unsigned pos = plat_core_pos_by_mpidr(mpidr);
-	uint64_t *hold_base = (uint64_t *)PLAT_QEMU_HOLD_BASE;
+	unsigned int pos = plat_core_pos_by_mpidr(mpidr);
 
-	hold_base[pos] = PLAT_QEMU_HOLD_STATE_GO;
-	sev();
+	plat_hold_pen_signal((struct hold_slot *)PLAT_QEMU_HOLD_BASE,
+			pos, secure_entrypoint);
 
-	return rc;
+	return PSCI_E_SUCCESS;
 }
 
 /*******************************************************************************
@@ -230,10 +230,9 @@ static const plat_psci_ops_t plat_qemu_psci_pm_ops = {
 int plat_setup_psci_ops(uintptr_t sec_entrypoint,
 			const plat_psci_ops_t **psci_ops)
 {
-	uintptr_t *mailbox = (void *) PLAT_QEMU_TRUSTED_MAILBOX_BASE;
-
-	*mailbox = sec_entrypoint;
-	secure_entrypoint = (unsigned long) sec_entrypoint;
+	secure_entrypoint = sec_entrypoint;
+	plat_hold_pen_init((struct hold_slot *)PLAT_QEMU_HOLD_BASE,
+		      PLATFORM_CORE_COUNT);
 	*psci_ops = &plat_qemu_psci_pm_ops;
 
 	return 0;

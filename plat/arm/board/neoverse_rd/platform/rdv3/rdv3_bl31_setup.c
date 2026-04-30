@@ -150,9 +150,9 @@ static uintptr_t rdv3mc_multichip_gicr_frames[] = {
 	UL(0)	/* Zero Termination */
 };
 
-#if (NRD_PLATFORM_VARIANT == 2)
 void __init bl31_plat_arch_setup(void)
 {
+#if (NRD_PLATFORM_VARIANT == 2)
 #if (PLATFORM_NODE_COUNT > 1)
 	int ret;
 #endif
@@ -171,8 +171,16 @@ void __init bl31_plat_arch_setup(void)
 		}
 	}
 #endif
-}
+
+#if (NRD_PLATFORM_VARIANT == 2)
+	if (plat_arm_nrd_get_multi_chip_mode()) {
+		gic600_multichip_init(&rdv3mc_multichip_data);
+	}
 #endif
+
+#endif
+	gic_set_gicr_frames(rdv3mc_multichip_gicr_frames);
+}
 
 void bl31_platform_setup(void)
 {
@@ -214,14 +222,9 @@ void bl31_platform_setup(void)
 				panic();
 			}
 		}
-
-		gic600_multichip_init(&rdv3mc_multichip_data);
 	}
 #endif /* NRD_PLATFORM_VARIANT == 2 */
 	nrd_bl31_common_platform_setup();
-
-	gic_set_gicr_frames(
-		rdv3mc_multichip_gicr_frames);
 
 	/* Initialize SFCP for communications between AP and RSE */
 	sfcp_err = sfcp_init();

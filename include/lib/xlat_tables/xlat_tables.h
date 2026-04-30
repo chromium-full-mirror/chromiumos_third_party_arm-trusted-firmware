@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2021, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2014-2025, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -79,12 +79,11 @@
 #define MT_CAP_LD_ST_TRACK      U(0)
 #endif
 
-/* Memory type for EL3 regions */
-#if ENABLE_RME
-#error FEAT_RME requires version 2 of the Translation Tables Library
-#else
+/*
+ * Memory type for EL3 regions is always MT_SECURE for version 1 of the
+ * Translation Tables Library.
+ */
 #define EL3_PAS			MT_SECURE
-#endif
 
 /*
  * Structure for specifying a single region of memory.

@@ -99,39 +99,54 @@ static void xlat_desc_print(const xlat_ctx_t *ctx, uint64_t desc)
 			  ? "-USER" : "-PRIV");
 	}
 
-#if ENABLE_RME
-	/*
-	 * When RME is enabled xlat library do not support any translation
-	 * regimes other than EL3 stage1.
-	 */
-	assert(ctx->xlat_regime == EL3_REGIME);
+	if (is_feat_rme_supported()) {
+		/*
+		 * When RME is enabled xlat library do not support any
+		 * translation regimes other than EL3 stage1.
+		 */
+		assert(ctx->xlat_regime == EL3_REGIME);
 
-	switch (desc & LOWER_ATTRS(EL3_S1_NSE | NS)) {
-	case LOWER_ATTRS(NS):
-		printf("-NS");
-		break;
-	case LOWER_ATTRS(EL3_S1_NSE):
-		printf("-RT");
-		break;
-	case LOWER_ATTRS(EL3_S1_NSE | NS):
-		printf("-RL");
-		break;
-	default:
-		/* Secure PAS is supported only when SEL2 is implemented */
-		assert(is_feat_sel2_supported());
-		printf("-S");
-		break;
-	}
+		switch (desc & LOWER_ATTRS(EL3_S1_NSE | NS)) {
+		case LOWER_ATTRS(NS):
+			printf("-NS");
+			break;
+		case LOWER_ATTRS(EL3_S1_NSE):
+			printf("-RT");
+			break;
+		case LOWER_ATTRS(EL3_S1_NSE | NS):
+#if ENABLE_RMM
+			printf("-RL");
 #else
-	printf(((LOWER_ATTRS(NS) & desc) != 0ULL) ? "-NS" : "-S");
+			assert(false);
 #endif
+			break;
+		default:
+			/*
+			 * Secure PAS is supported only when SEL2 is
+			 * implemented
+			 */
+			assert(is_feat_sel2_supported());
+			printf("-S");
+			break;
+		}
+	} else {
+		/*
+		 * If RME not supported, desc should not have NSE bit set in
+		 * EL3 stage 1.
+		 */
+		if (ctx->xlat_regime == EL3_REGIME) {
+			assert((LOWER_ATTRS(EL3_S1_NSE) & desc) == 0);
+		}
+
+		printf(((LOWER_ATTRS(NS) & desc) != 0ULL) ? "-NS" : "-S");
+	}
 
 #ifdef __aarch64__
 	/* Check Guarded Page bit */
 	if ((desc & GP) != 0ULL) {
 		printf("-GP");
 	}
-#endif
+#endif /* __aarch64__ */
 }
 
 static const char * const level_spacers[] = {
@@ -576,12 +591,11 @@ int xlat_change_mem_attributes_ctx(const xlat_ctx_t *ctx, uintptr_t base_va,
 		/* Retain NS bit */
 		new_desc |= old_desc & LOWER_ATTRS(NS);
 
-#if ENABLE_RME
 		/* Retain NSE bit */
-		if (ctx->xlat_regime == EL3_REGIME) {
+		if (is_feat_rme_supported() &&
+		    (ctx->xlat_regime == EL3_REGIME)) {
 			new_desc |= old_desc & LOWER_ATTRS(EL3_S1_NSE);
 		}
-#endif
 
 		/*
 		 * The break-before-make sequence requires writing an invalid

@@ -11,7 +11,7 @@ depends on certain options to be enabled or disabled.
    operations when entering/exiting an EL2 execution context. This is of primary
    interest when Armv8.4-SecEL2 or RME extension is implemented.
    Default is 0 (disabled). This option will be set to 1 (enabled) when ``SPD=spmd``
-   and ``SPMD_SPM_AT_SEL2`` is set or when ``ENABLE_RME`` is set to 1 (enabled).
+   and ``SPMD_SPM_AT_SEL2`` is set or when ``ENABLE_RMM`` is set to 1 (enabled).
 
 - ``FFH_SUPPORT``: This boolean option provides support to enable Firmware First
   handling (FFH) of External aborts and SError interrupts originating from lower

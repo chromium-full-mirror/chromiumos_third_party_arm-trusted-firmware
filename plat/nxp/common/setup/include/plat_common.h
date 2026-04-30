@@ -10,6 +10,8 @@
 #define PLAT_COMMON_H
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <common/bl_common.h>
 
 #include <dcfg.h>
 #include <lib/el3_runtime/cpu_data.h>
