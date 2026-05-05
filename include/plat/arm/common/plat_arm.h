@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -8,10 +8,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-
 #include <common/desc_image_load.h>
 #include <drivers/arm/gic.h>
 #include <drivers/arm/tzc_common.h>
+#include <drivers/partition/efi.h>
 #include <lib/bakery_lock.h>
 #include <lib/cassert.h>
 #include <lib/el3_runtime/cpu_data.h>
@@ -201,8 +201,9 @@ void arm_setup_romlib(void);
 int arm_io_setup(void);
 
 /* Set image specification in IO block policy */
-int arm_set_image_source(unsigned int image_id, const char *part_name,
-			 uintptr_t *dev_handle, uintptr_t *image_spec);
+int arm_set_image_source(unsigned int image_id, const struct efi_guid *part_guid,
+			 const char *part_name, uintptr_t *dev_handle,
+			 uintptr_t *image_spec);
 void arm_set_fip_addr(uint32_t active_fw_bank_idx);
 
 /* Security utility functions */

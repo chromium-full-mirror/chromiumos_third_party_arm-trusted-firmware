@@ -114,14 +114,14 @@ Build Options deprecated/removed
 
 Populated table provides details about build options that were removed or deprecated.
 
-+-----------------------+--------------------------------+
-| Build Option          | Deprecated from TF-A Version   |
-+=======================+================================+
-| NS_TIMER_SWITCH       | v2.14.0                        |
-+-----------------------+--------------------------------+
-| SPM_MM                | v2.14.0                        |
-+-----------------------+--------------------------------+
++-----------------------+--------------------------------+-----------------------+
+| Build Option          | Deprecated from TF-A Version   | Removed after Release |
++=======================+================================+=======================+
+| NS_TIMER_SWITCH       | v2.14.0                        | v2.16.0               |
++-----------------------+--------------------------------+-----------------------+
+| SPM_MM                | v2.14.0                        | v2.16.0               |
++-----------------------+--------------------------------+-----------------------+
 
 --------------
 
-*Copyright (c) 2018-2025, Arm Limited and Contributors. All rights reserved.*
+*Copyright (c) 2018-2026, Arm Limited and Contributors. All rights reserved.*

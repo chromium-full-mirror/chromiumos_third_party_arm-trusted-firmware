@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2025, Arm Limited. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited. All rights reserved.
  * Copyright (c) 2023, NVIDIA Corporation. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -14,29 +14,32 @@
 #include <lib/el3_runtime/context_mgmt.h>
 #include <lib/extensions/idte3.h>
 
-int handle_sysreg_trap(uint64_t esr_el3, cpu_context_t *ctx,
-			u_register_t flags __unused)
+int handle_sysreg_trap(uint64_t esr_el3, cpu_context_t *ctx, u_register_t flags)
 {
-	uint64_t __unused opcode = esr_el3 & ISS_SYSREG_OPCODE_MASK;
+	uint64_t opcode = EXTRACT(ESR_ISS, esr_el3) & ~(MASK(ISS_SYS64_DIR) | MASK(ISS_SYS64_RT));
+	uint8_t rt = EXTRACT(ISS_SYS64_RT, esr_el3);
 
-#if ENABLE_FEAT_IDTE3
-	/*
-	 * Handle trap for system registers with the following encoding
-	 * op0 == 3, op1 == 0/1, Crn == 0 (Group 3 & Group 5 ID registers)
-	 */
-	if ((esr_el3 & ISS_IDREG_OPCODE_MASK) == ISS_SYSREG_OPCODE_IDREG) {
-		return handle_idreg_trap(esr_el3, ctx, flags);
+	if (is_feat_idte3_supported() &&
+	    ((opcode >= ISS_SYSREG_OPCODE_IDREG_MIN &&
+	      opcode <= ISS_SYSREG_OPCODE_IDREG_MAX) ||
+	      opcode == ISS_SYSREG_OPCODE_GMID_EL1)) {
+		return handle_idreg_trap(rt, opcode, ctx, flags);
 	}
-#endif
 
-#if ENABLE_FEAT_RNG_TRAP
-	if ((opcode == ISS_SYSREG_OPCODE_RNDR) || (opcode == ISS_SYSREG_OPCODE_RNDRRS)) {
-		return plat_handle_rng_trap(esr_el3, ctx);
+	if (is_feat_rng_trap_supported() &&
+	    (opcode == ISS_SYSREG_OPCODE_RNDR ||
+	     opcode == ISS_SYSREG_OPCODE_RNDRRS)) {
+		/* Ignore XZR accesses and writes to the register */
+		if (rt == ISS_SYSREG_RT_XZR || !EXTRACT(ISS_SYS64_DIR, esr_el3)) {
+			return TRAP_RET_CONTINUE;
+		}
+
+		return plat_handle_rng_trap(rt, opcode == ISS_SYSREG_OPCODE_RNDRRS, ctx);
 	}
-#endif
 
 #if IMPDEF_SYSREG_TRAP
-	if ((opcode & ISS_SYSREG_OPCODE_IMPDEF) == ISS_SYSREG_OPCODE_IMPDEF) {
+	/* isolate selected bits and check they are all set */
+	if (opcode & ISS_SYSREG_OPCODE_IMPDEF_MASK == ISS_SYSREG_OPCODE_IMPDEF_MASK) {
 		return plat_handle_impdef_trap(esr_el3, ctx);
 	}
 #endif
@@ -102,15 +105,18 @@ static u_register_t get_elr_el3(u_register_t spsr_el3, u_register_t vbar, unsign
  * Explicitly create all bits of SPSR to get PSTATE at exception return.
  *
  * The code is based on "Aarch64.exceptions.takeexception" described in
- * DDI0602 revision 2025-03.
- * "https://developer.arm.com/documentation/ddi0597/2025-03/Shared-Pseudocode/
+ * DDI0602 revision 2026-03.
+ * "https://developer.arm.com/documentation/ddi0597/2026-03/Shared-Pseudocode/
  * aarch64-exceptions-takeexception"
  *
  * NOTE: This piece of code must be reviewed every release against the latest
  * takeexception sequence to ensure that we keep up with new arch features that
  * affect the PSTATE.
  *
- * TF-A 2.13 release review
+ * Next review: TF-A 2.16 release
+ *
+ * FEAT_NV3 has an impact but is not implemented in EL3 yet.
+ * TODO: this should create a BRBE exception record
  */
 u_register_t create_spsr(u_register_t old_spsr, unsigned int target_el)
 {

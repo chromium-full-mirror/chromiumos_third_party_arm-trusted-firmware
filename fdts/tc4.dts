@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2025, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2026, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -61,6 +61,30 @@
 #include "tc-base.dtsi"
 
 / {
+#if TC_CPU_TOPOLOGY_6MID_2BIG == 1
+	cpus {
+		CPU0:cpu@0 {
+			clocks = <&scmi_dvfs 1>;
+			capacity-dmips-mhz = <MID_CAPACITY>;
+		};
+
+		CPU1:cpu@100 {
+			clocks = <&scmi_dvfs 1>;
+			capacity-dmips-mhz = <MID_CAPACITY>;
+		};
+	};
+
+	gic: interrupt-controller@GIC_CTRL_ADDR {
+		ppi-partitions {
+			/delete-node/ ppi_partition_little;
+			ppi_partition_mid: interrupt-partition-1 {
+				affinity = <&CPU0>, <&CPU1>, <&CPU2>, <&CPU3>, <&CPU4>, <&CPU5>;
+			};
+		};
+	};
+	/delete-node/ cpu-pmu-little;
+#endif
+
 	spe-pmu-mid {
 		status = "okay";
 	};

@@ -211,7 +211,7 @@ void __no_pauth bl31_main(u_register_t arg0, u_register_t arg1, u_register_t arg
 		console_flush();
 		int32_t rc = (*rmm_init)();
 
-		if (rc == 0) {
+		if (rc != 0) {
 			WARN("BL31: RMM initialization failed\n");
 		}
 	}

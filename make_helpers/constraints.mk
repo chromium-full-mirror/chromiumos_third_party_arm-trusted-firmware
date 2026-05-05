@@ -193,13 +193,14 @@ ifeq ($(RAS_EXTENSION),1)
         and HANDLE_EA_EL3_FIRST_NS instead")
 endif
 
-
-# When FAULT_INJECTION_SUPPORT is used, require that FEAT_RAS is enabled
-ifeq ($(FAULT_INJECTION_SUPPORT),1)
-	ifeq ($(ENABLE_FEAT_RAS),0)
+ifeq ($(ENABLE_FEAT_RAS),0)
+        ifneq ($(FAULT_INJECTION_SUPPORT),0)
                 $(error For FAULT_INJECTION_SUPPORT, ENABLE_FEAT_RAS must not be 0)
-	endif
-endif #(FAULT_INJECTION_SUPPORT)
+        endif
+        ifneq ($(RAS_TRAP_NS_ERR_REC_ACCESS),0)
+                $(error For RAS_TRAP_NS_ERR_REC_ACCESS, ENABLE_FEAT_RAS must not be 0)
+        endif
+endif #(ENABLE_FEAT_RAS)
 
 # DYN_DISABLE_AUTH can be set only when TRUSTED_BOARD_BOOT=1
 ifeq ($(DYN_DISABLE_AUTH), 1)
@@ -254,10 +255,6 @@ ifneq (${ARCH},aarch64)
 endif
 
 endif # ${ENABLE_FEAT_PAUTH_LR}
-
-ifeq ($(FEATURE_DETECTION),1)
-        $(info FEATURE_DETECTION is an experimental feature)
-endif #(FEATURE_DETECTION)
 
 ifeq ($(FIRME_SUPPORT),1)
         $(info FIRME_SUPPORT is an experimental feature)
@@ -514,13 +511,6 @@ ifneq (${DYNAMIC_WORKAROUND_CVE_2018_3639},0)
         ifeq (${WORKAROUND_CVE_2018_3639},0)
                 $(error Error: WORKAROUND_CVE_2018_3639 must be 1 if DYNAMIC_WORKAROUND_CVE_2018_3639 is 1)
         endif
-endif
-
-ifeq (${WORKAROUND_CVE_2025_0647},1)
-ifeq "8.5" "$(word 1, $(sort 8.5 $(ARM_ARCH_MAJOR).$(ARM_ARCH_MINOR)))"
-else
-        $(error Error: WORKAROUND_CVE_2025_0647 can only be used with Arm Arch v8.5+, set ARM_ARCH_MAJOR and ARM_ARCH_MINOR appropriately.)
-endif
 endif
 
 ifneq ($(ENABLE_FEAT_MORELLO),0)

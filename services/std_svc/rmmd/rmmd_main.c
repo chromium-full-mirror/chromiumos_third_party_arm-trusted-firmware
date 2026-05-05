@@ -145,12 +145,12 @@ static int32_t rmm_init(void)
 		ERROR("RMM init failed: %ld\n", rc);
 		/* Mark the boot as failed for all the CPUs */
 		rmm_boot_failed = true;
-		return 0;
+		return -1;
 	}
 
 	INFO("RMM init end.\n");
 
-	return 1;
+	return 0;
 }
 
 /*******************************************************************************
@@ -608,7 +608,7 @@ int rmmd_primary_activate(void)
 	}
 
 	rc = rmm_init();
-	if (rc == 0) {
+	if (rc != 0) {
 		ERROR("rmm_init failed during LFA: %d\n", rc);
 		return rc;
 	}

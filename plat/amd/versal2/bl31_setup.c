@@ -188,7 +188,7 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 
 	INFO("CPU Revision = 0x%lx\n", rev_var);
 	INFO("cpu_clock = %dHz, uart_clock = %dHz\n", cpu_clock, uart_clock);
-	NOTICE("BL31: Executing from 0x%x\n", BL31_BASE);
+	NOTICE("BL31: Executing from 0x%lx\n", BL31_BASE);
 #if (defined(SPD_tspd) || defined(SPD_opteed))
 	NOTICE("BL31: Secure code at 0x%lx\n", bl32_image_ep_info.pc);
 #endif /* SPD_tspd || SPD_opteed */
@@ -278,6 +278,16 @@ int plat_spmd_handle_group0_interrupt(uint32_t intid)
 void bl31_platform_setup(void)
 {
 	prepare_dtb();
+
+	/*
+	 * Initialize topology from DT before GIC init. plat_core_pos_by_mpidr()
+	 * (used during gicv3_rdistif_base_addrs_probe) reads plat_cores_per_cluster
+	 * and plat_cluster_count. If those still hold compile-time defaults when
+	 * the GIC scans its redistributors, cores whose Aff1 exceeds the default
+	 * cores-per-cluster value are treated as invalid and their redistributor
+	 * base address is never stored, causing an assert on CPU bring-up.
+	 */
+	(void)plat_get_power_domain_tree_desc();
 
 	/* Initialize the gic cpu and distributor interfaces */
 	plat_gic_driver_init();

@@ -32,7 +32,7 @@ check_feature(int state, unsigned long field, const char *feat_name,
 		return true;
 	}
 	if (state >= FEAT_STATE_ALWAYS && field > max) {
-		ERROR("FEAT_%s is version %ld, but is only known up to version %d\n",
+		ERROR("FEAT_%s is version %lu, but is only known up to version %u\n",
 		      feat_name, field, max);
 		return true;
 	}
@@ -104,6 +104,12 @@ static unsigned int read_feat_ras_id_field(void)
 {
 	return ISOLATE_FIELD(read_id_aa64pfr0_el1(), ID_AA64PFR0_RAS_SHIFT,
 			     ID_AA64PFR0_RAS_MASK);
+}
+
+static unsigned int read_feat_iesb_id_field(void)
+{
+	return ISOLATE_FIELD(read_id_aa64mmfr2_el1(), ID_AA64MMFR2_EL1_IESB_SHIFT,
+			     ID_AA64MMFR2_EL1_IESB_MASK);
 }
 
 static unsigned int read_feat_dit_id_field(void)
@@ -422,6 +428,9 @@ void detect_arch_features(unsigned int core_pos)
 				 "SVE", 1, 3);
 	tainted |= check_feature(ENABLE_FEAT_RAS, read_feat_ras_id_field(),
 				 "RAS", 1, 3);
+	/* FEAT_RAS's enablement hinges on FEAT_IESB also being present */
+	tainted |= check_feature(ENABLE_FEAT_RAS, read_feat_iesb_id_field(),
+				 "IESB", 1, 2);
 
 	/* v8.3 features */
 	/* the PAuth fields are very complicated, no min/max is checked */

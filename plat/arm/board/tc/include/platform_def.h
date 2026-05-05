@@ -191,10 +191,10 @@
 /*
  * Since BL31 NOBITS overlays BL2 and BL1-RW, PLAT_ARM_MAX_BL31_SIZE is
  * calculated using the current BL31 PROGBITS debug size plus the sizes of
- * BL2 and BL1-RW. Current size is considering that TRUSTED_BOARD_BOOT and
- * MEASURED_BOOT is enabled.
+ * BL2 and BL1-RW. The chosen number fits the largest possible config:
+ * where TRUSTED_BOARD_BOOT, MEASURED_BOOT, and PLATFORM_TEST are all enabled.
  */
-#define PLAT_ARM_MAX_BL31_SIZE		0x60000
+#define PLAT_ARM_MAX_BL31_SIZE		0x61000
 
 /*
  * Size of cacheable stacks
@@ -245,6 +245,10 @@
 #define V2M_FLASH0_BASE			UL(0x0C000000)
 #endif
 #define V2M_FLASH0_SIZE			UL(0x02000000)
+#define QSPI_CONTROLLER_BASE_ADDR	0xe000000
+#define QSPI_CONTROLLER_SIZE		0x1000
+#define SCC_BASE_ADDR			0x7ff90000
+#define SCC_SIZE			0x1000
 #endif
 
 // TC_MAP_DEVICE covers different peripherals
@@ -307,7 +311,7 @@
  *
  *  Memory Layout "Android In RAM" with MTE carveout
  *
- *  0x8_8000_0000  ------------------   ANDROID_FS_BASE
+ *  0x8_8000_0000  ------------------   DRAM_FS_SIZE
  *                 |                |
  *                 |                |
  *                 |  ANDROID_IMG   |
@@ -324,21 +328,45 @@
  *                 |   TAGS SPACE   |
  *                 |    (512MB)     |
  *  0xC_0000_0000  ------------------
+ *
+ *  ********************************************************
+ *
+ *  Memory Layout "Buildroot In RAM" with MTE carveout
+ *
+ *  0x8_8000_0000  ------------------   DDK_BASE_ADDR
+ *                 |                |
+ *                 |      DDK       |
+ *                 |   (512 MB)     |
+ *  0x8_A000_0000  ------------------   FREE_REGION_BASE_ADDR
+ *                 |                |
+ *                 |     Free       |
+ *                 |    (13 GB)     |
+ *  0xB_E000_0000  ------------------   MTE_BASE_ADDR
+ *                 |                |
+ *                 |      MTE       |
+ *                 |   TAGS SPACE   |
+ *                 |   (512 MB)     |
+ *  0xC_0000_0000  ------------------   PLAT_ARM_DRAM2_END
  */
 
 #define TC_DRAM2_BASE			ULL(0x880000000)
 #define TC_TOTAL_DRAM2_SIZE		ULL(0x380000000)
 
 #if TC_FPGA_FS_IMG_IN_RAM
+#if defined(TC_TARGET_DISTRO_ANDROID)
 /* 8.5GB reserved for system+userdata+vendor images */
 #define SYSTEM_IMAGE_SIZE		ULL(0xC0000000)		/* 3GB */
 #define USERDATA_IMAGE_SIZE		ULL(0x140000000)	/* 5GB */
 #define VENDOR_IMAGE_SIZE		ULL(0x20000000)		/* 512MB */
-#define ANDROID_FS_SIZE			(SYSTEM_IMAGE_SIZE + \
+#define DRAM_FS_SIZE			(SYSTEM_IMAGE_SIZE + \
 					USERDATA_IMAGE_SIZE + \
 					VENDOR_IMAGE_SIZE)
+#elif defined(TC_TARGET_DISTRO_BUILDROOT)
+#define DDK_IMAGE_SIZE			ULL(0x20000000)		/* 512MB */
+#define DRAM_FS_SIZE			(DDK_IMAGE_SIZE)
+#endif
 #else
-#define ANDROID_FS_SIZE			ULL(0)
+#define DRAM_FS_SIZE			ULL(0)
 #endif /* TC_FPGA_FS_IMG_IN_RAM */
 
 #if defined(TARGET_FLAVOUR_FPGA) && (TARGET_PLATFORM == 4)
@@ -359,9 +387,9 @@
 #define TC_MTE_SIZE_TOTAL		ULL(0)
 #endif /* defined(TARGET_FLAVOUR_FPGA) && (TARGET_PLATFORM == 4) */
 
-#define PLAT_ARM_DRAM2_BASE		((TC_DRAM2_BASE) + (ANDROID_FS_SIZE))
+#define PLAT_ARM_DRAM2_BASE		((TC_DRAM2_BASE) + (DRAM_FS_SIZE))
 #define PLAT_ARM_DRAM2_SIZE				\
-	((TC_TOTAL_DRAM2_SIZE) - (ANDROID_FS_SIZE) - (TC_MTE_SIZE_TOTAL))
+	((TC_TOTAL_DRAM2_SIZE) - (DRAM_FS_SIZE) - (TC_MTE_SIZE_TOTAL))
 
 #define PLAT_ARM_DRAM2_END		(PLAT_ARM_DRAM2_BASE + PLAT_ARM_DRAM2_SIZE)
 
@@ -412,6 +440,10 @@
 
 #define PLATFORM_CORE_COUNT		(PLAT_MAX_CPUS_PER_CLUSTER * PLAT_ARM_CLUSTER_COUNT)
 
+#define PLAT_NUM_PWR_DOMAINS		(ARM_SYSTEM_COUNT + \
+					 PLAT_ARM_CLUSTER_COUNT + \
+					 PLATFORM_CORE_COUNT)
+
 /* The number of nodes in the SFCP system. This must be kept
  * up to date with the value in other nodes
  */
@@ -431,7 +463,7 @@
 #endif
 
 #define CSS_SYSTEM_PWR_DMN_LVL		ARM_PWR_LVL2
-#define PLAT_MAX_PWR_LVL		ARM_PWR_LVL1
+#define PLAT_MAX_PWR_LVL		ARM_PWR_LVL2
 
 /*
  * Physical and virtual address space limits for MMU in AARCH64
@@ -472,11 +504,6 @@
 #define PLAT_ARM_FIP_OFFSET_IN_GPT		0x6000
 #endif /* ARM_GPT_SUPPORT */
 
-/* UART related constants */
-
-#define TC_UART0			0x2a400000
-#define TC_UART1			0x2a410000
-
 /*
  * TODO: if any more undefs are needed, it's better to consider dropping the
  * board_css_def.h include above
@@ -491,20 +518,16 @@
 #undef  ARM_CONSOLE_BAUDRATE
 #define ARM_CONSOLE_BAUDRATE		38400
 
+#define TC_UART1			0x2a410000
+
 #if TARGET_PLATFORM == 3
 #define TC_UARTCLK			3750000
 #elif TARGET_PLATFORM == 4
 #define TC_UARTCLK			4000000
 #endif /* TARGET_PLATFORM == 3 */
 
-
-#if TARGET_FLAVOUR_FVP
 #define PLAT_ARM_BOOT_UART_BASE		TC_UART1
-#else /* TARGET_FLAVOUR_FPGA */
-#define PLAT_ARM_BOOT_UART_BASE		TC_UART0
-#endif /* TARGET_FLAVOUR_FPGA */
-
-#define PLAT_ARM_RUN_UART_BASE		TC_UART0
+#define PLAT_ARM_RUN_UART_BASE		PLAT_ARM_BOOT_UART_BASE
 #define PLAT_ARM_CRASH_UART_BASE	PLAT_ARM_RUN_UART_BASE
 
 #define PLAT_ARM_BOOT_UART_CLK_IN_HZ	TC_UARTCLK

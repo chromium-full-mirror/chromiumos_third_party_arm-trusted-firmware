@@ -57,6 +57,12 @@ Maintainers
 :|G|: `Yann-lms`_
 :|M|: Govindraj Raja <govindraj.raja@arm.com>
 :|G|: `govindraj-arm`_
+:|M|: Chris Kay <chris.kay@arm.com>
+:|G|: `CJKay`_
+:|M|: Boyan Karatotev <boyan.karatotev@arm.com>
+:|G|: `loosper-arm`_
+:|M|: Harrison Mutai <harrison.mutai@arm.com>
+:|G|: `harrisonmutai-arm`_
 
 .. _lts maintainers:
 
@@ -880,10 +886,7 @@ QTI MSM8916 platform port
 :|M|: Nikita Travkin <nikita@trvn.ru>
 :|G|: `TravMurav`_
 :|F|: docs/plat/qti/msm8916.rst
-:|F|: plat/qti/mdm9607/
-:|F|: plat/qti/msm8909/
-:|F|: plat/qti/msm8916/
-:|F|: plat/qti/msm8939/
+:|F|: plat/qti/bear/
 
 Raspberry Pi 3 platform port
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

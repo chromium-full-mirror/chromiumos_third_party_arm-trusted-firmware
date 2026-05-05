@@ -45,7 +45,7 @@ static int lfa_rmm_activate(struct lfa_component_status *activation,
 				activation->component_id);
 		} else {
 			ERROR("Failed to activate component %d\n", activation->component_id);
-			ret = LFA_BUSY;
+			ret = LFA_ACTIVATION_FAILED;
 		}
 
 		lfa_holding_release(ret);

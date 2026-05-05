@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2015-2025, ARM Limited. All rights reserved.
+ * Copyright (c) 2015-2026, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
+
+#include <string.h>
 
 #include <common/debug.h>
 #include <drivers/fwu/fwu_metadata.h>
@@ -16,6 +18,7 @@
 
 #include <plat/arm/common/arm_fconf_getter.h>
 #include <plat/arm/common/arm_fconf_io_storage.h>
+#include <plat/arm/common/arm_gpt_partition_guid.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
@@ -35,6 +38,17 @@ uintptr_t enc_dev_handle;
 static const char * const fip_part_names[] = {"FIP_A", "FIP_B"};
 CASSERT(sizeof(fip_part_names)/sizeof(char *) == NR_OF_FW_BANKS,
 	assert_fip_partition_names_missing);
+
+#if PSA_FWU_SUPPORT
+static const struct efi_guid fwu_metadata_type_guid =
+	ARM_GPT_FWU_METADATA_TYPE_GUID;
+#if PSA_FWU_METADATA_FW_STORE_DESC
+static const struct efi_guid fip_img_type_guid = ARM_FIP_IMG_TYPE_GUID;
+#else
+static const struct efi_guid fip_img_type_guid = NULL_GUID;
+#endif /* PSA_FWU_METADATA_FW_STORE_DESC */
+#endif /* PSA_FWU_SUPPORT */
+static const struct efi_guid null_guid = NULL_GUID;
 #endif /* ARM_GPT_SUPPORT */
 
 /* Weak definitions may be overridden in specific ARM standard platform */
@@ -176,19 +190,42 @@ bool arm_io_is_toc_valid(void)
  *
  * @image_id: image id whose I/O policy to be updated
  *
- * @part_name: partition name whose details to be retrieved
+ * @part_guid: partition GUID whose details to be retrieved (preferred)
+ * @part_name: partition name whose details to be retrieved (fallback)
  *
  * Returns 0 on success, error otherwise
  * Alongside, returns device handle and image specification of requested
  * image.
  ******************************************************************************/
-int arm_set_image_source(unsigned int image_id, const char *part_name,
-			 uintptr_t *dev_handle, uintptr_t *image_spec)
+static const partition_entry_t *arm_get_partition_entry(
+	const struct efi_guid *part_guid, const char *part_name)
 {
-	const partition_entry_t *entry = get_partition_entry(part_name);
+	const partition_entry_t *entry = NULL;
+
+	if ((part_guid != NULL) && (guidcmp(part_guid, &null_guid) != 0)) {
+		entry = get_partition_entry_by_guid(part_guid);
+	}
+
+	if ((entry == NULL) && (part_name != NULL)) {
+		entry = get_partition_entry(part_name);
+	}
+
+	return entry;
+}
+
+int arm_set_image_source(unsigned int image_id, const struct efi_guid *part_guid,
+			 const char *part_name, uintptr_t *dev_handle,
+			 uintptr_t *image_spec)
+{
+	const partition_entry_t *entry = arm_get_partition_entry(part_guid,
+								 part_name);
 
 	if (entry == NULL) {
-		ERROR("Unable to find the %s partition\n", part_name);
+		if (part_name != NULL) {
+			ERROR("Unable to find the %s partition\n", part_name);
+		} else {
+			ERROR("Unable to find partition by GUID\n");
+		}
 		return -ENOENT;
 	}
 
@@ -225,6 +262,7 @@ void arm_set_fip_addr(uint32_t active_fw_bank_idx)
 	INFO("Booting with partition %s\n", fip_part_names[active_fw_bank_idx]);
 
 	int result = arm_set_image_source(FIP_IMAGE_ID,
+					  NULL,
 					  fip_part_names[active_fw_bank_idx],
 					  &dev_handle,
 					  &image_spec);
@@ -242,7 +280,46 @@ void arm_set_fip_addr(uint32_t active_fw_bank_idx)
  ******************************************************************************/
 void plat_fwu_set_images_source(const struct fwu_metadata *metadata)
 {
-	arm_set_fip_addr(metadata->active_index);
+	const struct fwu_fw_store_descriptor *fw_desc;
+	const struct fwu_image_entry *img_entry;
+	const struct efi_guid *img_guid = NULL;
+	struct efi_guid img_guid_local;
+	uint32_t i;
+	uintptr_t dev_handle __unused;
+	uintptr_t image_spec __unused;
+
+	if (metadata->desc_offset == 0U) {
+		arm_set_fip_addr(metadata->active_index);
+		return;
+	}
+
+	fw_desc = (const struct fwu_fw_store_descriptor *)
+		((const uint8_t *)metadata + metadata->desc_offset);
+	img_entry = fw_desc->img_entry;
+	for (i = 0U; i < NR_OF_IMAGES_IN_FW_BANK; i++) {
+		if (guidcmp(&img_entry[i].img_type_guid,
+			    &fip_img_type_guid) == 0) {
+			/* Copy out of packed metadata to avoid unaligned pointer. */
+			memcpy(&img_guid_local,
+			       &img_entry[i]
+					.img_bank_info[metadata->active_index]
+					.img_guid,
+			       sizeof(img_guid_local));
+			img_guid = &img_guid_local;
+			break;
+		}
+	}
+
+	if (img_guid == NULL) {
+		arm_set_fip_addr(metadata->active_index);
+		return;
+	}
+
+	if (arm_set_image_source(FIP_IMAGE_ID, img_guid,
+				 fip_part_names[metadata->active_index],
+				 &dev_handle, &image_spec) != 0) {
+		panic();
+	}
 }
 
 /*******************************************************************************
@@ -254,21 +331,44 @@ int plat_fwu_set_metadata_image_source(unsigned int image_id,
 				       uintptr_t *dev_handle,
 				       uintptr_t *image_spec)
 {
-	int result = -1;
+	const partition_entry_t *entry = NULL;
+	struct plat_io_policy *policy = NULL;
+	io_block_spec_t *spec = NULL;
 
 	if (image_id == FWU_METADATA_IMAGE_ID) {
-		result = arm_set_image_source(FWU_METADATA_IMAGE_ID,
-					      "FWU-Metadata",
-					      dev_handle,
-					      image_spec);
+		if (guidcmp(&fwu_metadata_type_guid, &null_guid) != 0) {
+			entry = get_partition_entry_by_type_index(
+				&fwu_metadata_type_guid, 0U);
+		}
 	} else if (image_id == BKUP_FWU_METADATA_IMAGE_ID) {
-		result = arm_set_image_source(BKUP_FWU_METADATA_IMAGE_ID,
-					      "Bkup-FWU-Metadata",
-					      dev_handle,
-					      image_spec);
+		if (guidcmp(&fwu_metadata_type_guid, &null_guid) != 0) {
+			entry = get_partition_entry_by_type_index(
+				&fwu_metadata_type_guid, 1U);
+		}
 	}
 
-	return result;
+	if (entry == NULL) {
+		if (image_id == FWU_METADATA_IMAGE_ID) {
+			return arm_set_image_source(FWU_METADATA_IMAGE_ID,
+						    NULL, "FWU-Metadata",
+						    dev_handle, image_spec);
+		}
+		return arm_set_image_source(BKUP_FWU_METADATA_IMAGE_ID,
+					    NULL, "Bkup-FWU-Metadata",
+					    dev_handle, image_spec);
+	}
+
+	policy = FCONF_GET_PROPERTY(arm, io_policies, image_id);
+	assert(policy != NULL);
+	assert(policy->image_spec != 0UL);
+
+	spec = (io_block_spec_t *)policy->image_spec;
+	spec->offset = PLAT_ARM_FLASH_IMAGE_BASE + entry->start;
+	spec->length = entry->length;
+	*dev_handle = *(policy->dev_handle);
+	*image_spec = policy->image_spec;
+
+	return 0;
 }
 #endif /* PSA_FWU_SUPPORT */
 
