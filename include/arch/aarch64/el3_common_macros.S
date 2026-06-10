@@ -80,7 +80,7 @@ feat_sctlr2_not_supported\@:
 	mov_imm	x0, SCR_RESET_VAL
 #if IMAGE_BL31 && defined(SPD_spmd) && SPMD_SPM_AT_SEL2
 	mrs	x1, id_aa64pfr0_el1
-	and	x1, x1, #(ID_AA64PFR0_SEL2_MASK << ID_AA64PFR0_SEL2_SHIFT)
+	and	x1, x1, #MASK(ID_AA64PFR0_SEL2)
 	cbz	x1, 1f
 	orr	x0, x0, #SCR_EEL2_BIT
 #endif
@@ -564,9 +564,8 @@ feat_sctlr2_not_supported\@:
 		msr	cptr_el3, x15
 
 #if ENABLE_FEAT_DIT
-#if ENABLE_FEAT_DIT > 1
-		mrs	x15, id_aa64pfr0_el1
-		ubfx	x15, x15, #ID_AA64PFR0_DIT_SHIFT, #ID_AA64PFR0_DIT_LENGTH
+#if ENABLE_FEAT_DIT == 2
+		is_feat_dit_present_asm x15
 		cbz	x15, 1f
 #endif
 		mov	x15, #DIT_BIT

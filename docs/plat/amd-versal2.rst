@@ -42,6 +42,13 @@ AMD Versal Gen 2 platform specific build options
     -   `pl011_1`         : ARM pl011 UART 1
     -   `dcc`             : JTAG Debug Communication Channel(DCC)
 
+*   `NS_FW_HANDOFF_BASE`: When the handoff protocol using transfer lists is
+    enabled (``TRANSFER_LIST=1``), the build system optionally accepts a
+    build-time override for the non-secure firmware handoff base address via
+    this argument. If not provided, the platform falls back to the default
+    base address defined in the Versal Gen 2 platform header
+    (``PLAT_ARM_NS_IMAGE_BASE`` minus 10 MB).
+
 Configurable Stack Size
 -----------------------
 
@@ -68,6 +75,19 @@ CUSTOM SIP Service Support
 - To use this service, the custom package should implement its own SMC handler
   named ``custom_smc_handler``. Once the custom package is included in the
   TF-A build, its definition of ``custom_smc_handler`` is enabled.
+
+Configurable APU IPI ID
+-----------------------
+
+The APU IPI ID in TF-A for the Versal Gen 2 platform is configurable as per the design.
+
+To build PLAT_IPI_ID_APU:
+
+.. code-block:: shell
+
+  make CROSS_COMPILE=aarch64-none-elf- PLAT=versal2 RESET_TO_BL31=1 bl31 PLAT_IPI_ID_APU=<value>
+
+  $(eval $(call add_define,PLAT_IPI_ID_APU))
 
 Custom Package Makefile Fragment Inclusion in TF-A Build
 --------------------------------------------------------

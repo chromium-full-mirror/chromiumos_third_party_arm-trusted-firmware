@@ -6,6 +6,7 @@
  */
 
 #include <common/debug.h>
+#include <ti_clk_handler.h>
 #include <ti_sci.h>
 #include <ti_sci_protocol.h>
 #include <ti_sci_transport.h>
@@ -13,14 +14,17 @@
 #include <board_def.h>
 #include <firewall.h>
 #include <plat_private.h>
+#include <ti_plat_scmi_def.h>
 
 /* Table of regions to map using the MMU */
 const mmap_region_t plat_k3_mmap[] = {
 	K3_MAP_REGION_FLAT(K3_USART_BASE,       K3_USART_SIZE,       MT_DEVICE | MT_RW | MT_SECURE),
 	K3_MAP_REGION_FLAT(K3_GIC_BASE,         K3_GIC_SIZE,         MT_DEVICE | MT_RW | MT_SECURE),
 	K3_MAP_REGION_FLAT(K3_GTC_BASE,         K3_GTC_SIZE,         MT_DEVICE | MT_RW | MT_SECURE),
+	K3_MAP_REGION_FLAT(K3LOW_WKUP_RTC_BASE, K3LOW_WKUP_RTC_SIZE, MT_DEVICE | MT_RW | MT_SECURE),
 	K3_MAP_REGION_FLAT(TI_MAILBOX_TX_BASE,  TI_MAILBOX_RX_TX_SIZE, MT_DEVICE | MT_RW | MT_SECURE),
 	K3_MAP_REGION_FLAT(WKUP_CTRL_MMR0_BASE, WKUP_CTRL_MMR0_SIZE, MT_DEVICE | MT_RW | MT_SECURE),
+	K3_MAP_REGION_FLAT(K3LOW_DEVCTRL_BASE,  K3LOW_DEVCTRL_SIZE,  MT_DEVICE | MT_RW | MT_SECURE),
 	K3_MAP_REGION_FLAT(MAILBOX_SHMEM_REGION_BASE, MAILBOX_SHMEM_REGION_SIZE, MT_DEVICE | MT_RW | MT_SECURE),
 	{ /* sentinel */ }
 };
@@ -31,6 +35,8 @@ int ti_soc_init(void)
 	int ret;
 
 	generic_delay_timer_init();
+
+	ti_init_scmi_server();
 
 	ret = ti_sci_boot_notification();
 	if (ret != 0) {

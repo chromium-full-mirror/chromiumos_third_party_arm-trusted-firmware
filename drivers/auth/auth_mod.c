@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -288,6 +288,7 @@ static int auth_signature(const auth_method_param_sig_t *param,
 		if (rc != 0) {
 			VERBOSE("[TBB] %s():%d failed with error code %d.\n",
 				__func__, __LINE__, rc);
+			return rc;
 		}
 	}
 
@@ -581,6 +582,7 @@ int auth_mod_verify_img(unsigned int img_id,
 				if (rc != 0) {
 					VERBOSE("[TBB] %s():%d failed with error code %d.\n",
 						__func__, __LINE__, rc);
+					return rc;
 				}
 			}
 		}

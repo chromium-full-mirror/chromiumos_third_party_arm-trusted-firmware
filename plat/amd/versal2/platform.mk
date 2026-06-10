@@ -49,6 +49,13 @@ override CTX_INCLUDE_AARCH32_REGS    := 0
 override PLAT_XLAT_TABLES_DYNAMIC := 1
 $(eval $(call add_define,PLAT_XLAT_TABLES_DYNAMIC))
 
+# Optionally override non-secure firmware handoff base address
+ifeq (${TRANSFER_LIST},1)
+    ifdef NS_FW_HANDOFF_BASE
+        $(eval $(call add_define,NS_FW_HANDOFF_BASE))
+    endif
+endif
+
 ifdef TFA_NO_PM
    $(eval $(call add_define,TFA_NO_PM))
 endif
@@ -187,6 +194,15 @@ endif
 
 ifeq ($(DEBUG),1)
 BL31_SOURCES            +=      ${PLAT_PATH}/plat_ocm_coherency.c
+endif
+
+# PLAT_IPI_ID_APU
+ifdef PLAT_IPI_ID_APU
+ifeq (${PLAT_IPI_ID_APU}, $(filter ${PLAT_IPI_ID_APU},2 3 4 5 6 7))
+$(eval $(call add_define,PLAT_IPI_ID_APU))
+else
+$(error "Please define proper PLAT_IPI_ID_APU")
+endif
 endif
 
 ifeq (${ERRATA_ABI_SUPPORT}, 1)

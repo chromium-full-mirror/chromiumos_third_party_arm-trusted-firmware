@@ -408,9 +408,9 @@ enum ddr_type {
 #define PACKAGE_OTP_PKG_SHIFT			U(0)
 
 /* IWDG OTP */
-#define HCONF1_OTP_IWDG_HW_POS			U(0)
-#define HCONF1_OTP_IWDG_FZ_STOP_POS		U(1)
-#define HCONF1_OTP_IWDG_FZ_STANDBY_POS		U(2)
+#define HCONF1_OTP_IWDG_HW_MASK(i)		BIT_32((i) * 3U)
+#define HCONF1_OTP_IWDG_FZ_STOP_MASK(i)		BIT_32((i) * 3U + 1U)
+#define HCONF1_OTP_IWDG_FZ_STANDBY_MASK(i)	BIT_32((i) * 3U + 2U)
 
 /* NAND OTP */
 /* NAND parameter storage flag */
@@ -510,6 +510,16 @@ static inline uintptr_t tamp_bkpr(uint32_t idx)
  * STM32MP2 DDRPHYC
  ******************************************************************************/
 #define DDRPHYC_BASE				U(0x48C00000)
+
+/*******************************************************************************
+ * STM32MP2 IWDG
+ ******************************************************************************/
+#define IWDG_MAX_INSTANCE			U(2)
+#define IWDG1_INST				U(0)
+#define IWDG2_INST				U(1)
+
+#define IWDG1_BASE				U(0x44010000)
+#define IWDG2_BASE				U(0x44020000)
 
 /*******************************************************************************
  * Miscellaneous STM32MP2 peripherals base address
@@ -616,6 +626,7 @@ static inline uintptr_t tamp_bkpr(uint32_t idx)
  ******************************************************************************/
 #define DT_BSEC_COMPAT				"st,stm32mp25-bsec"
 #define DT_DDR_COMPAT				"st,stm32mp2-ddr"
+#define DT_IWDG_COMPAT				"st,stm32mp1-iwdg"
 #if STM32MP21
 #define DT_PWR_COMPAT				"st,stm32mp21-pwr"
 #define DT_RCC_CLK_COMPAT			"st,stm32mp21-rcc"

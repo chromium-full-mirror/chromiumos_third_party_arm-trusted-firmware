@@ -33,10 +33,6 @@ GICV3_SUPPORT_GIC600			:=	1
 COLD_BOOT_SINGLE_CPU			:=	1
 PROGRAMMABLE_RESET_ADDRESS		:=	1
 
-# Enable XPU bypass
-QTI_MSM_XPU_BYPASS			:=	1
-$(eval $(call add_define,QTI_MSM_XPU_BYPASS))
-
 # Enable the dynamic translation tables library
 PLAT_XLAT_TABLES_DYNAMIC		:=	1
 $(eval $(call add_define,PLAT_XLAT_TABLES_DYNAMIC))
@@ -58,10 +54,6 @@ PLAT_INCLUDES		:=	-Iinclude/plat/common/					\
 
 include lib/xlat_tables_v2/xlat_tables.mk
 
-ifeq ($(QTI_MSM_XPU_BYPASS),1)
-PLAT_BL_COMMON_SOURCES	+=	drivers/qti/accesscontrol/xpu.c
-endif
-
 PLAT_BL_COMMON_SOURCES	+=	common/desc_image_load.c				\
 				drivers/qti/crypto/rng.c				\
 				lib/cpus/aarch64/cortex_a78.S				\
@@ -81,16 +73,9 @@ BL2_SOURCES		+=	drivers/io/io_fip.c					\
 				$(PLAT_PATH)/common/src/qti_image_desc.c		\
 				$(PLAT_PATH)/common/src/qti_io_storage.c
 
-# Switch on QTI SMMU driver support
-# This stops Lemans and other QTI platforms that don't support the SMMU driver from failing to build
-ENABLE_QTI_SMMU := 1
-$(eval $(call add_define,ENABLE_QTI_SMMU))
-
 include drivers/arm/gic/v3/gicv3.mk
 BL31_SOURCES		+=	drivers/delay_timer/generic_delay_timer.c		\
 				drivers/delay_timer/delay_timer.c			\
-				drivers/qti/smmu/$(CHIPSET)/smmu_cfg.c			\
-				drivers/qti/smmu/smmu.c					\
 				plat/common/plat_gicv3.c				\
 				${GICV3_SOURCES}					\
 				plat/common/plat_psci_common.c				\
@@ -115,22 +100,25 @@ $(warning QTISECLIB_PATH is not provided while building, using stub implementati
 		THIS FIRMWARE WILL NOT BOOT!)
 
 include drivers/qti/accesscontrol/access_control.mk
+include drivers/qti/smmu/smmu.mk
 
 PLAT_INCLUDES	+=	-Iinclude/drivers/qti/sec_core/${CHIPSET} \
 			-Iinclude/drivers/qti/qtimer/${CHIPSET} \
 			-Iinclude/drivers/qti/watchdog/${CHIPSET}
 
-BL31_SOURCES	+=	plat/qti/hoya/qtiseclib/src/qtiseclib_interface_stub.c \
-			drivers/qti/sec_core/sec_core.c \
-			drivers/qti/qtimer/qtimer.c \
+BL31_SOURCES	+=	plat/qti/hoya/qtiseclib/src/qtiseclib_interface_stub.c	\
+			drivers/qti/sec_core/sec_core.c				\
+			drivers/qti/qtimer/qtimer.c				\
 			drivers/qti/watchdog/watchdog.c
 else
 $(eval $(call add_define,QTISECLIB_PATH))
+$(eval $(call add_define,QTI_XPU_BYPASS))
 # use library provided by QTISECLIB_PATH
-BL31_SOURCES	+=			drivers/qti/sec_core/sec_core_stub.c \
-					drivers/qti/qtimer/qtimer_stub.c \
-					drivers/qti/watchdog/watchdog_stub.c \
-					drivers/qti/accesscontrol/access_control_stub.c
+BL31_SOURCES	+=	drivers/qti/sec_core/sec_core_stub.c			\
+			drivers/qti/qtimer/qtimer_stub.c			\
+			drivers/qti/watchdog/watchdog_stub.c			\
+			drivers/qti/accesscontrol/access_control_stub.c		\
+			drivers/qti/accesscontrol/xpu.c
 LDFLAGS += -L $(dir $(QTISECLIB_PATH))
 LDLIBS += -l$(patsubst lib%.a,%,$(notdir $(QTISECLIB_PATH)))
 endif

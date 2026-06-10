@@ -38,10 +38,6 @@ GICV3_SUPPORT_GIC600			:=	1
 COLD_BOOT_SINGLE_CPU			:=	1
 PROGRAMMABLE_RESET_ADDRESS		:=	1
 
-# Enable XPU bypass
-QTI_MSM_XPU_BYPASS			:=	1
-$(eval $(call add_define,QTI_MSM_XPU_BYPASS))
-
 # Enable the dynamic translation tables library
 PLAT_XLAT_TABLES_DYNAMIC		:=	1
 $(eval $(call add_define,PLAT_XLAT_TABLES_DYNAMIC))
@@ -64,7 +60,6 @@ PLAT_INCLUDES		:=	-Iinclude/plat/common/					\
 include lib/xlat_tables_v2/xlat_tables.mk
 PLAT_BL_COMMON_SOURCES	+=	common/desc_image_load.c				\
 				drivers/qti/crypto/rng.c				\
-				drivers/qti/accesscontrol/xpu.c				\
 				lib/cpus/aarch64/cortex_a78c.S				\
 				lib/bl_aux_params/bl_aux_params.c			\
 				plat/common/aarch64/crash_console_helpers.S		\
@@ -99,8 +94,6 @@ BL31_SOURCES		+=	drivers/delay_timer/generic_delay_timer.c		\
 				$(PLAT_PATH)/hoya/qtiseclib/src/qtiseclib_cb_interface.c
 
 BL31_SOURCES	+=		drivers/qti/sec_core/sec_core_stub.c \
-				drivers/qti/qtimer/qtimer_stub.c \
-				drivers/qti/watchdog/watchdog_stub.c \
 				drivers/qti/accesscontrol/access_control_stub.c
 
 # Override this on the command line to point to the qtiseclib library
@@ -111,10 +104,20 @@ ifeq ($(QTISECLIB_PATH),)
 $(warning QTISECLIB_PATH is not provided while building, using stub implementation. \
 		Please refer to documentation for more details \
 		THIS FIRMWARE WILL NOT BOOT!)
-BL31_SOURCES	+=	plat/qti/hoya/qtiseclib/src/qtiseclib_interface_stub.c
+
+PLAT_INCLUDES   +=      -Iinclude/drivers/qti/qtimer/${CHIPSET} \
+			-Iinclude/drivers/qti/watchdog/${CHIPSET}
+
+BL31_SOURCES	+=	plat/qti/hoya/qtiseclib/src/qtiseclib_interface_stub.c \
+			drivers/qti/qtimer/qtimer.c \
+			drivers/qti/watchdog/watchdog.c
+
 else
 $(eval $(call add_define,QTISECLIB_PATH))
 # use library provided by QTISECLIB_PATH
+BL31_SOURCES	+=	drivers/qti/qtimer/qtimer_stub.c \
+			drivers/qti/watchdog/watchdog_stub.c
+
 LDFLAGS += -L $(dir $(QTISECLIB_PATH))
 LDLIBS += -l$(patsubst lib%.a,%,$(notdir $(QTISECLIB_PATH)))
 endif

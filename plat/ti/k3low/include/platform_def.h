@@ -67,4 +67,23 @@
 #error "MAILBOX_MAX_MESSAGE_SIZE > MAILBOX_RX_SLOT_SZ"
 #endif
 
+/*
+ * SCMI shared memory intentionally aliases BL1_RO_BASE (0x70800000).
+ * This is safe: BL1 has exited and transferred control to BL2 in DDR
+ * before any SCMI channel is initialised, so the SRAM previously used
+ * for BL1 read-only code/rodata is repurposed as SCMI transport buffer
+ * at runtime.
+ */
+#define SCMI_SHMEM_ADDR		(0x70800000UL)
+#define SCMI_SHMEM_SIZE		(0x100UL)	/* 256 bytes */
+
+#define TI_SCMI_NO_OF_CHANNELS		U(1)
+
+/* Device Control Region - covers PSC, PLL, and other control registers */
+#define K3LOW_DEVCTRL_BASE    UL(0x200000)    /* Start of device control registers */
+#define K3LOW_DEVCTRL_SIZE    UL(0x9000000)   /* Size of device control region */
+
+#define K3LOW_WKUP_RTC_BASE   UL(0x2b1f0000)
+#define K3LOW_WKUP_RTC_SIZE   UL(0x2000)
+
 #endif /* PLATFORM_DEF_H */

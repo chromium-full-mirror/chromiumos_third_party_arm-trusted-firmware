@@ -45,6 +45,7 @@
 #ifdef NXP_NV_SW_MAINT_LAST_EXEC_DATA
 #include <plat_nv_storage.h>
 #endif
+#include "plat_soc_hooks.h"
 #ifdef NXP_WARM_BOOT
 #include <plat_warm_rst.h>
 #endif
@@ -327,6 +328,9 @@ void soc_early_init(void)
 	 */
 	delay_timer_init(NXP_TIMER_ADDR);
 	i2c_init(NXP_I2C_ADDR);
+
+	/* Platform extension point; default no-op */
+	plat_soc_early_init_hook();
 }
 
 void soc_bl2_prepare_exit(void)
@@ -344,6 +348,17 @@ enum boot_device get_boot_dev(void)
 	enum boot_device src = BOOT_DEVICE_NONE;
 	uint32_t porsr1;
 	uint32_t rcw_src;
+
+#ifdef SEMIHOSTING_BOOT
+	/*
+	 * Build was configured for BOOT_MODE=semihosting: a debugger loads
+	 * BL2 into OCRAM and the FIP files are served over the probe, so
+	 * the physical RCW_SRC straps are irrelevant. Force the semihosting
+	 * path unconditionally.
+	 */
+	INFO("BOOT SRC is SEMIHOSTING (build-time override)\n");
+	return BOOT_DEVICE_SEMIHOSTING;
+#endif
 
 	porsr1 = read_reg_porsr1();
 
@@ -368,6 +383,10 @@ enum boot_device get_boot_dev(void)
 		INFO("RCW BOOT SRC is EMMC\n");
 		break;
 	default:
+#if defined(SEMIHOSTING_BOOT)
+		src = BOOT_DEVICE_SEMIHOSTING;
+		INFO("RCW BOOT SRC is SEMIHOSTING\n");
+#endif
 		break;
 	}
 

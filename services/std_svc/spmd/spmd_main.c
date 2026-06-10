@@ -240,9 +240,12 @@ static uint64_t spmd_secure_interrupt_handler(uint32_t id,
 					      void *handle,
 					      void *cookie)
 {
+	(void)id;
+	(void)cookie;
+
 	spmd_spm_core_context_t *ctx = spmd_get_context();
 	gp_regs_t *gpregs = get_gpregs_ctx(&ctx->cpu_ctx);
-	int64_t rc;
+	uint64_t rc;
 
 	/* Sanity check the security state when the exception was generated */
 	assert(get_interrupt_src_ss(flags) == NON_SECURE);
@@ -283,7 +286,7 @@ static uint64_t spmd_secure_interrupt_handler(uint32_t id,
 	rc = spmd_spm_core_sync_entry(ctx);
 
 	if (rc != 0ULL) {
-		ERROR("%s failed (%" PRId64 ") on CPU%u\n", __func__, rc, plat_my_core_pos());
+		ERROR("%s failed (0x%" PRIx64 ") on CPU%u\n", __func__, rc, plat_my_core_pos());
 	}
 
 	ctx->secure_interrupt_ongoing = false;
@@ -332,6 +335,9 @@ static uint64_t spmd_group0_interrupt_handler_nwd(uint32_t id,
 						  void *handle,
 						  void *cookie)
 {
+
+	(void)cookie;
+
 	uint32_t intid, intr_raw;
 
 	/* Sanity check the security state when the exception was generated. */
@@ -1005,7 +1011,7 @@ uint64_t spmd_smc_handler(uint32_t smc_fid,
 		break; /* not reached */
 
 	case FFA_VERSION:
-		input_version = (uint32_t)(0xFFFFFFFF & x1);
+		input_version = (uint32_t)(0xFFFFFFFFUL & x1);
 		/*
 		 * If caller is secure and SPMC was initialized,
 		 * return FFA_VERSION of SPMD.
@@ -1018,7 +1024,7 @@ uint64_t spmd_smc_handler(uint32_t smc_fid,
 		 * If the EL3 SPMC is enabled, ignore the SPMC state as
 		 * this is not used.
 		 */
-		if ((input_version & FFA_VERSION_BIT31_MASK) ||
+		if (((input_version & FFA_VERSION_BIT31_MASK) != 0U) ||
 		    (!is_spmc_at_el3() && (ctx->state == SPMC_STATE_RESET))) {
 			ret = FFA_ERROR_NOT_SUPPORTED;
 		} else if (!secure_origin) {
@@ -1048,8 +1054,8 @@ uint64_t spmd_smc_handler(uint32_t smc_fid,
 			gp_regs_t *gpregs = get_gpregs_ctx(&ctx->cpu_ctx);
 			uint64_t rc;
 
-			if (spmc_attrs.major_version == 1 &&
-			    spmc_attrs.minor_version == 0) {
+			if ((spmc_attrs.major_version == 1U) &&
+			    (spmc_attrs.minor_version == 0U)) {
 				ret = MAKE_FFA_VERSION(spmc_attrs.major_version,
 						       spmc_attrs.minor_version);
 				spmc_nwd_ffa_version = (uint32_t)ret;
@@ -1204,7 +1210,7 @@ uint64_t spmd_smc_handler(uint32_t smc_fid,
 		break; /* Not reached */
 
 	case FFA_SPM_ID_GET:
-		if (MAKE_FFA_VERSION(1, 1) > FFA_VERSION_COMPILED) {
+		if (MAKE_FFA_VERSION(1U, 1U) > FFA_VERSION_COMPILED) {
 			return spmd_ffa_error_return(handle,
 						     FFA_ERROR_NOT_SUPPORTED);
 		}
@@ -1403,7 +1409,7 @@ uint64_t spmd_smc_handler(uint32_t smc_fid,
 		}
 
 		/* Call only supported with SMCCC 1.2+ */
-		if (MAKE_SMCCC_VERSION(SMCCC_MAJOR_VERSION, SMCCC_MINOR_VERSION) < 0x10002) {
+		if (MAKE_SMCCC_VERSION(SMCCC_MAJOR_VERSION, SMCCC_MINOR_VERSION) < 0x10002U) {
 			return spmd_ffa_error_return(handle, FFA_ERROR_NOT_SUPPORTED);
 		}
 

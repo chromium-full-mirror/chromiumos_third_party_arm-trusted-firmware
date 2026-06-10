@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2013-2022, Arm Limited and Contributors. All rights reserved.
- * Copyright (c) 2022-2025, Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2026, Advanced Micro Devices, Inc. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -841,26 +841,33 @@ exit_label:
 }
 
 /**
+ * tfa_query_data_bitmask() - API to get supported QUERY_DATA ID mask.
+ * @bit_mask: Returned bit mask of supported QUERY_DATA IDs.
+ *
+ * This function provides bitmask of QUERY_DATA IDs implemented in TF-A.
+ *
+ * Return: Always returns PM_RET_SUCCESS.
+ */
+static enum pm_ret_status tfa_query_data_bitmask(uint32_t *bit_mask)
+{
+	bit_mask[0] |= (uint32_t)(PM_QUERY_FEATURE_BITMASK);
+	bit_mask[1] |= (uint32_t)(PM_QUERY_FEATURE_BITMASK >> 32);
+
+	return PM_RET_SUCCESS;
+}
+
+/**
  * feature_check_tfa() - These are API's completely implemented in TF-A.
  * @api_id: API ID to check.
  * @version: Returned supported API version.
- * @bit_mask: Returned supported IOCTL id version.
  *
  * Return: Returns status, either success or error+reason.
- *
  */
-static enum pm_ret_status feature_check_tfa(uint32_t api_id, uint32_t *version,
-					    uint32_t *bit_mask)
+static enum pm_ret_status feature_check_tfa(uint32_t api_id, uint32_t *version)
 {
 	enum pm_ret_status ret = PM_RET_ERROR_NO_FEATURE;
 
 	switch (api_id) {
-	case PM_QUERY_DATA:
-		*version = TFA_API_QUERY_DATA_VERSION;
-		bit_mask[0] = (uint32_t)(PM_QUERY_FEATURE_BITMASK);
-		bit_mask[1] = (uint32_t)(PM_QUERY_FEATURE_BITMASK >> 32);
-		ret = PM_RET_SUCCESS;
-		break;
 	case PM_GET_CALLBACK_DATA:
 	case PM_GET_TRUSTZONE_VERSION:
 	case PM_SET_SUSPEND_MODE:
@@ -975,13 +982,12 @@ static enum pm_ret_status feature_check_partial(uint32_t api_id,
  * pm_feature_check() - Returns the supported API version if supported.
  * @api_id: API ID to check.
  * @version: Returned supported API version.
- * @bit_mask: Returned supported IOCTL id version.
+ * @bit_mask: Returned feature bitmask for IOCTL/QUERY_DATA APIs.
  * @len: Number of bytes to be returned in bit_mask variable.
  * @flag: 0 - Call from secure source.
  *	  1 - Call from non-secure source.
  *
  * Return: Returns status, either success or error+reason.
- *
  */
 enum pm_ret_status pm_feature_check(uint32_t api_id, uint32_t *version,
 				    uint32_t *bit_mask, uint8_t len,
@@ -991,7 +997,7 @@ enum pm_ret_status pm_feature_check(uint32_t api_id, uint32_t *version,
 	enum pm_ret_status status;
 
 	/* Get API version implemented in TF-A */
-	status = feature_check_tfa(api_id, version, bit_mask);
+	status = feature_check_tfa(api_id, version);
 	if (status != PM_RET_ERROR_NO_FEATURE) {
 		goto exit_label;
 	}
@@ -1004,17 +1010,20 @@ enum pm_ret_status pm_feature_check(uint32_t api_id, uint32_t *version,
 
 	/* Get API version implemented by firmware */
 	status = fw_api_version(api_id, ret_payload, 3, flag);
-	/* IOCTL call may return failure whose ID is not implemented in
+
+	/* IOCTL/QUERY_DATA call may return failure whose ID is not implemented in
 	 * firmware but implemented in TF-A
 	 */
-	if ((api_id != (uint32_t)PM_IOCTL) && (status != PM_RET_SUCCESS)) {
+	if ((api_id != (uint32_t)PM_IOCTL) && (api_id != (uint32_t)PM_QUERY_DATA) &&
+	    (status != PM_RET_SUCCESS)) {
 		goto exit_label;
 	}
 
 	*version = ret_payload[0];
 
-	/* Update IOCTL bit mask which are implemented in TF-A */
-	if ((api_id == (uint32_t)PM_IOCTL) || (api_id == (uint32_t)PM_GET_OP_CHARACTERISTIC)) {
+	/* Update IOCTL/QUERY_DATA bit mask which are implemented in TF-A */
+	if ((api_id == (uint32_t)PM_IOCTL) || (api_id == (uint32_t)PM_GET_OP_CHARACTERISTIC) ||
+	    (api_id == (uint32_t)PM_QUERY_DATA)) {
 		if (len < 2U) {
 			status = PM_RET_ERROR_ARGS;
 			goto exit_label;
@@ -1024,6 +1033,11 @@ enum pm_ret_status pm_feature_check(uint32_t api_id, uint32_t *version,
 		if (api_id == (uint32_t)PM_IOCTL) {
 			/* Get IOCTL's implemented by TF-A */
 			status = tfa_ioctl_bitmask(bit_mask, flag);
+		} else if (api_id == (uint32_t)PM_QUERY_DATA) {
+			/* Get QUERY_DATA's implemented by TF-A */
+			status = tfa_query_data_bitmask(bit_mask);
+		} else {
+			/* Requires for MISRA */
 		}
 	} else {
 		/* Requires for MISRA */
@@ -1639,8 +1653,7 @@ static enum pm_ret_status pm_pinctrl_get_pin_groups(uint32_t pin_id,
 void pm_query_data(enum pm_query_ids qid, uint32_t arg1, uint32_t arg2,
 		   uint32_t arg3, uint32_t *data, uint32_t flag)
 {
-	(void)arg3;
-	(void)flag;
+	uint32_t payload[PAYLOAD_ARG_CNT];
 
 	switch (qid) {
 	case PM_QID_CLOCK_GET_NAME:
@@ -1687,8 +1700,9 @@ void pm_query_data(enum pm_query_ids qid, uint32_t arg1, uint32_t arg2,
 		data[0] = (uint32_t)pm_clock_get_max_divisor(arg1, (uint8_t)arg2, &data[1]);
 		break;
 	default:
-		data[0] = (uint32_t)PM_RET_ERROR_ARGS;
-		WARN("Unimplemented query service call: 0x%x\n", qid);
+		/* Send request to the PMU */
+		PM_PACK_PAYLOAD5(payload, flag, PM_QUERY_DATA, qid, arg1, arg2, arg3);
+		data[0] = (uint32_t)pm_ipi_send_sync(primary_proc, payload, &data[1], 3U);
 		break;
 	}
 }

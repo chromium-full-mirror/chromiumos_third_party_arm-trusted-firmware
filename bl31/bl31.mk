@@ -41,6 +41,7 @@ BL31_SOURCES		+=	bl31/bl31_main.c				\
 				bl31/bl31_context_mgmt.c			\
 				bl31/bl31_traps.c				\
 				common/runtime_svc.c				\
+				common/smc_validation.c				\
 				lib/cpus/errata_common.c			\
 				lib/per_cpu/aarch64/per_cpu_asm.S		\
 				lib/per_cpu/per_cpu.c				\
@@ -55,6 +56,7 @@ BL31_SOURCES		+=	bl31/bl31_main.c				\
 				${SPM_SOURCES}
 
 VENDOR_EL3_SRCS		+=	services/el3/ven_el3_svc.c
+CPU_SVC_SRCS		+=	services/cpu/cpu_svc.c
 
 ifeq (${ENABLE_PMF}, 1)
 BL31_SOURCES		+=	lib/pmf/pmf_main.c				\

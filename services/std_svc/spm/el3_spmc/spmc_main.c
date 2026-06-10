@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2025, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -1040,7 +1040,7 @@ static int partition_info_get_handler_v1_1(uint32_t *uuid,
 		uint32_t uuid_index;
 		uint32_t *sp_uuid;
 
-		for (uuid_index = 0; uuid_index < sp_desc[index].num_uuids;
+		for (uuid_index = 0U; uuid_index < sp_desc[index].num_uuids;
 		     uuid_index++) {
 			sp_uuid = sp_desc[index].uuid_array[uuid_index].uuid;
 
@@ -1100,7 +1100,7 @@ static uint32_t partition_info_get_handler_count_only(uint32_t *uuid)
 	for (index = 0U; index < SECURE_PARTITION_COUNT; index++) {
 		uint32_t uuid_index;
 
-		for (uuid_index = 0; uuid_index < sp_desc[index].num_uuids;
+		for (uuid_index = 0U; uuid_index < sp_desc[index].num_uuids;
 		     uuid_index++) {
 			uint32_t *sp_uuid =
 				sp_desc[index].uuid_array[uuid_index].uuid;
@@ -1612,8 +1612,8 @@ static uint64_t spmc_ffa_console_log(uint32_t smc_fid,
 				     void *handle,
 				     uint64_t flags)
 {
-	/* Maximum number of characters is 48: 6 registers of 8 bytes each. */
-	char chars[48] = {0};
+	/* Maximum number of characters is 128: 16 registers of 8 bytes each. */
+	char chars[128] = {0};
 	size_t chars_max;
 	size_t chars_count = x1;
 
@@ -1640,7 +1640,17 @@ static uint64_t spmc_ffa_console_log(uint32_t smc_fid,
 		registers[3] = SMC_GET_GP(handle, CTX_GPREG_X5);
 		registers[4] = SMC_GET_GP(handle, CTX_GPREG_X6);
 		registers[5] = SMC_GET_GP(handle, CTX_GPREG_X7);
-		chars_max = 6 * sizeof(uint64_t);
+		registers[6] = SMC_GET_GP(handle, CTX_GPREG_X8);
+		registers[7] = SMC_GET_GP(handle, CTX_GPREG_X9);
+		registers[8] = SMC_GET_GP(handle, CTX_GPREG_X10);
+		registers[9] = SMC_GET_GP(handle, CTX_GPREG_X11);
+		registers[10] = SMC_GET_GP(handle, CTX_GPREG_X12);
+		registers[11] = SMC_GET_GP(handle, CTX_GPREG_X13);
+		registers[12] = SMC_GET_GP(handle, CTX_GPREG_X14);
+		registers[13] = SMC_GET_GP(handle, CTX_GPREG_X15);
+		registers[14] = SMC_GET_GP(handle, CTX_GPREG_X16);
+		registers[15] = SMC_GET_GP(handle, CTX_GPREG_X17);
+		chars_max = 16 * sizeof(uint64_t);
 	}
 
 	if ((chars_count == 0) || (chars_count > chars_max)) {
@@ -2017,6 +2027,7 @@ static int sp_manifest_parse(void *sp_manifest, int offset,
 {
 	int32_t ret, node;
 	uint32_t config_32;
+	uint32_t uuid_cells;
 	int uuid_size;
 	const fdt32_t *prop;
 
@@ -2036,6 +2047,13 @@ static int sp_manifest_parse(void *sp_manifest, int offset,
 		return -FDT_ERR_NOTFOUND;
 	}
 
+	if ((uuid_size <= 0) ||
+	    ((uuid_size % sizeof(struct ffa_uuid)) != 0)) {
+		ERROR("Invalid UUID property length %d in manifest\n",
+		      uuid_size);
+		return -FDT_ERR_BADVALUE;
+	}
+
 	sp->num_uuids = (uint32_t)uuid_size / sizeof(struct ffa_uuid);
 	if (sp->num_uuids > ARRAY_SIZE(sp->uuid_array)) {
 		ERROR("Too many UUIDs (%d) in manifest, maximum is %zd\n",
@@ -2043,8 +2061,9 @@ static int sp_manifest_parse(void *sp_manifest, int offset,
 		return -FDT_ERR_BADVALUE;
 	}
 
+	uuid_cells = sp->num_uuids * ARRAY_SIZE(sp->uuid_array[0].uuid);
 	ret = fdt_read_uint32_array(sp_manifest, node, "uuid",
-				    (uuid_size / sizeof(uint32_t)),
+				    uuid_cells,
 				    sp->uuid_array[0].uuid);
 	if (ret != 0) {
 		ERROR("Missing Secure Partition UUID.\n");

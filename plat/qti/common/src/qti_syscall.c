@@ -95,16 +95,21 @@ static bool qti_is_secure_io_access_allowed(u_register_t addr)
 	return false;
 }
 
-static bool qti_check_syscall_availability(u_register_t smc_fid)
+static bool qti_check_syscall_availability(u_register_t smc_fid,
+					   u_register_t flags)
 {
 	switch (smc_fid) {
 	case QTI_SIP_SVC_CALL_COUNT_ID:
 	case QTI_SIP_SVC_UID_ID:
 	case QTI_SIP_SVC_VERSION_ID:
 	case QTI_SIP_SVC_AVAILABLE_ID:
+		return true;
 	case QTI_SIP_SVC_SECURE_IO_READ_ID:
 	case QTI_SIP_SVC_SECURE_IO_WRITE_ID:
 	case QTI_SIP_SVC_MEM_ASSIGN_ID:
+		if (is_caller_secure(flags)) {
+			return false;
+		}
 		return true;
 	default:
 		return false;
@@ -403,7 +408,7 @@ static uintptr_t qti_sip_handler(uint32_t smc_fid,
 			if (x1 != 1) {
 				SMC_RET1(handle, QTI_SIP_INVALID_PARAM);
 			}
-			if (qti_check_syscall_availability(x2) == true) {
+			if (qti_check_syscall_availability(x2, flags) == true) {
 				SMC_RET2(handle, QTI_SIP_SUCCESS, 1);
 			} else {
 				SMC_RET2(handle, QTI_SIP_SUCCESS, 0);
@@ -412,6 +417,9 @@ static uintptr_t qti_sip_handler(uint32_t smc_fid,
 		}
 	case QTI_SIP_SVC_SECURE_IO_READ_ID:
 		{
+			if (is_caller_secure(flags)) {
+				SMC_RET1(handle, QTI_SIP_NOT_SUPPORTED);
+			}
 			if ((x1 == QTI_SIP_SVC_SECURE_IO_READ_PARAM_ID) &&
 			    qti_is_secure_io_access_allowed(x2)) {
 				SMC_RET2(handle, QTI_SIP_SUCCESS,
@@ -422,6 +430,9 @@ static uintptr_t qti_sip_handler(uint32_t smc_fid,
 		}
 	case QTI_SIP_SVC_SECURE_IO_WRITE_ID:
 		{
+			if (is_caller_secure(flags)) {
+				SMC_RET1(handle, QTI_SIP_NOT_SUPPORTED);
+			}
 			if ((x1 == QTI_SIP_SVC_SECURE_IO_WRITE_PARAM_ID) &&
 			    qti_is_secure_io_access_allowed(x2)) {
 				*((volatile uint32_t *)x2) = x3;
@@ -432,6 +443,11 @@ static uintptr_t qti_sip_handler(uint32_t smc_fid,
 		}
 	case QTI_SIP_SVC_MEM_ASSIGN_ID:
 		{
+			if (is_caller_secure(flags)) {
+				/* Only NS expected */
+				SMC_RET1(handle, QTI_SIP_NOT_SUPPORTED);
+			}
+
 			return qti_sip_mem_assign(handle, GET_SMC_CC(smc_fid),
 						  x1, x2, x3, x4);
 			break;

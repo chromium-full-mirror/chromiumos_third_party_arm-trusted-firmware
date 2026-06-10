@@ -8,7 +8,7 @@
 # Trusted Firmware Version
 #
 VERSION_MAJOR			:= 2
-VERSION_MINOR			:= 14
+VERSION_MINOR			:= 15
 # VERSION_PATCH is only used for LTS releases
 VERSION_PATCH			:= 0
 VERSION				:= ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
@@ -354,8 +354,6 @@ ifeq (${ENABLE_RMM},1)
 		CTX_INCLUDE_MPAM_REGS := 1
 	endif
 
-	# RMM enables CSV2_2 extension by default.
-	ENABLE_FEAT_CSV2_2 = 1
 	# Enable FIRME interface for CCA.
 	FIRME_SUPPORT := 1
 

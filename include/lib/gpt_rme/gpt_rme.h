@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <lib/spinlock.h>
+#include <lib/gpt_rme/gpc_fault.h>
 
 /******************************************************************************/
 /* GPT helper macros and definitions                                          */
@@ -284,7 +285,14 @@ int gpt_init_pas_l1_tables(gpccr_pgs_e pgs,
  * Return
  *   Negative Linux error code in the event of a failure, 0 for success.
  */
+#if ENABLE_FEAT_RME
 int gpt_runtime_init(uintptr_t l1_bitlocks_base, size_t l1_bitlocks_size);
+#else
+static inline int gpt_runtime_init(uintptr_t l1_bitlocks_base, size_t l1_bitlocks_size)
+{
+	return -1;
+}
+#endif
 
 /*
  * Public API to enable granule protection checks once the tables have all been

@@ -78,11 +78,11 @@ typedef struct spmd_spm_core_context {
 #define LSP_FWK_MSG_FINISH_LIVE_ACTIVATION_RESP	U(0xF)
 
 /* Function to build SPMD to SPMC message */
-void spmd_build_spmc_message(gp_regs_t *gpregs, uint8_t target,
+void spmd_build_spmc_message(gp_regs_t *gpregs, uint8_t target_func,
 			     unsigned long long message);
 
 /* Functions used to enter/exit SPMC synchronously */
-uint64_t spmd_spm_core_sync_entry(spmd_spm_core_context_t *ctx);
+uint64_t spmd_spm_core_sync_entry(spmd_spm_core_context_t *spmc_ctx);
 __dead2 void spmd_spm_core_sync_exit(uint64_t rc);
 void spmd_setup_context(unsigned int core_id);
 
@@ -119,7 +119,7 @@ bool spmd_check_address_in_binary_image(uint64_t address);
  *  0 = success
  *  otherwise it returns a negative value
  */
-int plat_spmd_handle_group0_interrupt(uint32_t id);
+int plat_spmd_handle_group0_interrupt(uint32_t intid);
 
 uint64_t spmd_ffa_error_return(void *handle, int error_code);
 
