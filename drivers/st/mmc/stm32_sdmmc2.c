@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2024, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2018-2026, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -129,7 +129,7 @@
 #define DT_SDMMC2_COMPAT		"st,stm32-sdmmc2"
 #endif
 
-#ifdef STM32MP1X
+#if STM32MP1X
 #define SDMMC_FIFO_SIZE			64U
 #else
 #define SDMMC_FIFO_SIZE			1024U
@@ -163,7 +163,7 @@ static struct stm32_sdmmc2_params sdmmc2_params;
 static bool next_cmd_is_acmd;
 
 #pragma weak plat_sdmmc2_use_dma
-bool plat_sdmmc2_use_dma(unsigned int instance, unsigned int memory)
+bool plat_sdmmc2_use_dma(uintptr_t instance, uintptr_t memory)
 {
 	return false;
 }

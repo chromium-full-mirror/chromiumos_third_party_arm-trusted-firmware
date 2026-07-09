@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2024, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2016-2026, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -282,16 +282,16 @@ static void set_gpio(uint32_t bank, uint32_t pin, uint32_t mode, uint32_t type,
 
 	clk_disable(clock);
 
-#ifdef STM32MP1X
+#if STM32MP1X
 	if (status == DT_SECURE) {
 		stm32mp_register_secure_gpio(bank, pin);
-#if !IMAGE_BL2
+#ifndef IMAGE_BL2
 		set_gpio_secure_cfg(bank, pin, true);
 #endif
 
 	} else {
 		stm32mp_register_non_secure_gpio(bank, pin);
-#if !IMAGE_BL2
+#ifndef IMAGE_BL2
 		set_gpio_secure_cfg(bank, pin, false);
 #endif
 	}
@@ -310,9 +310,9 @@ void set_gpio_secure_cfg(uint32_t bank, uint32_t pin, bool secure)
 	clk_enable(clock);
 
 	if (secure) {
-		mmio_setbits_32(base + GPIO_SECR_OFFSET, BIT(pin));
+		mmio_setbits_32(base + GPIO_SECR_OFFSET, BIT_32(pin));
 	} else {
-		mmio_clrbits_32(base + GPIO_SECR_OFFSET, BIT(pin));
+		mmio_clrbits_32(base + GPIO_SECR_OFFSET, BIT_32(pin));
 	}
 
 	clk_disable(clock);
@@ -336,9 +336,9 @@ void set_gpio_level(uint32_t bank, uint32_t pin, enum gpio_level level)
 	clk_enable(clock);
 
 	if (level == GPIO_LEVEL_HIGH) {
-		mmio_write_32(base + GPIO_BSRR_OFFSET, BIT(pin));
+		mmio_write_32(base + GPIO_BSRR_OFFSET, BIT_32(pin));
 	} else {
-		mmio_write_32(base + GPIO_BSRR_OFFSET, BIT(pin + 16U));
+		mmio_write_32(base + GPIO_BSRR_OFFSET, BIT_32(pin + 16U));
 	}
 
 	VERBOSE("GPIO %u level set to 0x%x\n", bank,
@@ -357,7 +357,7 @@ enum gpio_level get_gpio_level(uint32_t bank, uint32_t pin)
 
 	clk_enable(clock);
 
-	if (mmio_read_32(base + GPIO_IDR_OFFSET) & BIT(pin)) {
+	if (mmio_read_32(base + GPIO_IDR_OFFSET) & BIT_32(pin)) {
 		level = GPIO_LEVEL_HIGH;
 	}
 

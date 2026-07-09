@@ -33,9 +33,6 @@ PLAT_TEST_SPM	:= 0
 # Enable passing the DT to BL33 in x0 by default.
 USE_KERNEL_DT_CONVENTION	:= 1
 
-# By default dont build CPUs with no FVP model.
-BUILD_CPUS_WITH_NO_FVP_MODEL	?= 0
-
 # Enable CRC instructions via extension for ARMv8-A CPUs.
 # For ARMv8.1-A, and onwards CRC instructions are default enabled.
 ifeq (${ARM_ARCH_MAJOR},8)
@@ -77,6 +74,9 @@ endif
       ENABLE_FEAT_STEP2			:= 2
       ENABLE_FEAT_HDBSS			:= 2
       ENABLE_FEAT_HACDBS		:= 2
+      ENABLE_FEAT_SPEV1P5		:= 2
+      ENABLE_FEAT_SRMASK		:= 2
+      ENABLE_FEAT_BRBEV1P1		:= 2
 endif
 
 ENABLE_SYS_REG_TRACE_FOR_NS	:= 2
@@ -104,11 +104,13 @@ ENABLE_FEAT_MTE2		:= 2
 ENABLE_FEAT_LS64_ACCDATA	:= 2
 ENABLE_FEAT_AIE			:= 2
 ENABLE_FEAT_PFAR		:= 2
+ENABLE_FEAT_AxERR		:= 2
 ENABLE_FEAT_EBEP		:= 2
 
 ifeq (${ENABLE_RMM},1)
     ENABLE_FEAT_MEC		:= 2
     RMMD_ENABLE_IDE_KEY_PROG	:= 1
+    FIRME_SUPPORT_IDE_KM	:= 1
 endif
 
 # always check that hardware matches the codebase's expectations
@@ -235,7 +237,6 @@ else
 # Cores used with DSU only
 	ifeq (${CTX_INCLUDE_AARCH32_REGS}, 0)
 	# AArch64-only cores
-	# TODO: add all cores to the appropriate lists
 		FVP_CPU_LIBS	+=	lib/cpus/aarch64/cortex_a65.S		\
 					lib/cpus/aarch64/cortex_a65ae.S		\
 					lib/cpus/aarch64/cortex_a76.S		\
@@ -253,44 +254,36 @@ else
 					lib/cpus/aarch64/neoverse_v1.S		\
 					lib/cpus/aarch64/neoverse_e1.S		\
 					lib/cpus/aarch64/cortex_x2.S		\
-					lib/cpus/aarch64/cortex_x4.S
-	endif
+					lib/cpus/aarch64/cortex_x4.S		\
+					lib/cpus/aarch64/cortex_a320.S		\
+					lib/cpus/aarch64/cortex_a510.S		\
+					lib/cpus/aarch64/cortex_a520.S		\
+					lib/cpus/aarch64/cortex_a725.S		\
+					lib/cpus/aarch64/cortex_x1.S		\
+					lib/cpus/aarch64/cortex_x3.S		\
+					lib/cpus/aarch64/cortex_x925.S		\
+					lib/cpus/aarch64/neoverse_n3.S		\
+					lib/cpus/aarch64/neoverse_v2.S		\
+					lib/cpus/aarch64/neoverse_v3.S		\
+					lib/cpus/aarch64/c1_pro.S		\
+					lib/cpus/aarch64/c1_nano.S		\
+					lib/cpus/aarch64/c1_ultra.S		\
+					lib/cpus/aarch64/c1_premium.S		\
+					lib/cpus/aarch64/canyon.S		\
+					lib/cpus/aarch64/caddo.S		\
+					lib/cpus/aarch64/rosillo.S		\
+					lib/cpus/aarch64/veymont.S		\
+					lib/cpus/aarch64/dionysus.S		\
+					lib/cpus/aarch64/venom.S		\
+					lib/cpus/aarch64/lsc25_p_core.S		\
+					lib/cpus/aarch64/lsc25_e_core.S
+		endif
 	# AArch64/AArch32 cores
 	FVP_CPU_LIBS	+=	lib/cpus/aarch64/cortex_a55.S		\
 				lib/cpus/aarch64/cortex_a75.S
 endif
 
 #Include all CPUs to build to support all-errata build.
-ifeq (${ENABLE_ERRATA_ALL},1)
-	BUILD_CPUS_WITH_NO_FVP_MODEL = 1
-	FVP_CPU_LIBS    +=    	lib/cpus/aarch64/cortex_a320.S          \
-				lib/cpus/aarch64/cortex_a510.S		\
-				lib/cpus/aarch64/cortex_a520.S		\
-				lib/cpus/aarch64/cortex_a725.S          \
-				lib/cpus/aarch64/cortex_x1.S            \
-				lib/cpus/aarch64/cortex_x3.S            \
-				lib/cpus/aarch64/cortex_x925.S          \
-				lib/cpus/aarch64/neoverse_n3.S          \
-				lib/cpus/aarch64/neoverse_v2.S          \
-				lib/cpus/aarch64/neoverse_v3.S
-endif
-
-#Build AArch64-only CPUs with no FVP model yet.
-ifeq (${BUILD_CPUS_WITH_NO_FVP_MODEL},1)
-	FVP_CPU_LIBS    +=	lib/cpus/aarch64/c1_pro.S		\
-				lib/cpus/aarch64/c1_nano.S		\
-				lib/cpus/aarch64/c1_ultra.S		\
-				lib/cpus/aarch64/c1_premium.S		\
-				lib/cpus/aarch64/canyon.S		\
-				lib/cpus/aarch64/caddo.S		\
-				lib/cpus/aarch64/rosillo.S		\
-				lib/cpus/aarch64/veymont.S		\
-				lib/cpus/aarch64/dionysus.S		\
-				lib/cpus/aarch64/venom.S		\
-				lib/cpus/aarch64/lsc25_p_core.S		\
-				lib/cpus/aarch64/lsc25_e_core.S
-endif
-
 else
 FVP_CPU_LIBS		+=	lib/cpus/aarch32/cortex_a32.S			\
 				lib/cpus/aarch32/cortex_a57.S			\
@@ -342,8 +335,19 @@ BL2_SOURCES		+=	plat/arm/board/fvp/aarch64/fvp_helpers.S	\
 BL31_SOURCES		+=	plat/arm/board/fvp/fvp_plat_attest_token.c	\
 				plat/arm/board/fvp/fvp_realm_attest_key.c	\
 				plat/arm/board/fvp/fvp_el3_token_sign.c		\
-				plat/arm/board/fvp/fvp_ide_keymgmt.c		\
 				plat/arm/common/plat_rmm_mem_carveout.c
+
+ifeq (${RMMD_ENABLE_IDE_KEY_PROG},1)
+BL31_SOURCES		+=	plat/arm/board/fvp/fvp_ide_keymgmt.c
+endif # (RMMD_ENABLE_IDE_KEY_PROG)
+
+endif # (ENABLE_RMM)
+
+ifeq (${FIRME_SUPPORT_IDE_KM},1)
+PLAT_PCIE_ROOT_COMPLEX_MAX := 2
+$(eval $(call add_define,PLAT_PCIE_ROOT_COMPLEX_MAX))
+
+BL31_SOURCES		+=	plat/arm/board/fvp/fvp_firme_ide_km.c
 endif
 
 ifneq (${ENABLE_FEAT_RNG_TRAP},0)

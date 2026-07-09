@@ -457,6 +457,7 @@ RMM_V1_COMPAT			:= 0
 
 # Live firmware activation support
 LFA_SUPPORT			:= 0
+ENABLE_LFA_BL31			:= 0
 
 # Enable support for arm DSU driver.
 USE_DSU_DRIVER			:= 0
@@ -478,6 +479,9 @@ TEST_IO_SHORT_READ_FI_IMAGE_ID	:= 0
 
 # Enable the FIRME interface.
 FIRME_SUPPORT			:= 0
+
+# FIRME IDE KM support.
+FIRME_SUPPORT_IDE_KM		:= 0
 
 # Flag to enable the spinlock implementation variant using the FEAT_LSE
 # compare-and-swap instruction.
@@ -723,6 +727,9 @@ ENABLE_FEAT_AIE				?=	0
 # PFAR extension using the PFAR system registers
 ENABLE_FEAT_PFAR			?=	0
 
+# Enable asynchronous Device and Normal Error Exceptions.
+ENABLE_FEAT_AxERR			?=	0
+
 #-------------------------------------------------------------
 # Non-standard feature
 #-------------------------------------------------------------
@@ -774,6 +781,9 @@ ENABLE_SME_FOR_SWD			?=	0
 # if FEAT_BRBE is implemented.
 ENABLE_BRBE_FOR_NS			?=	0
 
+# Flag to enable Branch Recording at EL3
+ENABLE_FEAT_BRBEV1P1			?=	0
+
 # Flag to enable Floating point exception Mode Register Feature (FEAT_FPMR)
 ENABLE_FEAT_FPMR			?=	0
 
@@ -821,9 +831,15 @@ ENABLE_FEAT_HDBSS			?=	0
 # Flag to enable Hardening Address and Context Debug Banked State (FEAT_HACDBS).
 ENABLE_FEAT_HACDBS			?=	0
 
+# Flag to enable SPEv1p5 support (FEAT_SPE_EXC and FEAT_SPE_nVM)
+ENABLE_FEAT_SPEV1P5			?=	0
+
 #----
 #9.6
 #----
 
 # Flag to enable trapping of ID registers to EL3
 ENABLE_FEAT_IDTE3                       ?=      0
+
+# Flag to enable EL1 control register aliases and bitmasks (FEAT_SRMASK).
+ENABLE_FEAT_SRMASK			?=	0

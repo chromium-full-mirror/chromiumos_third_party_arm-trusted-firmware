@@ -54,6 +54,7 @@ QEMU_GIC_SOURCES	:=	${GICV3_SOURCES}				\
 
 BL31_SOURCES		+=	${PLAT_QEMU_PATH}/sbsa_gic.c 			\
 				${PLAT_QEMU_PATH}/sbsa_platform.c		\
+				plat/common/plat_hold_pen.c			\
 				${PLAT_QEMU_PATH}/sbsa_pm.c			\
 				${PLAT_QEMU_PATH}/sbsa_sip_svc.c		\
 				${PLAT_QEMU_PATH}/sbsa_topology.c
@@ -69,6 +70,11 @@ BL31_SOURCES		+=	plat/common/plat_spmd_manifest.c	\
 				common/uuid.c				\
 				${LIBFDT_SRCS}
 endif
+
+ifeq (${ENABLE_RMM},1)
+BL31_SOURCES		+=	${PLAT_QEMU_PATH}/plat_rmm_mem_carveout.c
+endif
+
 
 
 # Add the build options to pack Trusted OS Extra1 and Trusted OS Extra2 images

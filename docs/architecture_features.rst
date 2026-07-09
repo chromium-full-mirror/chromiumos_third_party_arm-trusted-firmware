@@ -71,7 +71,7 @@ versions (8.X, 9.X) to which they apply can be found in `Feature_description`_
 +-------------------------+--------+
 | FEAT_EAESR              |   NA   |
 +-------------------------+--------+
-| FEAT_TLBID              |   NA   |
+| FEAT_TLBID              |        |
 +-------------------------+--------+
 | FEAT_SRMASK2            |        |
 +-------------------------+--------+
@@ -92,11 +92,11 @@ versions (8.X, 9.X) to which they apply can be found in `Feature_description`_
 +=======================+========+
 | FEAT_PMUv3_EXTPMN     |   NA   |
 +-----------------------+--------+
-| FEAT_SPEv1p5          |   NA   |
+| FEAT_SPEv1p5          |   OK   |
 +-----------------------+--------+
-| FEAT_SPE_EXC          |        |
+| FEAT_SPE_EXC          |   OK   |
 +-----------------------+--------+
-| FEAT_SPE_nVM          |        |
+| FEAT_SPE_nVM          |   OK   |
 +-----------------------+--------+
 | FEAT_TRBEv1p1         |   NA   |
 +-----------------------+--------+
@@ -152,7 +152,7 @@ versions (8.X, 9.X) to which they apply can be found in `Feature_description`_
 +-----------------------+--------+
 | FEAT_PCDPHINT         |   NA   |
 +-----------------------+--------+
-| FEAT_SRMASK           |        |
+| FEAT_SRMASK           |   OK   |
 +-----------------------+--------+
 | FEAT_IDTE3            |   OK   |
 +-----------------------+--------+
@@ -378,7 +378,7 @@ versions (8.X, 9.X) to which they apply can be found in `Feature_description`_
 +------------------+--------+
 | FEAT_MEC         |   OK   |
 +------------------+--------+
-| FEAT_BRBEv1p1    |   WIP  |
+| FEAT_BRBEv1p1    |   OK   |
 +------------------+--------+
 | FEAT_CMOW        |   NA   |
 +------------------+--------+
@@ -496,7 +496,8 @@ c) EL3 wants to hide a feature from lower ELs (eg. with ``FEAT_IDTE3``)
 The following is a checklist with guidance on what to do to add a new feature,
 in this case a fictional ``FEAT_ABC``. This is not an exhaustive list on how to
 do this, so please consult with previous such patches and/or maintainers. Please
-consult the Arm ARM on any specifics about the feature itself.
+consult the Arm ARM on any specifics about the feature itself. You can speed
+this process up by using the ``new-cpu-feature`` agent skill.
 
 - Add a feature flag to the build system.
 
@@ -515,23 +516,14 @@ consult the Arm ARM on any specifics about the feature itself.
     other features which this feature depends on or is incompatible with and can
     be found in the main description of the feature in the Arm ARM.
 
-- Add the feature accessor functions in ``include/arch/aarch64/arch_features.h``.
-
-  A pair of functions must be defined in the form of ``is_feat_abc_present()``
-  and ``is_feat_abc_supported()``.  Please use the provided macros to define
-  these.
-
-  - The ``_supported`` variant is the one that should usually be used. If common
-    code is to use it, a corresponding AArch32 version should be provided. It
-    should return ``false`` if AArch32 is not to be supported.
+- Create a macro for the feature in ``include/arch/aarch64/arch_features.h`` and
+  add it to the appropriate list to register with other frameworks. If the
+  feature doesn't neatly fit in the standard pattern, it can be progressively
+  unravelled.
 
   - In rare occasions, the feature must be checked in assembly. A
     ``is_feat_abc_present_asm`` macro must be added to
     ``include/lib/cpus/aarch64/cpu_macros.S``.
-
-- Register the feature in ``common/feat_detect.c``.
-
-- Register the feature in lib/extensions/idte/idte3.c.
 
 - Add support for the feature. This will be very feature specific and exact code
   will depend on why support is being added. Usually, support will be a few
@@ -577,9 +569,8 @@ consult the Arm ARM on any specifics about the feature itself.
   setting it to ``2`` (``FEAT_STATE_CHECKED``).
 
 - If the feature is optional, enable it in CI in the "allconfig" fragments.
-  Those are currently ``run_config/fvp-aemv8a.all.bmcov``,
-  ``run_config/fvp-spm.all.bmcov``, ``run_config/fvp-spm.all``, and
-  ``run_config/fvp-aemv8a.all``. Mandatory features are expected to be covered
+  Those currently happens in a list at the top of
+  ``model/base-aemva-common.sh``. Mandatory features are expected to be covered
   by the architecture revision passed to the model.
 
 - Optionally, although recommended, is to add a test in TFTF. This should only

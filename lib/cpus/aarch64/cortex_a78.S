@@ -244,7 +244,7 @@ workaround_reset_end cortex_a78, ERRATUM(4302972)
 check_erratum_chosen cortex_a78, ERRATUM(4302972), ERRATA_A78_4302972
 
 workaround_reset_start cortex_a78, CVE(2022, 23960), WORKAROUND_CVE_2022_23960
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	/*
 	 * The Cortex-X1 generic vectors are overridden to apply errata
 	 * mitigation on exception entry from lower ELs.
@@ -261,6 +261,9 @@ workaround_reset_start cortex_a78, CVE(2024, 5660), WORKAROUND_CVE_2024_5660
 workaround_reset_end cortex_a78, CVE(2024, 5660)
 
 check_erratum_chosen cortex_a78, CVE(2024, 5660), WORKAROUND_CVE_2024_5660
+
+add_erratum_entry cortex_a78, CVE(2025, 10263), WORKAROUND_CVE_2025_10263
+check_erratum_chosen cortex_a78, CVE(2025, 10263), WORKAROUND_CVE_2025_10263
 
 cpu_reset_func_start cortex_a78
 #if ENABLE_FEAT_AMU

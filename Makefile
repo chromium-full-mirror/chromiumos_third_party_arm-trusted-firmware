@@ -521,6 +521,10 @@ ifdef FDT_SOURCES
 	NEED_FDT := yes
 endif #(FDT_SOURCES)
 
+ifneq (${ENABLE_LFA_BL31},0)
+	CTX_INCLUDE_EL2_REGS := 1
+endif #(ENABLE_LFA_BL31)
+
 ################################################################################
 # Include libraries' Makefile that are used in all BL
 ################################################################################
@@ -651,8 +655,11 @@ $(eval $(call assert_booleans,\
 	PRESERVE_DSU_PMU_REGS \
 	HOB_LIST \
 	LFA_SUPPORT \
+	ENABLE_LFA_BL31 \
 	SUPPORT_SP_LIVE_ACTIVATION \
 	TEST_IO_SHORT_READ_FI \
+	SDEI_SUPPORT \
+	SMC_PCI_SUPPORT \
 )))
 
 # Numeric_Flags
@@ -665,11 +672,13 @@ $(eval $(call assert_numerics,\
 	CTX_INCLUDE_NEVE_REGS \
 	DISABLE_MTPMU \
 	ENABLE_BRBE_FOR_NS \
+	ENABLE_FEAT_BRBEV1P1 \
 	ENABLE_TRBE_FOR_NS \
 	ENABLE_BTI \
 	ENABLE_PAUTH \
 	ENABLE_FEAT_PAUTH_LR \
 	ENABLE_FEAT_AIE \
+	ENABLE_FEAT_AxERR \
 	ENABLE_FEAT_AMU \
 	ENABLE_FEAT_AMUv1p1 \
 	ENABLE_FEAT_CLRBHB \
@@ -682,6 +691,7 @@ $(eval $(call assert_numerics,\
 	ENABLE_FEAT_DIT \
 	ENABLE_FEAT_ECV \
 	ENABLE_FEAT_EBEP \
+	ENABLE_FEAT_SPEV1P5 \
 	ENABLE_FEAT_FGT \
 	ENABLE_FEAT_FGT2 \
 	ENABLE_FEAT_HDBSS \
@@ -702,6 +712,7 @@ $(eval $(call assert_numerics,\
 	ENABLE_FEAT_RNG \
 	ENABLE_FEAT_RNG_TRAP \
 	ENABLE_FEAT_SEL2 \
+	ENABLE_FEAT_SRMASK \
 	ENABLE_FEAT_TCR2 \
 	ENABLE_FEAT_THE \
 	ENABLE_FEAT_SB \
@@ -735,6 +746,7 @@ $(eval $(call assert_numerics,\
 	IMPDEF_SYSREG_TRAP \
 	W \
 	TEST_IO_SHORT_READ_FI_IMAGE_ID \
+	USE_GIC_DRIVER \
 )))
 
 ifdef KEY_SIZE
@@ -799,6 +811,7 @@ $(eval $(call add_defines,\
 	ENABLE_SVE_FOR_NS \
 	ENABLE_SVE_FOR_SWD \
 	ENABLE_FEAT_RAS \
+	ENABLE_FEAT_SRMASK \
 	FFH_SUPPORT \
 	ENCRYPT_BL31 \
 	ENCRYPT_BL32 \
@@ -869,11 +882,13 @@ $(eval $(call add_defines,\
 	NR_OF_IMAGES_IN_FW_BANK \
 	PSA_FWU_SUPPORT \
 	PSA_FWU_METADATA_FW_STORE_DESC \
+	ENABLE_FEAT_BRBEV1P1 \
 	ENABLE_BRBE_FOR_NS \
 	ENABLE_TRBE_FOR_NS \
 	ENABLE_SYS_REG_TRACE_FOR_NS \
 	ENABLE_TRF_FOR_NS \
 	ENABLE_FEAT_AIE \
+	ENABLE_FEAT_AxERR \
 	ENABLE_FEAT_HCX \
 	ENABLE_MPMM \
 	ENABLE_FEAT_FGT \
@@ -911,6 +926,7 @@ $(eval $(call add_defines,\
 	ENABLE_FEAT_GCIE \
 	ENABLE_FEAT_MTE2 \
 	ENABLE_FEAT_PFAR \
+	ENABLE_FEAT_SPEV1P5 \
 	FEATURE_DETECTION \
 	TWED_DELAY \
 	ENABLE_FEAT_TWED \
@@ -927,9 +943,13 @@ $(eval $(call add_defines,\
 	HOB_LIST \
 	HW_CONFIG_BASE \
 	LFA_SUPPORT \
+	ENABLE_LFA_BL31 \
 	SUPPORT_SP_LIVE_ACTIVATION \
 	TEST_IO_SHORT_READ_FI \
 	TEST_IO_SHORT_READ_FI_IMAGE_ID \
+	SDEI_SUPPORT \
+	USE_GIC_DRIVER \
+	SMC_PCI_SUPPORT \
 )))
 
 ifeq (${PLATFORM_REPORT_CTX_MEM_USE}, 1)

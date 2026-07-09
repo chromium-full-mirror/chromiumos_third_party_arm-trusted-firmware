@@ -41,6 +41,7 @@ static int32_t smccc_arch_features(u_register_t arg1)
 	case SMCCC_ARCH_FEATURES:
 		return SMC_ARCH_CALL_SUCCESS;
 	case SMCCC_ARCH_SOC_ID:
+	case SMCCC_ARCH_SOC_ID | (SMC_64 << FUNCID_CC_SHIFT):
 		return plat_is_smccc_feature_available(arg1);
 #ifdef __aarch64__
 	/* Workaround checks are currently only implemented for aarch64 */
@@ -135,7 +136,7 @@ static uintptr_t smccc_arch_id(u_register_t arg1, void *handle, uint32_t is_smc6
 	if (arg1 == SMCCC_GET_SOC_VERSION) {
 		SMC_RET1(handle, plat_get_soc_version());
 	}
-#if __aarch64__
+#ifdef __aarch64__
 	/* SoC Name is only present for SMC64 invocations */
 	if ((arg1 == SMCCC_GET_SOC_NAME) && is_smc64) {
 		uint64_t arg[SMCCC_SOC_NAME_LEN / 8];
@@ -278,7 +279,7 @@ static uintptr_t arm_arch_svc_smc_handler(uint32_t smc_fid,
 	case SMCCC_ARCH_SOC_ID | (SMC_64 << FUNCID_CC_SHIFT):
 		return smccc_arch_id(x1, handle, (smc_fid
 				& (SMC_64 << FUNCID_CC_SHIFT)));
-#if __aarch64__
+#ifdef __aarch64__
 #if WORKAROUND_CVE_2017_5715
 	case SMCCC_ARCH_WORKAROUND_1:
 		/*

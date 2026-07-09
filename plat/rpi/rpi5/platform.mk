@@ -89,6 +89,8 @@ RPI3_USE_UEFI_MAP		:= 0
 # SMCCC PCI support (should be enabled for ACPI builds)
 SMC_PCI_SUPPORT			:= 0
 
+WORKAROUND_CVE_2025_10263	:= 1
+
 # Process platform flags
 # ----------------------
 
@@ -99,7 +101,6 @@ $(eval $(call add_define,RPI3_PRELOADED_DTB_BASE))
 endif
 $(eval $(call add_define,RPI3_RUNTIME_UART))
 $(eval $(call add_define,RPI3_USE_UEFI_MAP))
-$(eval $(call add_define,SMC_PCI_SUPPORT))
 
 ifeq (${ARCH},aarch32)
   $(error Error: AArch32 not supported on rpi5)

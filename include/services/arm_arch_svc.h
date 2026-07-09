@@ -56,6 +56,12 @@
 #define SCR_FEAT_SCTLR2 (0)
 #endif
 
+#if ENABLE_FEAT_SRMASK
+#define SCR_FEAT_SRMASK SCR_SRMASKEn_BIT
+#else
+#define SCR_FEAT_SRMASK (0)
+#endif
+
 #if ENABLE_FEAT_TCR2
 #define SCR_FEAT_TCR2 SCR_TCR2EN_BIT
 #else
@@ -234,6 +240,7 @@
 	SCR_FEAT_IDTE3		|						\
 	SCR_FEAT_HDBSS		|						\
 	SCR_FEAT_HACDBS		|						\
+	SCR_FEAT_SRMASK		|						\
 	SCR_PLAT_FEATS)
 #define SCR_EL3_FLIPPED (							\
 	SCR_FEAT_RAS		|						\
@@ -328,6 +335,18 @@ CASSERT((CPTR_EL3_FLIPPED & CPTR_EL3_FEATS) == CPTR_EL3_FLIPPED, cptr_flipped_no
 #define MDCR_FEAT_SPE (0)
 #endif
 
+#if ENABLE_FEAT_SPEV1P5
+#define MDCR_FEAT_SPE_EXC MDCR_PMSEE_EN_BIT
+#else
+#define MDCR_FEAT_SPE_EXC (0)
+#endif
+
+#if ENABLE_FEAT_SPEV1P5
+#define MDCR_FEAT_SPE_NVM MDCR_EnPMS4_BIT
+#else
+#define MDCR_FEAT_SPE_NVM (0)
+#endif
+
 #if ENABLE_FEAT_DEBUGV8P9
 #define MDCR_DEBUGV8P9 MDCR_EBWE_BIT
 #else
@@ -354,6 +373,8 @@ CASSERT((CPTR_EL3_FLIPPED & CPTR_EL3_FEATS) == CPTR_EL3_FLIPPED, cptr_flipped_no
 	MDCR_FEAT_TRBE		|						\
 	MDCR_FEAT_TRF		|						\
 	MDCR_FEAT_SPE		|						\
+	MDCR_FEAT_SPE_NVM	|						\
+	MDCR_FEAT_SPE_EXC	|						\
 	MDCR_FEAT_EBEP		|						\
 	MDCR_TDOSA_BIT		|						\
 	MDCR_TDA_BIT		|						\
@@ -374,6 +395,7 @@ CASSERT((CPTR_EL3_FLIPPED & CPTR_EL3_FEATS) == CPTR_EL3_FLIPPED, cptr_flipped_no
 	MDCR_MTPME_BIT		|						\
 	MDCR_NSTBE_BIT		|						\
 	MDCR_NSTB_SS_BIT	|						\
+	MDCR_PMSEE_EL3_BIT	|						\
 	MDCR_MCCD_BIT		|						\
 	MDCR_SCCD_BIT		|						\
 	MDCR_SDD_BIT		|						\

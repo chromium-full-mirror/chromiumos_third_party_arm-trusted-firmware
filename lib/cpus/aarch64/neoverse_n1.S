@@ -204,7 +204,7 @@ workaround_reset_end neoverse_n1, ERRATUM(3888013)
 check_erratum_chosen neoverse_n1, ERRATUM(3888013), ERRATA_N1_3888013
 
 workaround_reset_start neoverse_n1, CVE(2022, 23960), WORKAROUND_CVE_2022_23960
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	/*
 	 * The Neoverse-N1 generic vectors are overridden to apply errata
 	 * mitigation on exception entry from lower ELs.
@@ -214,6 +214,9 @@ workaround_reset_start neoverse_n1, CVE(2022, 23960), WORKAROUND_CVE_2022_23960
 workaround_reset_end neoverse_n1, CVE(2022, 23960)
 
 check_erratum_chosen neoverse_n1, CVE(2022, 23960), WORKAROUND_CVE_2022_23960
+
+add_erratum_entry neoverse_n1, CVE(2025, 10263), WORKAROUND_CVE_2025_10263
+check_erratum_chosen neoverse_n1, CVE(2025, 10263), WORKAROUND_CVE_2025_10263
 
 /* --------------------------------------------------
  * Disable speculative loads if Neoverse N1 supports
@@ -287,6 +290,18 @@ func neoverse_n1_errata_ic_trap_handler
 	b.ne	1f
 	tlbi	vae3is, xzr
 	dsb	sy
+
+#if WORKAROUND_CVE_2025_10263
+	/*
+	 * Perform workaround for CVE-2025-10263
+	 *
+	 * This is sort of a special case where we don't use the workaround
+	 * function because N1 will always need to apply it so there's no
+	 * need to perform a check and incur the additional overhead.
+	 */
+	tlbi	vale3is, xzr
+	dsb	ish
+#endif /* WORKAROUND_CVE_2025_10263 */
 
 	# Skip the IC instruction itself
 	mrs     x3, elr_el3

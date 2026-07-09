@@ -105,7 +105,7 @@ for lower exception levels.
 
 	#define FEAT_STATE_DISABLED     	0
 	#define FEAT_STATE_ENABLED      	1
-	#define FEAT_STATE_CHECK        	2
+	#define FEAT_STATE_CHECKED        	2
 
 A pattern is established for feature enablement behavior.
 Each feature must support the 3 possible values with rigid semantics.
@@ -116,7 +116,7 @@ Each feature must support the 3 possible values with rigid semantics.
 - **FEAT_STATE_ALWAYS** - all code relating to this feature is always executed.
   Firmware expects this feature to be present in hardware.
 
-- **FEAT_STATE_CHECK** - same as ``FEAT_STATE_ALWAYS`` except that the feature's
+- **FEAT_STATE_CHECKED** - same as ``FEAT_STATE_ALWAYS`` except that the feature's
   existence will be checked at runtime. Default on dynamic platforms (example: FVP).
 
  .. note::
@@ -252,30 +252,9 @@ CPU Context and Memory allocation
 CPU Context
 ~~~~~~~~~~~
 The members of the context structure used by the EL3 firmware to preserve the
-state of CPU across exception levels for a given security state are listed below.
-
-.. code:: c
-
-	typedef struct cpu_context {
-	gp_regs_t gpregs_ctx;
-	el3_state_t el3state_ctx;
-
-	cve_2018_3639_t cve_2018_3639_ctx;
-
-	#if ERRATA_SPECULATIVE_AT
-	errata_speculative_at_t errata_speculative_at_ctx;
-	#endif
-
-	#if CTX_INCLUDE_PAUTH_REGS
-	pauth_t pauth_ctx;
-	#endif
-
-	#if (CTX_INCLUDE_EL2_REGS && IMAGE_BL31)
-	el2_sysregs_t el2_sysregs_ctx;
-	#else
-	el1_sysregs_t el1_sysregs_ctx;
-	#endif
-	} cpu_context_t;
+state of CPU across exception levels for a given security state are listed in
+the cpu_context structure, located in `lib/el3_runtime/aarch32/context.h`_ or
+`lib/el3_runtime/aarch64/context.h`_.
 
 Context Memory Allocation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -521,7 +500,7 @@ structure and is intended to manage specific EL3 registers.
 	typedef struct per_world_context {
 		uint64_t ctx_cptr_el3;
 		uint64_t ctx_mpam3_el3;
-	#if (ENABLE_FEAT_IDTE3 && IMAGE_BL31)
+	#if (ENABLE_FEAT_IDTE3 && defined(IMAGE_BL31))
 		perworld_idregs_t idregs;
 	#endif
 	} per_world_context_t;
@@ -598,4 +577,6 @@ entrypaths and at all the possible exception handlers routing to EL3 at runtime.
 .. |Root Context Sequence| image:: ../resources/diagrams/root_context_sequence.png
 .. _Trustzone for AArch64: https://developer.arm.com/documentation/102418/0101/TrustZone-in-the-processor/Switching-between-Security-states
 .. _Security States with RME: https://developer.arm.com/documentation/den0126/0100/Security-states
-.. _lib/el3_runtime/(aarch32/aarch64): https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/tree/lib/el3_runtime
+.. _lib/el3_runtime/(aarch32/aarch64): https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/+/master/lib/el3_runtime
+.. _lib/el3_runtime/aarch32/context.h: https://git.trustedfirmware.org/plugins/gitiles/TF-A/trusted-firmware-a.git/+/master/include/lib/el3_runtime/aarch32/context.h
+.. _lib/el3_runtime/aarch64/context.h: https://git.trustedfirmware.org/plugins/gitiles/TF-A/trusted-firmware-a.git/+/master/include/lib/el3_runtime/aarch64/context.h

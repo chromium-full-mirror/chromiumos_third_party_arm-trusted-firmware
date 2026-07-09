@@ -1154,7 +1154,7 @@ flags support :ref:`enable_feat_mechanism` and take numeric values from 0 to 2.
 -  3: Extend the signing to include leaf functions
 -  4: Turn on branch target identification mechanism
 -  5: Enables all types of branch protection features, only if present in
-   hardware (FEAT_STATE_CHECK).
+   hardware (FEAT_STATE_CHECKED).
 
    The table below summarizes ``BRANCH_PROTECTION`` values, GCC compilation options
    and resulting PAuth/BTI features.
@@ -1314,6 +1314,12 @@ flags support :ref:`enable_feat_mechanism` and take numeric values from 0 to 2.
    The default is 2 but is automatically disabled when the target architecture
    is AArch32.
 
+-  ``ENABLE_FEAT_SPEV1P5``: Numeric value to enable ``FEAT_SPEv1p5`` related
+   Features (``FEAT_SPE_EXC`` and ``FEAT_SPE_nVM``) support and requires
+   ``ENABLE_SPE_FOR_NS`` to be enabled. This is an optional architectural feature
+   for AArch64. This flag can take the values 0 to 2, to align with the
+   ``ENABLE_FEAT`` mechanism. The default is ``0``.
+
 -  ``ENABLE_SVE_FOR_NS``: Enables Scalable Vector Extension
    (SVE) for the Non-secure world only. SVE is an optional architectural feature
    for AArch64. At this time, this build option cannot be used on systems that
@@ -1340,6 +1346,13 @@ flags support :ref:`enable_feat_mechanism` and take numeric values from 0 to 2.
   buffer registers from NS ELs when FEAT_BRBE is implemented. BRBE is an
   optional architectural feature for AArch64. The default is 0 and it is
   automatically disabled when the target architecture is AArch32.
+
+- ``ENABLE_FEAT_BRBEV1P1``: Numeric value to enable support for
+  ``FEAT_BRBEv1p1``, which allows Branch recording at EL3 via the functions
+  ``brbe_start_recording()``, ``brbe_stop_recording()``, and
+  ``brbe_dump_branch_records()``. FEAT_BRBEv1p1 is an optional architectural
+  feature available from Arm v9.2 onwards and is EXPERIMENTAL. This flag may be
+  renamed or removed in the future. Default value is 0.
 
 - ``ENABLE_TRBE_FOR_NS``: Enables access of trace buffer
   control registers from NS ELs, NS-EL2 or NS-EL1(when NS-EL2 is implemented
@@ -1406,6 +1419,15 @@ flags support :ref:`enable_feat_mechanism` and take numeric values from 0 to 2.
 
 -  ``ENABLE_FEAT_PFAR``: Enables access to the PFAR system
    registers from non-secure world. Default value is ``0``.
+
+-  ``ENABLE_FEAT_AxERR``: Enables the use of FEAT_ADERR and FEAT_ANERR at EL3,
+   allowing EL3 Device and Normal memory External Aborts (like consuming RAS
+   poison) to be handled asynchronously in exchange for improved performance.
+   Platforms should not enable this option if this behaviour is undesirable.
+   Default value is ``0``.
+
+- ``ENABLE_FEAT_SRMASK```: Enables alias and bitwise write masks for EL1 control
+  registers and equivalent bitwise write masks for NS EL2. Default value is ``0``.
 
 GIC driver options
 --------------------
@@ -1559,11 +1581,21 @@ Common build options
    ``ENABLE_FEAT_RME``. Until deprecated, setting this option to 1, will also
    set ``ENABLE_FEAT_RME`` and ``ENABLE_RMM`` to 1.
 
+-  ``RMMD_ENABLE_IDE_KEY_PROG``: Boolean flag to enable support for RMM EL3
+   interface to program and manage IDE keys at the PCIe Root Port (RP). Default
+   value is 0. This option will be removed in a future release. Please use FIRME
+   IDE key management service ``FIRME_SUPPORT_IDE_KM`` instead.
+
 -  ``RMM_V1_COMPAT``: Boolean flag to enable support for RMM v1.x compatibility
    mode. When set to 0, TF-A will use the RMM-EL3 interface version required
    for RMMv2.0. Default value is 0.
 
 -  ``FIRME_SUPPORT``: This option enables the FIRME service in TF-A.
+
+-  ``FIRME_SUPPORT_IDE_KM``: Boolean flag to enable the IDE key management FIRME
+   service. This service gets enabled for NS instance when ``ENABLE_RMM`` is 0
+   or for Realm instance when ``ENABLE_RMM`` is 1. This flag depends on
+   ``FIRME_SUPPORT`` build flag. Default value is 0.
 
 -  ``RMMD_ENABLE_EL3_TOKEN_SIGN``: Numeric value to enable support for singing
    realm attestation token signing requests in EL3. This flag can take the
@@ -1591,6 +1623,11 @@ Common build options
 
 -  ``LFA_SUPPORT``: Boolean flag to enable support for Live Firmware
    activation as per the specification. This option defaults to 0.
+
+-  ``ENABLE_LFA_BL31``: Boolean flag to enable live activation of BL31 using
+   the EL3 LFA framework. This option depends on ``LFA_SUPPORT`` and defaults
+   to 0. See :doc:`../components/bl31-lfa` for the design, assumptions, and
+   limitations of BL31 self-update.
 
 -  ``TRANSFER_LIST``: Setting this to ``1`` enables support for Firmware
    Handoff using Transfer List defined in `Firmware Handoff specification`_.

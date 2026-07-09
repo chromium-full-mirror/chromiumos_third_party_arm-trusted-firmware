@@ -78,13 +78,12 @@
 #define LO_64(addr)			(addr & ULL(0xffffffffffffffff))
 
 /**
- * EXTRACT_FIELD - Extracts a specific bit field from a value.
+ * EXTRACT - Extracts a specific bit field from a value.
  *
- * @reg:      The input value containing the field.
-
  * @regfield: A bitmask representing the field. For a register field REG_FIELD,
  *            the macros REG_FIELD_WIDTH and REG_FIELD_SHIFT must be defined.
-
+ * @reg:      The input value containing the field.
+ *
  * The result of this macro is the contents of the field right shifted to the
  * least significant bit positions, with the rest being zero.
  */
@@ -213,6 +212,13 @@
  */
 #define check_u64_overflow(_u64, _inc) \
 	((_u64) > (UINT64_MAX - (_inc)))
+
+/*
+ * Evaluates to 1 if (_size_t + _inc) overflows, 0 otherwise.
+ * Both arguments must be size_t (i.e. effectively unsigned long integers).
+ */
+#define check_size_t_overflow(_size_t, _inc) \
+	((_size_t) > (SIZE_MAX - (_inc)))
 
 /* Register size of the current architecture. */
 #ifdef __aarch64__

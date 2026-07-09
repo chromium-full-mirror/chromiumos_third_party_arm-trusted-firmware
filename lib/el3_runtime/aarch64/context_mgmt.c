@@ -18,7 +18,6 @@
 #include <common/bl_common.h>
 #include <common/debug.h>
 #include <context.h>
-#include <drivers/arm/gicv3.h>
 #include <lib/cpus/cpu_ops.h>
 #include <lib/cpus/errata.h>
 #include <lib/el3_runtime/context_mgmt.h>
@@ -60,7 +59,7 @@ static void manage_extensions_secure(cpu_context_t *ctx);
  */
 static void setup_el1_context(cpu_context_t *ctx, const struct entry_point_info *ep)
 {
-#if ((IMAGE_BL1) || (IMAGE_BL31 && (!CTX_INCLUDE_EL2_REGS)))
+#if (defined(IMAGE_BL1) || (defined(IMAGE_BL31) && (!CTX_INCLUDE_EL2_REGS)))
 	u_register_t sctlr_elx, actlr_elx;
 
 	/*
@@ -115,7 +114,7 @@ static void setup_el1_context(cpu_context_t *ctx, const struct entry_point_info 
 	 */
 	actlr_elx = read_actlr_el1();
 	write_el1_ctx_common(get_el1_sysregs_ctx(ctx), actlr_el1, actlr_elx);
-#endif /* (IMAGE_BL1) || (IMAGE_BL31 && (!CTX_INCLUDE_EL2_REGS)) */
+#endif /* (defined(IMAGE_BL1) || (defined(IMAGE_BL31) && (!CTX_INCLUDE_EL2_REGS)) */
 }
 
 /*
@@ -126,7 +125,7 @@ static void setup_el1_context(cpu_context_t *ctx, const struct entry_point_info 
  */
 static void setup_el2_context(cpu_context_t *ctx)
 {
-#if CTX_INCLUDE_EL2_REGS && IMAGE_BL31
+#if CTX_INCLUDE_EL2_REGS && defined(IMAGE_BL31)
 	el2_sysregs_t *el2_ctx = get_el2_sysregs_ctx(ctx);
 
 	/*
@@ -181,7 +180,7 @@ static void setup_el2_context(cpu_context_t *ctx)
  */
 static void setup_el2_regs(void)
 {
-#if !(CTX_INCLUDE_EL2_REGS && IMAGE_BL31)
+#if !(CTX_INCLUDE_EL2_REGS && defined(IMAGE_BL31))
 	if (is_feat_hcx_supported()) {
 		write_hcrx_el2(HCRX_EL2_INIT_VAL);
 	}
@@ -232,7 +231,7 @@ static void setup_secure_context(cpu_context_t *ctx, const struct entry_point_in
 	manage_extensions_secure(ctx);
 }
 
-#if ENABLE_RMM && IMAGE_BL31
+#if ENABLE_RMM && defined(IMAGE_BL31)
 /******************************************************************************
  * This function performs initializations that are specific to REALM state
  * and updates the cpu context specified by 'ctx'.
@@ -304,7 +303,7 @@ static void setup_realm_context(cpu_context_t *ctx, const struct entry_point_inf
 		trbe_disable_realm(ctx);
 	}
 }
-#endif /* ENABLE_RMM && IMAGE_BL31 */
+#endif /* ENABLE_RMM && defined(IMAGE_BL31) */
 
 /******************************************************************************
  * This function performs initializations that are specific to NON-SECURE state
@@ -428,6 +427,13 @@ static void setup_ns_context(cpu_context_t *ctx, const struct entry_point_info *
 		 * hacdbscons_el2
 		 */
 		scr_el3 |= SCR_HACDBSEn_BIT;
+	}
+
+	if (is_feat_srmask_supported()) {
+		/* Set the SRMASKEn bit to enable access to alias and bitmask
+		 * registers.
+		 */
+		scr_el3 |= SCR_SRMASKEn_BIT;
 	}
 
 	write_ctx_reg(state, CTX_SCR_EL3, scr_el3);
@@ -597,7 +603,7 @@ static void setup_context_common(cpu_context_t *ctx, const entry_point_info_t *e
 		scr_el3 |= SCR_TWEDEn_BIT;
 	}
 
-#if IMAGE_BL31 && defined(SPD_spmd) && SPMD_SPM_AT_SEL2
+#if defined(IMAGE_BL31) && defined(SPD_spmd) && SPMD_SPM_AT_SEL2
 	/* Enable S-EL2 if FEAT_SEL2 is implemented for all the contexts. */
 	if (is_feat_sel2_supported()) {
 		scr_el3 |= SCR_EEL2_BIT;
@@ -647,7 +653,7 @@ static void setup_context_common(cpu_context_t *ctx, const entry_point_info_t *e
 
 	write_ctx_reg(state, CTX_MDCR_EL3, mdcr_el3);
 
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	/* Enable FEAT_TRF for Non-Secure and prohibit for Secure state. */
 	if (is_feat_trf_supported()) {
 		trf_enable(ctx);
@@ -725,7 +731,7 @@ void cm_setup_context(cpu_context_t *ctx, const entry_point_info_t *ep)
 	case SECURE:
 		setup_secure_context(ctx, ep);
 		break;
-#if ENABLE_RMM && IMAGE_BL31
+#if ENABLE_RMM && defined(IMAGE_BL31)
 	case REALM:
 		setup_realm_context(ctx, ep);
 		break;
@@ -751,7 +757,7 @@ void __no_pauth cm_manage_extensions_el3(unsigned int my_idx)
 		pauth_init_enable_el3();
 	}
 
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	if (is_feat_sve_supported()) {
 		sve_init_el3();
 	}
@@ -770,6 +776,28 @@ void __no_pauth cm_manage_extensions_el3(unsigned int my_idx)
 
 	if (is_feat_cpa2_supported()) {
 		cpa2_enable_el3();
+	}
+
+	/*
+	 * FEAT_ANERR and FEAT_ADERR trade performance for reduced accuracy of
+	 * error reporting. This is undesirable on debug builds as we want as
+	 * accurate information as possible to triage programming errors that
+	 * could be singalled synchronously.
+	 *
+	 * No programming errors are expected on release builds and speed is
+	 * paramount. RAS errors while running at EL3 are always fatal so this
+	 * will not have an impact on recovery.
+	 */
+	if (is_feat_aderr_supported() && !DEBUG) {
+		write_sctlr2_el3(read_sctlr2_el3() | SCTLR2_EnADERR_BIT);
+	}
+
+	if (is_feat_anerr_supported() && !DEBUG) {
+		write_sctlr2_el3(read_sctlr2_el3() | SCTLR2_EnANERR_BIT);
+	}
+
+	if (is_feat_brbe_supported()) {
+		brbe_enable_el3();
 	}
 
 	pmuv3_init_el3();
@@ -800,7 +828,7 @@ static void manage_extensions_nonsecure_per_world(void)
 {
 	cm_el3_arch_init_per_world(&per_world_context[CPU_CONTEXT_NS]);
 
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	if (is_feat_sme_supported()) {
 		sme_enable_per_world(&per_world_context[CPU_CONTEXT_NS]);
 	}
@@ -836,7 +864,7 @@ static void manage_extensions_secure_per_world(void)
 {
 	cm_el3_arch_init_per_world(&per_world_context[CPU_CONTEXT_SECURE]);
 
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	if (is_feat_sme_supported()) {
 
 		if (ENABLE_SME_FOR_SWD) {
@@ -882,7 +910,7 @@ static void manage_extensions_secure_per_world(void)
 
 static void manage_extensions_realm_per_world(void)
 {
-#if ENABLE_RMM && IMAGE_BL31
+#if ENABLE_RMM && defined(IMAGE_BL31)
 	cm_el3_arch_init_per_world(&per_world_context[CPU_CONTEXT_REALM]);
 
 	if (is_feat_sve_supported()) {
@@ -921,7 +949,7 @@ static void manage_extensions_realm_per_world(void)
 	if (is_feat_idte3_supported()) {
 		idte3_init_cached_idregs_per_world(CPU_CONTEXT_REALM);
 	}
-#endif /* ENABLE_RMM && IMAGE_BL31 */
+#endif /* ENABLE_RMM && defined(IMAGE_BL31) */
 }
 
 void cm_manage_extensions_per_world(void)
@@ -933,7 +961,7 @@ void cm_manage_extensions_per_world(void)
 
 void cm_init_percpu_once_regs(void)
 {
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	if (is_feat_idte3_supported()) {
 		idte3_init_percpu_once_regs(CPU_CONTEXT_NS);
 		idte3_init_percpu_once_regs(CPU_CONTEXT_SECURE);
@@ -949,7 +977,7 @@ void cm_init_percpu_once_regs(void)
  ******************************************************************************/
 static void manage_extensions_nonsecure(cpu_context_t *ctx)
 {
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	/* NOTE: registers are not context switched */
 	if (is_feat_amu_supported()) {
 		amu_enable(ctx);
@@ -992,7 +1020,7 @@ static void manage_extensions_nonsecure(cpu_context_t *ctx)
  ******************************************************************************/
 static void manage_extensions_nonsecure_el2_unused(void)
 {
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	if (is_feat_spe_supported()) {
 		spe_init_el2_unused();
 	}
@@ -1043,7 +1071,7 @@ static void manage_extensions_nonsecure_el2_unused(void)
  ******************************************************************************/
 static void manage_extensions_secure(cpu_context_t *ctx)
 {
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	if (is_feat_sme_supported()) {
 		if (ENABLE_SME_FOR_SWD) {
 		/*
@@ -1245,7 +1273,7 @@ void cm_prepare_el3_exit(size_t security_state)
 			write_fgwte3_el3(FGWTE3_EL3_LATE_INIT_VAL);
 		}
 	}
-#if !CTX_INCLUDE_EL2_REGS || IMAGE_BL1
+#if !CTX_INCLUDE_EL2_REGS || defined(IMAGE_BL1)
 	/* Restore EL1 system registers, only when CTX_INCLUDE_EL2_REGS=0 */
 	cm_el1_sysregs_context_restore(security_state);
 #endif
@@ -1269,7 +1297,7 @@ void cm_sysregs_context_restore_amu(unsigned int security_state)
 	write_amevcntr03_el0(ctx->amevcntr03_el0);
 }
 
-#if (CTX_INCLUDE_EL2_REGS && IMAGE_BL31)
+#if (CTX_INCLUDE_EL2_REGS && defined(IMAGE_BL31))
 
 static void el2_sysregs_context_save_fgt(el2_sysregs_t *ctx)
 {
@@ -1766,7 +1794,7 @@ void cm_el2_sysregs_context_restore(uint32_t security_state)
  ******************************************************************************/
 void cm_prepare_el3_exit_ns(void)
 {
-#if (CTX_INCLUDE_EL2_REGS && IMAGE_BL31)
+#if (CTX_INCLUDE_EL2_REGS && defined(IMAGE_BL31))
 #if ENABLE_ASSERTIONS
 	cpu_context_t *ctx = cm_get_context(NON_SECURE);
 	assert(ctx != NULL);
@@ -1783,14 +1811,14 @@ void cm_prepare_el3_exit_ns(void)
 	cm_set_next_eret_context(NON_SECURE);
 #else
 	cm_prepare_el3_exit(NON_SECURE);
-#endif /* (CTX_INCLUDE_EL2_REGS && IMAGE_BL31) */
+#endif /* (CTX_INCLUDE_EL2_REGS && defined(IMAGE_BL31)) */
 
 	if (is_feat_amu_supported()) {
 		cm_sysregs_context_restore_amu(NON_SECURE);
 	}
 }
 
-#if ((IMAGE_BL1) || (IMAGE_BL31 && (!CTX_INCLUDE_EL2_REGS)))
+#if (defined(IMAGE_BL1) || (defined(IMAGE_BL31) && (!CTX_INCLUDE_EL2_REGS)))
 /*******************************************************************************
  * The next set of six functions are used by runtime services to save and restore
  * EL1 context on the 'cpu_context' structure for the specified security state.
@@ -2035,7 +2063,7 @@ void cm_el1_sysregs_context_save(uint32_t security_state)
 
 	el1_sysregs_context_save(get_el1_sysregs_ctx(ctx));
 
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	if (is_feat_amu_supported()) {
 		cm_sysregs_context_save_amu(security_state);
 	}
@@ -2057,7 +2085,7 @@ void cm_el1_sysregs_context_restore(uint32_t security_state)
 
 	el1_sysregs_context_restore(get_el1_sysregs_ctx(ctx));
 
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	if (is_feat_amu_supported()) {
 		cm_sysregs_context_restore_amu(security_state);
 	}

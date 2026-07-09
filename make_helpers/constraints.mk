@@ -59,11 +59,17 @@ ifeq (${ENABLE_RMM},1)
         $(warning "RMM is an experimental feature")
 endif
 
+ifeq (${RMMD_ENABLE_IDE_KEY_PROG},1)
+        $(warning "RMMD_ENABLE_IDE_KEY_PROG is deprecated. Use FIRME service option FIRME_SUPPORT_IDE_KM instead.")
+endif
+
 ifeq (${CTX_INCLUDE_EL2_REGS}, 1)
 	ifeq (${SPD},none)
 		ifeq (${ENABLE_RMM},0)
-                        $(error CTX_INCLUDE_EL2_REGS is available only when SPD \
-                        or RMM is enabled)
+                        ifeq (${ENABLE_LFA_BL31},0)
+                                $(error CTX_INCLUDE_EL2_REGS is available only when SPD \
+                                RMM, or BL31 LFA is enabled)
+                        endif
 		endif
 	endif
 endif
@@ -256,6 +262,12 @@ endif
 
 endif # ${ENABLE_FEAT_PAUTH_LR}
 
+ifeq (${FIRME_SUPPORT_IDE_KM}, 1)
+    ifeq (${FIRME_SUPPORT}, 0)
+        $(error "FIRME_SUPPORT_IDE_KM requires FIRME_SUPPORT")
+    endif
+endif
+
 ifeq ($(FIRME_SUPPORT),1)
         $(info FIRME_SUPPORT is an experimental feature)
 endif #(FIRME_SUPPORT)
@@ -314,6 +326,10 @@ ifeq (${ARCH},aarch32)
                 $(error "ENABLE_SPE_FOR_NS cannot be used with ARCH=aarch32")
 	endif
 
+	ifneq (${ENABLE_FEAT_SPEV1P5},0)
+                $(error "ENABLE_FEAT_SPEV1P5 cannot be used with ARCH=aarch32")
+	endif
+
 	# BRBE is not supported in AArch32
 	ifneq (${ENABLE_BRBE_FOR_NS},0)
                 $(error "ENABLE_BRBE_FOR_NS cannot be used with ARCH=aarch32")
@@ -368,6 +384,9 @@ ifeq (${ARCH},aarch32)
 	ifneq (${ENABLE_FEAT_HACDBS},0)
                 $(error "ENABLE_FEAT_HACDBS cannot be used with ARCH=aarch32")
 	endif
+	ifneq (${ENABLE_FEAT_SRMASK},0)
+                $(error "ENABLE_FEAT_SRMASK cannot be used with ARCH=aarch32")
+	endif
 endif #(ARCH=aarch32)
 
 ifneq (${ENABLE_FEAT_FPMR},0)
@@ -379,11 +398,21 @@ ifneq (${ENABLE_FEAT_FPMR},0)
 	endif
 endif #(ENABLE_FEAT_FPMR)
 
-ifneq (${ENABLE_FEAT_CPA2},0)
-	ifeq (${ENABLE_FEAT_SCTLR2},0)
-                $(error "Error: ENABLE_FEAT_CPA2 cannot be used without ENABLE_FEAT_SCTLR2")
+ifneq (${ENABLE_FEAT_SPEV1P5},0)
+	ifeq (${ENABLE_SPE_FOR_NS},0)
+                $(error "ENABLE_FEAT_SPEV1P5 requires ENABLE_SPE_FOR_NS")
 	endif
-endif #${ENABLE_FEAT_CPA2}
+endif #(ENABLE_FEAT_SPEV1P5)
+
+ifeq (${ENABLE_FEAT_SCTLR2},0)
+	ifneq (${ENABLE_FEAT_CPA2},0)
+                $(error "ENABLE_FEAT_CPA2 requires ENABLE_FEAT_SCTLR2")
+	endif
+
+	ifneq (${ENABLE_FEAT_AxERR},0)
+                $(error "ENABLE_FEAT_AxERR requires ENABLE_FEAT_SCTLR2")
+	endif
+endif #${ENABLE_FEAT_AxERR}
 
 ifneq (${ENABLE_SME_FOR_NS},0)
 	ifeq (${ENABLE_SVE_FOR_NS},0)
@@ -518,6 +547,13 @@ ifneq ($(ENABLE_FEAT_MORELLO),0)
                 $(error ENABLE_FEAT_MORELLO requires Clang toolchain)
         endif
         $(warning Morello capability is an experimental feature)
+endif
+
+ifneq (${ENABLE_FEAT_BRBEV1P1},0)
+        ifeq (${ENABLE_BRBE_FOR_NS},0)
+                $(error "ENABLE_FEAT_BRBEV1P1 requires ENABLE_BRBE_FOR_NS")
+        endif
+        $(warning ENABLE_FEAT_BRBEV1P1 is an experimental feature!)
 endif
 
 # Handle all deprecated build options.

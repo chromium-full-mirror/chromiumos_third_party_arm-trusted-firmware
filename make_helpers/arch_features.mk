@@ -8,13 +8,16 @@
 # and enables them based on the configured architecture version.
 
 # This file follows the following format:
-#   - Enable mandatory feature if not updated, as applicable to an Arch Version.
-#   - By default disable any mandatory features if they have not been defined yet.
-#   - Disable or enable any optional feature this would be enabled/disabled if needed by platform.
+#   - Force all mandatory features to FEAT_STATE_ALWAYS (1) based on the configured
+#     architecture version, overriding any platform settings. This ensures
+#     architecturally mandatory features are always enabled when
+#     ARM_ARCH_{MAJOR,MINOR} is set.
+#   - By default, leave any optional features disabled if they have not been
+#     defined yet, and let them be enabled/disabled as needed by platform.
 
 #
 ################################################################################
-# Enable Mandatory features if not updated yet, based on Arch versions.
+# Force mandatory features based on configured architecture version.
 ################################################################################
 #
 
@@ -139,11 +142,11 @@ endif
 # Enable the features which are mandatory from ARCH version 9.6 and upwards.
 ifeq "9.6" "$(word 1, $(sort 9.6 $(ARM_ARCH_MAJOR).$(ARM_ARCH_MINOR)))"
 # 9.5 Compliant
-armv9-6-a-feats         := ENABLE_FEAT_UINJ
+armv9-6-a-feats         := ENABLE_FEAT_UINJ ENABLE_FEAT_SRMASK
 armv9-6-a-feats         += ${armv9-5-a-feats}
 FEAT_LIST               := ${armv9-6-a-feats}
 endif
 
-# Set all FEAT_* in FEAT_LIST to '1' if they are not yet defined or set
-# from build commandline options or platform makefile.
+# Force all FEAT_* in FEAT_LIST to FEAT_STATE_ALWAYS (1), overriding any
+# previous settings from platform makefiles.
 $(eval $(call set_ones, ${sort ${FEAT_LIST}}))

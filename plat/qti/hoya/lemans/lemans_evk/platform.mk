@@ -26,6 +26,7 @@ ERRATA_A78C_2712575			:=	1
 ERRATA_A78C_2743232			:=	1
 ERRATA_A78C_2772121			:=	1
 ERRATA_A78C_2779484			:=	1
+WORKAROUND_CVE_2025_10263		:=	1
 
 # Enable PSCI v1.0 extended state ID format
 PSCI_EXTENDED_STATE_ID			:=	1
@@ -104,6 +105,8 @@ ifeq ($(QTISECLIB_PATH),)
 $(warning QTISECLIB_PATH is not provided while building, using stub implementation. \
 		Please refer to documentation for more details \
 		THIS FIRMWARE WILL NOT BOOT!)
+
+include drivers/qti/smmu/smmu.mk
 
 PLAT_INCLUDES   +=      -Iinclude/drivers/qti/qtimer/${CHIPSET} \
 			-Iinclude/drivers/qti/watchdog/${CHIPSET}

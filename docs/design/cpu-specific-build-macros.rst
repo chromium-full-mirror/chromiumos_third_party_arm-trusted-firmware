@@ -46,6 +46,17 @@ vulnerability workarounds should be applied at runtime.
    This build option should be set to 1 if the target platform contains at
    least 1 CPU that requires this mitigation. Defaults to 1.
 
+-  ``WORKAROUND_CVE_2025_10263``: Enables mitigation for `CVE-2025-10263`_.
+   This build option should be set to 1 if the target platform contains at
+   least 1 CPU that requires this mitigation. Defaults to 0, due to the nature
+   of this workaround it cannot be checked at runtime so should not be enabled
+   unless needed by the platform.
+
+-  ``WORKAROUND_CVE_2026-0995``: Enables mitigation for `CVE-2026-0995`_.
+   This build option should be set to 1 if the target platform contains at least
+   1 C1 Pro CPU. Platforms should also inlcude lib/cpus/aarch64/c1_pro_pubsub.c
+   in BL31_SOURCES. Defaults to 0.
+
 .. _arm_cpu_macros_errata_workarounds:
 
 CPU Errata Workarounds
@@ -820,6 +831,9 @@ For Neoverse V1, the following errata build flags are defined :
    It is still open.
 
 For Neoverse V2, the following errata build flags are defined :
+
+- ``ERRATA_V2_2394277``: This applies erratum 2394277 workaround to Neoverse V2
+   CPU. This needs to be enabled for revision r0p0 of the CPU. It is fixed in r0p1.
 
 -  ``ERRATA_V2_2618597``: This applies errata 2618597 workaround to Neoverse-V2
    CPU. This needs to be enabled for revisions r0p0 and r0p1. It is fixed in
@@ -1932,6 +1946,8 @@ GIC Errata Workarounds
 .. _CVE-2022-23960: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-23960
 .. _CVE-2024-5660: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-5660
 .. _CVE-2024-7881: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-7881
+.. _CVE-2025-10263: https://www.cve.org/CVERecord?id=CVE-2025-10263
+.. _CVE-2026-0995: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-0995
 .. _Cortex-A72 MPCore Software Developers Errata Notice: https://developer.arm.com/documentation/epm012079/latest
 .. _Cortex-A57 Software Optimization Guide: https://developer.arm.com/documentation/uan0015
 .. _Arm DSU Software Developers Errata Notice: https://developer.arm.com/documentation/SDEN854652

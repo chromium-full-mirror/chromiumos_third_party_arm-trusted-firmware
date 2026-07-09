@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2013-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <assert.h>
+#include <stdint.h>
 #include <string.h>
 
 #include <arch.h>
@@ -23,6 +24,7 @@
 #include <platform_def.h>
 #include <services/arm_arch_svc.h>
 #include <services/rmm_core_manifest.h>
+#include <services/firme_svc.h>
 #if SPM_MM
 #include <services/spm_mm_partition.h>
 #endif
@@ -106,6 +108,12 @@ arm_config_t arm_config;
 			PLAT_ARM_FW_HANDOFF_SIZE, MT_MEMORY | MT_RW | EL3_PAS)
 #endif
 #endif
+
+#if ENABLE_LFA_BL31
+#define MAP_LFA_STORE						\
+	MAP_REGION_FLAT(PLAT_LFA_STORE_BASE, PLAT_LFA_STORE_SIZE,		\
+			MT_MEMORY | MT_RO | MT_NS)
+#endif /* ENABLE_LFA_BL31 */
 
 /*
  * Table of memory regions for various BL stages to map using the MMU.
@@ -235,6 +243,11 @@ const mmap_region_t plat_arm_mmap[] = {
 #if defined(MAP_EL3_FW_HANDOFF) && !RESET_TO_BL31
 	MAP_EL3_FW_HANDOFF,
 #endif
+#if ENABLE_LFA_BL31
+	ARM_MAP_LFA_RELOCATABLE_DATA,
+	ARM_MAP_LFA_RELOCATABLE_CODE,
+	MAP_LFA_STORE,
+#endif /* ENABLE_LFA_BL31 */
 	{ 0 }
 };
 
@@ -1065,12 +1078,22 @@ int plat_rmmd_load_manifest(struct rmm_manifest *manifest)
 /*
  * Update encryption key associated with @mecid.
  */
-int plat_rmmd_mecid_key_update(uint16_t mecid, unsigned int reason)
+int plat_firme_mec_refresh(uint16_t mecid, uint8_t reason)
 {
 	/*
 	 * FVP does not provide an interface to change the encryption key associated
 	 * with MECID. Hence always return success.
 	 */
 	return 0;
+}
+
+uint8_t plat_firme_get_common_mecid_width(void)
+{
+
+	/*
+	 * Use the PE MECID width as the system MECID width is expected to be the same for all
+	 * system components on FVP.
+	 */
+	return (uint8_t)EXTRACT(MECIDR_EL2_MECIDWidthm1, read_mecidr_el2());
 }
 #endif /* ENABLE_RMM */

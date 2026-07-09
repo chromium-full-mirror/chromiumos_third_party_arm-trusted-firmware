@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2025, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -151,7 +151,9 @@
 
 # if (defined(SPD_tspd) || defined(SPD_opteed) || defined(SPD_spmd)) && \
 MEASURED_BOOT
-#define ARM_EVENT_LOG_DRAM1_SIZE	UL(0x00001000)	/* 4KB */
+#define ARM_EVENT_LOG_DRAM1_SIZE                                               \
+	((((PLAT_ARM_EVENT_LOG_MAX_SIZE + PAGE_SIZE_MASK) >> PAGE_SIZE_SHIFT)) \
+	 << PAGE_SIZE_SHIFT)
 
 #if ENABLE_RMM
 #define ARM_EVENT_LOG_DRAM1_BASE	(ARM_REALM_BASE -		\
@@ -359,6 +361,20 @@ MEASURED_BOOT
 					ARM_L1_GPT_SIZE,		\
 					MT_MEMORY | MT_RW | EL3_PAS)
 #endif
+
+#if ENABLE_LFA_BL31
+#define ARM_MAP_LFA_RELOCATABLE_CODE \
+				MAP_REGION_FLAT(			\
+					BL31_LIMIT - (2 * PAGE_SIZE),	\
+					PAGE_SIZE,			\
+					MT_CODE | EL3_PAS)
+
+#define ARM_MAP_LFA_RELOCATABLE_DATA \
+				MAP_REGION_FLAT(			\
+					BL31_LIMIT - PAGE_SIZE,		\
+					PAGE_SIZE,			\
+					MT_MEMORY | MT_RW | EL3_PAS)
+#endif /* ENABLE_LFA_BL31 */
 
 #if ENABLE_RMM
 /*

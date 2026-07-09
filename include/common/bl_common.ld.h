@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2025, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2020-2026, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -84,7 +84,7 @@
 /*
  * The base xlat table
  *
- * It is put into the rodata section if PLAT_RO_XLAT_TABLES=1,
+ * It is put into the rodata section if PLAT_RO_XLAT_TABLES is defined,
  * or into the bss section otherwise.
  */
 #define BASE_XLAT_TABLE					\
@@ -93,7 +93,7 @@
 	*(.base_xlat_table)				\
 	__BASE_XLAT_TABLE_END__ = .;
 
-#if PLAT_RO_XLAT_TABLES
+#ifdef PLAT_RO_XLAT_TABLES
 #define BASE_XLAT_TABLE_RO		BASE_XLAT_TABLE
 #define BASE_XLAT_TABLE_BSS
 #else
@@ -128,7 +128,7 @@
  * .rela.dyn needs to come after .data for the read-elf utility to parse
  * this section correctly.
  */
-#if __aarch64__
+#ifdef __aarch64__
 #define RELA_DYN_NAME		.rela.dyn
 #define RELOC_SECTIONS_PATTERN	*(.rela*)
 #else

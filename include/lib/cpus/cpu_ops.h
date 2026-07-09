@@ -13,7 +13,7 @@
 				(MIDR_PN_MASK << MIDR_PN_SHIFT)
 
 /* Hardcode to keep compatible with assembly. sizeof(uintptr_t) */
-#if __aarch64__
+#ifdef __aarch64__
 #define CPU_WORD_SIZE			8
 #else
 #define CPU_WORD_SIZE			4
@@ -49,22 +49,22 @@
 
 #define CPU_ERRATA_LIST_START_SIZE	CPU_WORD_SIZE
 #define CPU_ERRATA_LIST_END_SIZE	CPU_WORD_SIZE
+
 /* Fields required to print errata status  */
-#if REPORT_ERRATA
+#if (defined(IMAGE_BL31) || defined(IMAGE_BL32)) && REPORT_ERRATA
 #define CPU_CPU_STR_SIZE	CPU_WORD_SIZE
-/* BL1 doesn't require mutual exclusion and printed flag. */
-#if defined(IMAGE_BL31) || defined(IMAGE_BL32)
 #define CPU_ERRATA_LOCK_SIZE	CPU_WORD_SIZE
 #define CPU_ERRATA_PRINTED_SIZE	CPU_WORD_SIZE
-#else
+#elif defined(IMAGE_BL1) && REPORT_ERRATA
+/* BL1 doesn't require mutual exclusion and printed flag. */
+#define CPU_CPU_STR_SIZE	CPU_WORD_SIZE
 #define CPU_ERRATA_LOCK_SIZE	0
 #define CPU_ERRATA_PRINTED_SIZE	0
-#endif /* defined(IMAGE_BL31) || defined(IMAGE_BL32) */
-#else
+#else /* (defined(IMAGE_BL31) || defined(IMAGE_BL32)) && REPORT_ERRATA */
 #define CPU_CPU_STR_SIZE	0
 #define CPU_ERRATA_LOCK_SIZE	0
 #define CPU_ERRATA_PRINTED_SIZE	0
-#endif /* REPORT_ERRATA */
+#endif /* (defined(IMAGE_BL31) || defined(IMAGE_BL32)) && REPORT_ERRATA */
 
 #if defined(IMAGE_BL31) && CRASH_REPORTING
 #define CPU_REG_DUMP_SIZE	CPU_WORD_SIZE
@@ -79,7 +79,7 @@
  */
 #define CPU_MIDR		0
 #define CPU_RESET_FUNC		CPU_MIDR + CPU_MIDR_SIZE
-#if __aarch64__
+#ifdef __aarch64__
 #define CPU_E_HANDLER_FUNC	CPU_RESET_FUNC + CPU_RESET_FUNC_SIZE
 #define CPU_PWR_DWN_OPS		CPU_E_HANDLER_FUNC + CPU_E_HANDLER_FUNC_SIZE
 #else
@@ -89,7 +89,7 @@
 #define CPU_ERRATA_LIST_END	CPU_ERRATA_LIST_START + CPU_ERRATA_LIST_START_SIZE
 #define CPU_CPU_STR		CPU_ERRATA_LIST_END + CPU_ERRATA_LIST_END_SIZE
 #define CPU_ERRATA_LOCK		CPU_CPU_STR + CPU_CPU_STR_SIZE
-#if __aarch64__
+#ifdef __aarch64__
 #define CPU_REG_DUMP		CPU_ERRATA_LOCK + CPU_ERRATA_LOCK_SIZE
 #define CPU_OPS_SIZE		CPU_REG_DUMP + CPU_REG_DUMP_SIZE
 #else
@@ -109,7 +109,7 @@ struct cpu_ops {
 #ifdef IMAGE_AT_EL3
 	void (*reset_func)(void);
 #endif /* IMAGE_AT_EL3 */
-#if __aarch64__
+#ifdef __aarch64__
 	void (*e_handler_func)(long es);
 #endif /* __aarch64__ */
 #if (defined(IMAGE_BL31) || defined(IMAGE_BL32)) && CPU_MAX_PWR_DWN_OPS

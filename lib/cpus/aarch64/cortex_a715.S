@@ -74,8 +74,7 @@ check_erratum_ls cortex_a715, ERRATUM(2331818), CPU_REV(1, 0)
 
 workaround_reset_start cortex_a715, ERRATUM(2344187), ERRATA_A715_2344187
 	/* GCR_EL1 is only present with FEAT_MTE2. */
-	mrs x1, ID_AA64PFR1_EL1
-	ubfx x0, x1, ID_AA64PFR1_EL1_MTE_SHIFT, #4
+	is_feat_mte_present_asm x0
 	cmp x0, #MTE_IMPLEMENTED_ELX
 	bne #1f
 	sysreg_bit_set GCR_EL1, GCR_EL1_RRND_BIT
@@ -212,7 +211,7 @@ workaround_reset_end cortex_a715, ERRATUM(3711916)
 check_erratum_ls cortex_a715, ERRATUM(3711916), CPU_REV(1, 3)
 
 workaround_reset_start cortex_a715, CVE(2022, 23960), WORKAROUND_CVE_2022_23960
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	/*
 	 * The Cortex-A715 generic vectors are overridden to apply errata
 	 * mitigation on exception entry from lower ELs.

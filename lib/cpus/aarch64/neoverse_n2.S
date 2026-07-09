@@ -250,7 +250,7 @@ workaround_reset_end neoverse_n2, ERRATUM(4302970)
 check_erratum_ls neoverse_n2, ERRATUM(4302970), CPU_REV(0, 3)
 
 workaround_reset_start neoverse_n2, CVE(2022,23960), WORKAROUND_CVE_2022_23960
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	/*
 	 * The Neoverse-N2 generic vectors are overridden to apply errata
          * mitigation on exception entry from lower ELs.
@@ -273,7 +273,7 @@ check_erratum_ls neoverse_n2, CVE(2024, 5660), CPU_REV(0, 3)
 	 * Enables mitigation for CVE-2025-0647.
 	 */
 workaround_reset_start neoverse_n2, CVE(2025, 647), WORKAROUND_CVE_2025_0647
-#if IMAGE_BL31
+#ifdef IMAGE_BL31
 	mov	x0, #(WA_USE_T32_OPCODE | WA_PATCH_SLOT(0))
 	bl	wa_cve_2025_0647_instruction_patch
 #endif /* IMAGE_BL31 */
@@ -292,6 +292,9 @@ func neoverse_n2_impl_defined_el3_handler
 	b	wa_cve_2025_0647_do_cpp_wa
 endfunc neoverse_n2_impl_defined_el3_handler
 #endif
+
+add_erratum_entry neoverse_n2, CVE(2025, 10263), WORKAROUND_CVE_2025_10263
+check_erratum_chosen neoverse_n2, CVE(2025, 10263), WORKAROUND_CVE_2025_10263
 
 	/* -------------------------------------------
 	 * The CPU Ops reset function for Neoverse N2.
@@ -367,7 +370,7 @@ func neoverse_n2_cpu_reg_dump
 	ret
 endfunc neoverse_n2_cpu_reg_dump
 
-#if WORKAROUND_CVE_2025_0647 && IMAGE_BL31
+#if WORKAROUND_CVE_2025_0647 && defined(IMAGE_BL31)
 declare_cpu_ops_eh neoverse_n2, NEOVERSE_N2_MIDR, \
 	neoverse_n2_reset_func, \
 	neoverse_n2_impl_defined_el3_handler, \

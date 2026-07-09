@@ -8,6 +8,7 @@
 #include <common/debug.h>
 #include <drivers/arm/gic_common.h>
 #include <lib/mmio.h>
+#include <lib/pm/mtk_pm.h>
 
 #include <mt_cirq.h>
 #include <mt_gic_v3.h>
@@ -188,8 +189,18 @@ static void collect_all_wakeup_events(void)
 	for (i = 0U; i < cirq_all_events.num_of_events; i++) {
 		if (cirq_all_events.wakeup_events[i] > 0U) {
 			gic_irq = cirq_all_events.wakeup_events[i];
+
+			if (gic_irq < cirq_all_events.spi_start + 32U) {
+				continue;
+			}
+
 			cirq = gic_irq - cirq_all_events.spi_start - 32U;
 			cirq_reg = cirq / 32U;
+
+			if (cirq_reg >= CIRQ_REG_NUM) {
+				continue;
+			}
+
 			cirq_offset = cirq % 32U;
 			mask = 0x1 << cirq_offset;
 			irq_offset = gic_irq % 32U;
@@ -371,6 +382,10 @@ static void cirq_fast_clone(void)
 
 void set_wakeup_sources(uint32_t *list, uint32_t num_of_events)
 {
+	if (num_of_events > MT_IRQ_REMAIN_MAX) {
+		num_of_events = MT_IRQ_REMAIN_MAX;
+	}
+
 	cirq_all_events.num_of_events = num_of_events;
 	cirq_all_events.wakeup_events = list;
 }

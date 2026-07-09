@@ -515,17 +515,6 @@ must also be defined:
    With this macro, multiple block devices could be supported at the same
    time.
 
-If the platform needs to allocate data within the per-cpu data framework in
-BL31, it should define the following macro. Currently this is only required if
-the platform decides not to use the coherent memory section by undefining the
-``USE_COHERENT_MEM`` build flag. In this case, the framework allocates the
-required memory within the the per-cpu data to minimize wastage.
-
--  **#define : PLAT_PCPU_DATA_SIZE**
-
-   Defines the memory (in bytes) to be reserved within the per-cpu data
-   structure for use by the platform layer.
-
 The following constants are optional. They should be defined when the platform
 memory layout implies some image overlaying like in Arm standard platforms.
 
@@ -573,6 +562,19 @@ optionally be defined:
    For example, define the build flag in ``platform.mk``:
    PLAT_PARTITION_BLOCK_SIZE := 4096
    $(eval $(call add_define,PLAT_PARTITION_BLOCK_SIZE))
+
+If the platform port supports IDE key management service to establish an IDE
+stream between the Root port and an Endpoint, the following constant must be
+defined:
+
+-  **PLAT_PCIE_ROOT_COMPLEX_MAX**
+   The maximum number of PCIE Root Complexes supported by the platform.
+   Valid range: 1-8
+   Default value: 1
+
+   For example, define the build flag in ``platform.mk``:
+   PLAT_PCIE_ROOT_COMPLEX_MAX := 2
+   $(eval $(call add_define,PLAT_PCIE_ROOT_COMPLEX_MAX))
 
 If the platform port uses the Arm® Ethos™-N NPU driver, the following
 configuration must be performed:
@@ -1523,17 +1525,17 @@ Function : plat_get_soc_name()
 
 ::
 
-    Argument : char **
+    Argument : char *
     Return   : int32_t
 
 The plat_get_soc_name() function allows a platform to expose the SoC name to
-the firmware. It takes a pointer to a character pointer as an argument, which
-must be set to point to a static, null-terminated SoC name string. The string
-must be encoded in UTF-8 and should use only printable ASCII characters for
-compatibility. It must not exceed 136 bytes, including the null terminator. On
-success, the function returns SMC_ARCH_CALL_SUCCESS. If the platform does not
-support SoC name retrieval, it returns SMC_ARCH_CALL_NOT_SUPPORTED. This API
-allows platforms to support SoC name queries via SMCCC_ARCH_SOC_ID.
+the firmware. It takes a character pointer as an argument, which should be
+filled with the null-terminated SoC name string. The string must be encoded
+in UTF-8 and should use only printable ASCII characters for compatibility.
+It must not exceed 136 bytes, including the null terminator. On success, the
+function returns SMC_ARCH_CALL_SUCCESS. If the platform does not support SoC
+name retrieval, it returns SMC_ARCH_CALL_NOT_SUPPORTED. This API allows
+platforms to support SoC name queries via SMCCC_ARCH_SOC_ID.
 
 Function : plat_is_smccc_feature_available()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2365,24 +2367,54 @@ RMM image and stores it in the area specified by manifest.
 
 When ENABLE_RMM is disabled, this function is not used.
 
-Function : plat_rmmd_mecid_key_update() [when ENABLE_RMM == 1]
+Function : plat_firme_get_common_mecid_width() [when FIRME_SUPPORT == 1]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : void
+    Return   : uint8_t
+
+This function is invoked by BL31's FIRME MECID management service during
+initialization to obtain the system MECID width. This is the smallest supported
+MECID width for the entire system.
+
+The returned value uses the same encoding as ``MECIDR_EL2.MECIDWidthm1``. That
+is, it is the system MECID width minus one. The common MECID width is defined as
+the smallest MECID width supported across the entire system (see rule IQDYKJ in
+the M.b version of the Arm ARM for details). The FIRME MECID management service
+advertises the returned value in FIRME MECID feature register 1.
+
+This function needs to be implemented by a platform if it enables FIRME support
+and advertises the FIRME MECID management service.
+
+Function : plat_firme_mec_refresh() [when FIRME_SUPPORT == 1]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
 
-    Argument : uint16_t, unsigned int
+    Argument : uint16_t, uint8_t
     Return   : int
 
-This function is invoked by BL31's RMMD when there is a request from the RMM
-monitor to update the tweak for the encryption key associated to a MECID.
+This function is invoked by BL31's FIRME MECID management service when there is
+a request to refresh the Memory Encryption Context (MEC) associated with a
+MECID.
 
-The first parameter (``uint16_t mecid``) contains the MECID for which the
-encryption key is to be updated. The second argument specifies the reason
-for key update. Possible values are: 0 - Realm creation, 1 - Realm destruction.
+The first parameter (``uint16_t mecid``) contains the MECID whose associated
+MEC is to be refreshed. The second parameter (``uint8_t reason``) specifies the
+reason for the refresh. Possible values are:
+``MEC_REFRESH_REASON_REALM_CREATE`` for Realm creation and
+``MEC_REFRESH_REASON_REALM_DESTROY`` for Realm destruction.
 
-Return value is 0 upon success and -EFAULT otherwise.
+The FIRME MECID management service validates that FEAT_MEC is supported and
+that the MECID fits within the common MECID width before calling this function.
 
-This function needs to be implemented by a platform if it enables RME.
+The function returns a FIRME status code. It should return ``FIRME_SUCCESS`` on
+success, or an appropriate negative FIRME error code such as
+``FIRME_INVALID_PARAMETERS``, ``FIRME_DENIED`` or ``FIRME_RETRY`` on failure.
+
+This function needs to be implemented by a platform if it enables FIRME support
+and advertises the FIRME MECID management service.
 
 Function : plat_rmmd_reserve_memory() [when ENABLE_RMM == 1]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2649,6 +2681,138 @@ E_RMM_OK - The previous request was successful.
 E_RMM_FAULT - The previous request was not successful.
 E_RMM_INVAL - Arguments to previous request were incorrect.
 E_RMM_UNK - Previous request returned Unknown error.
+
+Function : plat_get_root_complex_index() [mandatory when FIRME_SUPPORT_IDE_KM == 1]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : uint64_t
+    Return   : int
+
+This function gets the Root Complex index for the given ECAM address
+
+The parameters of the function are:
+
+    arg0 - The ECAM address
+
+The function returns < 0 - On error, else index of the Root Complex for the
+given ECAM address.
+
+Function : plat_ide_km_keyset_prog() [mandatory when FIRME_SUPPORT_IDE_KM == 1]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
+               uint64_t
+    Return   : int
+
+This function programs the AES-GCM 256 bit key for the keyset ID in the ECAM
+address space of a Root port.
+
+The parameters of the function are:
+
+    arg0 - The ECAM address space of a Root port defines the namespace for
+    keyset IDs.
+
+    arg1 - Flags. Value of 0 is a request to configure a PCIe or CXL.io
+    Selective IDE stream. 1 for PCIe Link IDE stream and 3 for CXL.cachemem
+    Link IDE stream.
+
+    arg2 - keyset_id. A 64 bitmap encoded in format
+    Bits[37:30]: Segment number.
+    Bits[29:14]: Root port ID.
+    Bits[13:6]: Stream ID.
+    Bits[5:2]: Substream ID.
+    Bits[1]: Direction.
+    Bits[0]: Key set.
+
+    arg3 - Quad word0 of the AES-GCM 256 bit key.
+
+    arg4 - Quad word1 of the AES-GCM 256 bit key.
+
+    arg5 - Quad word2 of the AES-GCM 256 bit key.
+
+    arg6 - Quad word3 of the AES-GCM 256 bit key.
+
+The function returns:
+0             On success
+-ENOTSUP      If this functionality is not supported
+-EINVAL       For invalid ECAM address or keyset_id or flag arguments
+-EBUSY        If key management service at the Root port is busy and the caller must retry the operation.
+-EINPROGRESS  An operation for the specified keyset ID is already in progress.
+
+Function : plat_ide_km_keyset_go() [mandatory when FIRME_SUPPORT_IDE_KM == 1]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : uint64_t, uint64_t, uint64_t
+    Return   : int
+
+Once the keys are programmed at the RootPort this function is used to set the
+state of the IDE link/stream to secure state.
+
+The parameters of the function are:
+
+    arg0 - The ECAM address space of a Root port defines the namespace for
+    keyset IDs.
+
+    arg1 - Flags. Value of 0 is a request to configure a PCIe or CXL.io
+    Selective IDE stream. 1 for PCIe Link IDE stream and 3 for CXL.cachemem
+    Link IDE stream.
+
+    arg2 - keyset_id. A 64 bitmap encoded in format
+    Bits[37:30]: Segment number.
+    Bits[29:14]: Root port ID.
+    Bits[13:6]: Stream ID.
+    Bits[5:2]: Substream ID.
+    Bits[1]: Direction.
+    Bits[0]: Key set.
+
+The function returns:
+0             On success
+-ENOTSUP      If this functionality is not supported
+-EINVAL       For invalid ECAM address or keyset_id or flag arguments
+-EBUSY        If key management service at the Root port is busy and the caller must retry the operation.
+-EINPROGRESS  An operation for the specified keyset ID is already in progress.
+-EACCES       No key was programmed for the specified keyset ID.
+
+Function : plat_ide_km_keyset_stop() [mandatory when FIRME_SUPPORT_IDE_KM == 1]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    Argument : uint64_t, uint64_t, uint64_t
+    Return   : int
+
+This function is used to set the state of the IDE link/stream to insecure state.
+
+The parameters of the function are:
+
+    arg0 - The ECAM address space of a Root port defines the namespace for
+    keyset IDs.
+
+    arg1 - Flags. Value of 0 is a request to configure a PCIe or CXL.io
+    Selective IDE stream. 1 for PCIe Link IDE stream and 3 for CXL.cachemem Link
+    IDE stream.
+
+    arg2 - keyset_id. A 64 bitmap encoded in format
+    Bits[37:30]: Segment number.
+    Bits[29:14]: Root port ID.
+    Bits[13:6]: Stream ID.
+    Bits[5:2]: Substream ID.
+    Bits[1]: Direction.
+    Bits[0]: Key set.
+
+The function returns:
+0             On success
+-ENOTSUP      If this functionality is not supported
+-EINVAL       For invalid ECAM address or keyset_id or flag arguments
+-EBUSY        If key management service at the Root port is busy and the caller must retry the operation.
+-EINPROGRESS  An operation for the specified keyset ID is already in progress.
+-EACCES       No key was programmed for the specified keyset ID.
 
 Function : bl31_plat_enable_mmu [optional]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

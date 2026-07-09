@@ -20,6 +20,9 @@ PLAT_INCLUDES := -I${MTK_PLAT}/common \
 		 -I${MTK_PLAT_SOC}/include \
 		 -Idrivers/arm/gic \
 
+MTK_DFD_SUPPORT ?= $(DEBUG)
+$(eval $(call add_define,MTK_DFD_SUPPORT))
+
 MODULES-y += $(MTK_PLAT)/common
 MODULES-y += $(MTK_PLAT)/common/lpm
 MODULES-y += $(MTK_PLAT)/lib/mtk_init
@@ -70,3 +73,5 @@ BL31_SOURCES += drivers/delay_timer/delay_timer.c \
 include plat/mediatek/build_helpers/mtk_build_helpers_epilogue.mk
 
 include lib/coreboot/coreboot.mk
+
+WORKAROUND_CVE_2025_10263 := 1
