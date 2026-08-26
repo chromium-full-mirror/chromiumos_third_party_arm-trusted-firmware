@@ -80,6 +80,9 @@ endfunc plat_mediatek_calc_core_pos
 func plat_core_pos_by_mpidr
 	mov	x1, #MPIDR_AFFLVL_MASK
 	and	x0, x1, x0, lsr #MPIDR_AFF1_SHIFT
+	cmp	x0, #PLATFORM_CORE_COUNT
+	mov	x1, #-1
+	csel	x0, x0, x1, lo
 	ret
 endfunc plat_core_pos_by_mpidr
 

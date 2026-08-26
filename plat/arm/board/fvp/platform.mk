@@ -40,81 +40,14 @@ ifeq (${ARM_ARCH_MINOR},0)
       ARM_ARCH_FEATURE		:= crc
 endif
 endif
-ENABLE_FEAT_AMU			:= 2
-ENABLE_FEAT_AMUv1p1		:= 2
-ENABLE_FEAT_HCX			:= 2
-ENABLE_FEAT_RNG			:= 2
-ENABLE_FEAT_TWED		:= 2
-ENABLE_FEAT_GCS			:= 2
-ENABLE_FEAT_RAS			:= 2
-ENABLE_FEAT_SB			:= 2
 
-ifeq (${ARCH}, aarch64)
-
-ifeq (${SPM_MM}, 0)
-ifeq (${CTX_INCLUDE_FPREGS}, 0)
-      ENABLE_SME_FOR_NS		:= 2
-      ENABLE_SME2_FOR_NS	:= 2
-else
-      ENABLE_SVE_FOR_NS		:= 0
-      ENABLE_SME_FOR_NS		:= 0
-      ENABLE_SME2_FOR_NS	:= 0
-endif
-endif
-
-      ENABLE_BRBE_FOR_NS		:= 2
-      ENABLE_TRBE_FOR_NS		:= 2
-      ENABLE_FEAT_D128			:= 2
-      ENABLE_FEAT_FPMR			:= 2
-      ENABLE_FEAT_MOPS			:= 2
-      ENABLE_FEAT_FGWTE3		:= 2
-      ENABLE_FEAT_MPAM_PE_BW_CTRL	:= 2
-      ENABLE_FEAT_CPA2			:= 2
-      ENABLE_FEAT_UINJ			:= 2
-      ENABLE_FEAT_STEP2			:= 2
-      ENABLE_FEAT_HDBSS			:= 2
-      ENABLE_FEAT_HACDBS		:= 2
-      ENABLE_FEAT_SPEV1P5		:= 2
-      ENABLE_FEAT_SRMASK		:= 2
-      ENABLE_FEAT_BRBEV1P1		:= 2
-endif
-
-ENABLE_SYS_REG_TRACE_FOR_NS	:= 2
-ENABLE_FEAT_CSV2_2		:= 2
-ENABLE_FEAT_CSV2_3		:= 2
-ENABLE_FEAT_CLRBHB		:= 2
-ENABLE_FEAT_DEBUGV8P9		:= 2
-ENABLE_FEAT_DIT			:= 2
-ENABLE_FEAT_PAN			:= 2
-ENABLE_FEAT_VHE			:= 2
-CTX_INCLUDE_NEVE_REGS		:= 2
-ENABLE_FEAT_SEL2		:= 2
-ENABLE_TRF_FOR_NS		:= 2
-ENABLE_FEAT_ECV			:= 2
-ENABLE_FEAT_FGT			:= 2
-ENABLE_FEAT_FGT2		:= 2
-ENABLE_FEAT_THE			:= 2
-ENABLE_FEAT_TCR2		:= 2
-ENABLE_FEAT_S2PIE		:= 2
-ENABLE_FEAT_S1PIE		:= 2
-ENABLE_FEAT_S2POE		:= 2
-ENABLE_FEAT_S1POE		:= 2
-ENABLE_FEAT_SCTLR2		:= 2
-ENABLE_FEAT_MTE2		:= 2
-ENABLE_FEAT_LS64_ACCDATA	:= 2
-ENABLE_FEAT_AIE			:= 2
-ENABLE_FEAT_PFAR		:= 2
-ENABLE_FEAT_AxERR		:= 2
-ENABLE_FEAT_EBEP		:= 2
+# Set all supported features with runtime detection
+include make_helpers/all_features.mk
 
 ifeq (${ENABLE_RMM},1)
-    ENABLE_FEAT_MEC		:= 2
     RMMD_ENABLE_IDE_KEY_PROG	:= 1
     FIRME_SUPPORT_IDE_KM	:= 1
 endif
-
-# always check that hardware matches the codebase's expectations
-FEATURE_DETECTION		:= 1
 
 # The FVP platform depends on this macro to build with correct GIC driver.
 $(eval $(call add_define,FVP_USE_GIC_DRIVER))
@@ -347,8 +280,19 @@ ifeq (${FIRME_SUPPORT_IDE_KM},1)
 PLAT_PCIE_ROOT_COMPLEX_MAX := 2
 $(eval $(call add_define,PLAT_PCIE_ROOT_COMPLEX_MAX))
 
+PLAT_IDE_KM_PENDING_OPS_MAX := 0
+$(eval $(call add_define,PLAT_IDE_KM_PENDING_OPS_MAX))
+
 BL31_SOURCES		+=	plat/arm/board/fvp/fvp_firme_ide_km.c
+
+FVP_SIMULATE_IDE_KM_UNIT := 0
+
+ifeq (${FVP_SIMULATE_IDE_KM_UNIT},1)
+BL31_SOURCES		+=	plat/arm/board/fvp/fvp_simulate_ide_km_unit.c
+$(eval $(call add_define,FVP_SIMULATE_IDE_KM_UNIT))
 endif
+
+endif # (FIRME_SUPPORT_IDE_KM)
 
 ifneq (${ENABLE_FEAT_RNG_TRAP},0)
 BL31_SOURCES		+=	plat/arm/board/fvp/fvp_sync_traps.c
@@ -519,8 +463,7 @@ ifeq (${HANDLE_EA_EL3_FIRST_NS},1)
     ifeq (${PLATFORM_TEST_FFH_LSP_RAS_SP},1)
         BL31_SOURCES		+=	plat/arm/board/fvp/aarch64/fvp_lsp_ras_sp.c
     endif
-    BL31_SOURCES		+=	plat/arm/board/fvp/aarch64/fvp_ras.c	\
-					plat/arm/board/fvp/aarch64/fvp_ea.c
+    BL31_SOURCES		+=	plat/arm/board/fvp/aarch64/fvp_ras.c
 endif
 
 ifneq (${ENABLE_STACK_PROTECTOR},0)
@@ -603,14 +546,6 @@ BL31_SOURCES	+=	plat/arm/board/fvp/fvp_spmd.c
 endif
 
 # Test specific macros, keep them at bottom of this file
-$(eval $(call add_define,PLATFORM_TEST_EA_FFH))
-ifeq (${PLATFORM_TEST_EA_FFH}, 1)
-    ifeq (${FFH_SUPPORT}, 0)
-         $(error "PLATFORM_TEST_EA_FFH expects FFH_SUPPORT to be 1")
-    endif
-
-endif
-
 PLATFORM_TEST_RAS_FFH	?=	0
 $(eval $(call add_define,PLATFORM_TEST_RAS_FFH))
 ifeq (${PLATFORM_TEST_RAS_FFH}, 1)

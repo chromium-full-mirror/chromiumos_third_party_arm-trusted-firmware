@@ -281,10 +281,6 @@
 #define ID_AA64DFR0_PMUVER_WIDTH	U(4)
 #define ID_AA64DFR0_PMUVER_PMUV3	U(1)
 
-/* ID_AA64DFR0_EL1.SEBEP definitions */
-#define ID_AA64DFR0_SEBEP_SHIFT		U(24)
-#define ID_AA64DFR0_SEBEP_WIDTH		U(4)
-
 /* ID_AA64DFR0_EL1.PMS definitions (for ARMv8.2+) */
 #define ID_AA64DFR0_PMS_SHIFT		U(32)
 #define ID_AA64DFR0_PMS_WIDTH		U(4)
@@ -315,6 +311,8 @@
 #define ID_AA64DFR2_SPE_EXC_WIDTH	U(4)
 #define ID_AA64DFR2_SPE_NVM_SHIFT	U(20)
 #define ID_AA64DFR2_SPE_NVM_WIDTH	U(4)
+#define ID_AA64DFR2_TRBE_EXC_SHIFT	U(24)
+#define ID_AA64DFR2_TRBE_EXC_WIDTH	U(4)
 
 #define ID_AA64ZFR0_EL1			S3_0_C0_C4_4
 #define ID_AA64FPFR0_EL1		S3_0_C0_C4_7
@@ -752,6 +750,8 @@
 
 /* MDCR_EL3 definitions */
 #define MDCR_EnPMS4_BIT		(ULL(1) << 55)
+#define MDCR_TRBEE_EL3_BIT	(ULL(1) << 54)
+#define MDCR_TRBEE_EN_BIT	(ULL(1) << 53)
 #define MDCR_PMSEE_EL3_BIT	(ULL(1) << 52)
 #define MDCR_PMSEE_EN_BIT	(ULL(1) << 51)
 #define MDCR_EnSTEPOP_BIT	(ULL(1) << 50)
@@ -834,9 +834,9 @@
 #define HCR_RESET_VAL		ULL(0x0)
 #define HCR_AMVOFFEN_SHIFT	U(51)
 #define HCR_AMVOFFEN_BIT	(ULL(1) << HCR_AMVOFFEN_SHIFT)
-#define HCR_TEA_BIT		(ULL(1) << 47)
 #define HCR_API_BIT		(ULL(1) << 41)
 #define HCR_APK_BIT		(ULL(1) << 40)
+#define HCR_TEA_BIT		(ULL(1) << 37)
 #define HCR_E2H_BIT		(ULL(1) << 34)
 #define HCR_HCD_BIT		(ULL(1) << 29)
 #define HCR_TGE_BIT		(ULL(1) << 27)
@@ -923,6 +923,7 @@
 #define SPSR_N_BIT		(U(1) << 31)
 #define SPSR_DAIF_SHIFT		U(6)
 #define SPSR_DAIF_MASK		U(0xf)
+#define SPSR_DAIF_WIDTH		U(4)
 
 #define SPSR_AIF_SHIFT		U(6)
 #define SPSR_AIF_MASK		U(0x7)
@@ -1201,6 +1202,8 @@
 #define EC_AARCH64_FP			U(0x2c)
 #define EC_SERROR			U(0x2f)
 #define EC_BRK				U(0x3c)
+
+#define EC_ABORT_CUR_EL_BIT		U(0x1)
 
 /* ISS layout for trapped AArch64 system-register access (ESR_EL3.ISS)
  *
@@ -1738,6 +1741,7 @@
  * FEAT_HCX - Extended Hypervisor Configuration Register
  ******************************************************************************/
 #define HCRX_EL2		S3_4_C1_C2_2
+#define HCRX_EL2_TMEA_BIT	(UL(1) << 19)
 #define HCRX_EL2_MSCEn_BIT	(UL(1) << 11)
 #define HCRX_EL2_MCE2_BIT	(UL(1) << 10)
 #define HCRX_EL2_CMOW_BIT	(UL(1) << 9)

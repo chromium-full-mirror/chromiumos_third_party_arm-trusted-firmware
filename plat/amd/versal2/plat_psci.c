@@ -92,11 +92,8 @@ static void zynqmp_nopmu_pwr_domain_off(const psci_power_state_t *target_state)
 	plat_gic_cpuif_disable();
 }
 
-static void __dead2 zynqmp_nopmu_system_reset(void)
+static void zynqmp_nopmu_system_reset(void)
 {
-	while (ALWAYSTRUE) {
-		wfi();
-	}
 }
 
 static int32_t zynqmp_validate_ns_entrypoint(uint64_t ns_entrypoint)
@@ -118,11 +115,8 @@ static void zynqmp_pwr_domain_on_finish(const psci_power_state_t *target_state)
 	plat_gic_cpuif_enable();
 }
 
-static void __dead2 zynqmp_system_off(void)
+static void zynqmp_system_off(void)
 {
-	while (ALWAYSTRUE) {
-		wfi();
-	}
 }
 
 static int32_t zynqmp_validate_power_state(uint32_t power_state, psci_power_state_t *req_state)
@@ -224,10 +218,6 @@ static uint64_t no_pm_handler(uint32_t smc_fid, uint64_t x1, uint64_t x2, uint64
 	}
 	case PM_GET_CHIPID:
 	{
-		uint32_t idcode, version_type;
-
-		idcode  = mmio_read_32(PMC_TAP);
-		version_type = mmio_read_32(PMC_TAP_VERSION);
 		SMC_RET2(handle, ((uint64_t)idcode << 32), version_type);
 	}
 	default:

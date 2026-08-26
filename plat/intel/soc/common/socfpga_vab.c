@@ -11,7 +11,6 @@
 
 #include "../lib/sha/sha.h"
 
-#include <arch_helpers.h>
 #include <common/bl_common.h>
 #include <common/debug.h>
 #include <common/desc_image_load.h>
@@ -121,7 +120,7 @@ int socfpga_vab_authentication(void **p_image, size_t *p_size)
 
 	do {
 		/* Invoke SMC call to ATF to send the VAB certificate to SDM */
-		ret  = mailbox_send_cmd(MBOX_JOB_ID, MBOX_CMD_VAB_SRC_CERT,
+		ret = mailbox_send_cmd(MBOX_JOB_ID, MBOX_CMD_VAB_SRC_CERT,
 (uint32_t *)mbox_relocate_data_addr, mbox_data_sz, 0, &resp, &resp_len);
 
 		/* If SDM is not available, just delay 50ms and retry again */

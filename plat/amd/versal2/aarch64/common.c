@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2021-2022, Arm Limited and Contributors. All rights reserved.
  * Copyright (c) 2018-2022, Xilinx, Inc. All rights reserved.
- * Copyright (c) 2022-2024, Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2026, Advanced Micro Devices, Inc. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -19,6 +19,7 @@
 #include <plat_private.h>
 
 uint32_t platform_id, platform_version, rtlversion, psversion, pmcversion;
+uint32_t idcode, version_type;
 
 /*
  * Table of regions to map using the MMU.
@@ -68,8 +69,7 @@ const char *board_name_decode(void)
 
 void board_detection(void)
 {
-	uint32_t version_type;
-
+	idcode = mmio_read_32(PMC_TAP);
 	version_type = mmio_read_32(PMC_TAP_VERSION);
 	platform_id = FIELD_GET((uint32_t)PLATFORM_MASK, version_type);
 	platform_version = FIELD_GET((uint32_t)PLATFORM_VERSION_MASK, version_type);
@@ -113,13 +113,26 @@ uint32_t get_uart_clk(void)
 	return uart_clock;
 }
 
+/*
+ * sys_counter_config() - Program the FPD system counter frequency register and
+ *                        enable the counter.
+ */
+void sys_counter_config(void)
+{
+	uintptr_t iou_scntrs_base = IOU_SCNTRS_BASE;
+
+	mmio_write_32(iou_scntrs_base + IOU_SCNTRS_BASE_FREQ_OFFSET,
+		      cpu_clock);
+	mmio_write_32(iou_scntrs_base + IOU_SCNTRS_COUNTER_CONTROL_REG_OFFSET,
+		      IOU_SCNTRS_CONTROL_EN);
+}
+
 void config_setup(void)
 {
 	uint32_t val;
-	uintptr_t crl_base, iou_scntrs_base, psx_base;
+	uintptr_t crl_base, psx_base;
 
 	crl_base = CRL;
-	iou_scntrs_base = IOU_SCNTRS_BASE;
 	psx_base = PSX_CRF;
 
 	/* Reset for system timestamp generator in FPX */
@@ -134,10 +147,7 @@ void config_setup(void)
 	mmio_write_32(crl_base + CRL_RST_TIMESTAMP_OFFSET, 0);
 
 	/* Program freq register in System counter and enable system counter. */
-	mmio_write_32(iou_scntrs_base + IOU_SCNTRS_BASE_FREQ_OFFSET,
-		      cpu_clock);
-	mmio_write_32(iou_scntrs_base + IOU_SCNTRS_COUNTER_CONTROL_REG_OFFSET,
-		      IOU_SCNTRS_CONTROL_EN);
+	sys_counter_config();
 
 	/* set cntfrq_el0 value so that software can discover the frequency of the system counter */
 	set_cnt_freq();

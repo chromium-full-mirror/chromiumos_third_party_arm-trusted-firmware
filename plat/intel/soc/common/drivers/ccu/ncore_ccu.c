@@ -5,9 +5,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include <assert.h>
+#include <errno.h>
+
 #include <common/debug.h>
 #include <drivers/delay_timer.h>
-#include <errno.h>
 #include <lib/mmio.h>
 #include <platform_def.h>
 
@@ -30,11 +31,10 @@ uint32_t poll_active_bit(uint32_t dir);
 #define CACHE_OPERATION_DONE				BIT(0)
 #define TIMEOUT_200MS					200
 
-#define __bf_shf(x)					(__builtin_ffsll(x) - 1)
-
-#define FIELD_PREP(_mask, _val)						\
-	({ \
-		((typeof(_mask))(_val) << __bf_shf(_mask)) & (_mask);	\
+#define INTEL_BF_SHF(x)				(__builtin_ffsll(x) - 1U)
+#define INTEL_FIELD_PREP(_mask, _val)					\
+	({							\
+		((typeof(_mask))(_val) << INTEL_BF_SHF(_mask)) & (_mask);	\
 	})
 
 #if PLATFORM_MODEL == PLAT_SOCFPGA_AGILEX5
@@ -676,8 +676,8 @@ int flush_l3_dcache(void)
 
 	/* Flushing all entries in CCU system memory cache */
 	for (i = 0; i < MAX_DISTRIBUTED_MEM_INTERFACE; i++) {
-		mmio_write_32(FIELD_PREP(CCU_DMI0_DMIUSMCMCR_MNTOP, FLUSH_ALL_ENTRIES) |
-			   FIELD_PREP(CCU_DMI0_DMIUSMCMCR_ARRAY_ID, ARRAY_ID_TAG),
+		mmio_write_32(INTEL_FIELD_PREP(CCU_DMI0_DMIUSMCMCR_MNTOP, FLUSH_ALL_ENTRIES) |
+			   INTEL_FIELD_PREP(CCU_DMI0_DMIUSMCMCR_ARRAY_ID, ARRAY_ID_TAG),
 			   (uintptr_t)(CCU_DMI0_DMIUSMCMCR + (i * 0x1000)));
 
 		/* Wait for cache maintenance operation done */
@@ -691,8 +691,8 @@ int flush_l3_dcache(void)
 			return ret;
 		}
 
-		mmio_write_32(FIELD_PREP(CCU_DMI0_DMIUSMCMCR_MNTOP, FLUSH_ALL_ENTRIES) |
-			   FIELD_PREP(CCU_DMI0_DMIUSMCMCR_ARRAY_ID, ARRAY_ID_DATA),
+		mmio_write_32(INTEL_FIELD_PREP(CCU_DMI0_DMIUSMCMCR_MNTOP, FLUSH_ALL_ENTRIES) |
+			   INTEL_FIELD_PREP(CCU_DMI0_DMIUSMCMCR_ARRAY_ID, ARRAY_ID_DATA),
 			   (uintptr_t)(CCU_DMI0_DMIUSMCMCR + (i * 0x1000)));
 
 		/* Wait for cache maintenance operation done */

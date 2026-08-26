@@ -174,6 +174,10 @@ BL31_SOURCES		+=	plat/common/plat_spmd_manifest.c	\
 				${LIBFDT_SRCS} 				\
 				${FDT_WRAPPERS_SOURCES}
 endif
+
+ifneq (${ENABLE_FEAT_RNG_TRAP},0)
+BL31_SOURCES		+=	plat/qemu/qemu/qemu_sync_traps.c
+endif
 endif
 
 # Add the build options to pack Trusted OS Extra1 and Trusted OS Extra2 images
@@ -225,7 +229,7 @@ $(eval $(call add_define,BL32_RAM_LOCATION_ID))
 
 # Don't have the Linux kernel as a BL33 image by default
 ARM_LINUX_KERNEL_AS_BL33	:=	0
-$(eval $(call assert_boolean,ARM_LINUX_KERNEL_AS_BL33))
+$(call assert_boolean,ARM_LINUX_KERNEL_AS_BL33)
 $(eval $(call add_define,ARM_LINUX_KERNEL_AS_BL33))
 
 ARM_PRELOADED_DTB_BASE := PLAT_QEMU_DT_BASE

@@ -330,9 +330,11 @@ ifeq (${ARCH},aarch32)
                 $(error "ENABLE_FEAT_SPEV1P5 cannot be used with ARCH=aarch32")
 	endif
 
-	# BRBE is not supported in AArch32
 	ifneq (${ENABLE_BRBE_FOR_NS},0)
                 $(error "ENABLE_BRBE_FOR_NS cannot be used with ARCH=aarch32")
+	endif
+	ifneq ($(or $(ENABLE_TRBE_FOR_NS),0),0)
+               $(error ENABLE_TRBE_FOR_NS is not supported for AArch32)
 	endif
 
 	# FEAT_RNG_TRAP is not supported in AArch32
@@ -386,6 +388,9 @@ ifeq (${ARCH},aarch32)
 	endif
 	ifneq (${ENABLE_FEAT_SRMASK},0)
                 $(error "ENABLE_FEAT_SRMASK cannot be used with ARCH=aarch32")
+	endif
+	ifneq (${ENABLE_FEAT_TRBE_EXC},0)
+                $(error "ENABLE_FEAT_TRBE_EXC cannot be used with ARCH=aarch32")
 	endif
 endif #(ARCH=aarch32)
 
@@ -556,6 +561,12 @@ ifneq (${ENABLE_FEAT_BRBEV1P1},0)
         $(warning ENABLE_FEAT_BRBEV1P1 is an experimental feature!)
 endif
 
+ifneq (${ENABLE_FEAT_TRBE_EXC},0)
+        ifeq (${ENABLE_FEAT_TRBE},0)
+                $(error "ENABLE_FEAT_TRBE_EXC requires ENABLE_FEAT_TRBE")
+        endif
+endif
+
 # Handle all deprecated build options.
 ifeq (${ERROR_DEPRECATED}, 1)
     ifneq (${NS_TIMER_SWITCH},0)
@@ -569,3 +580,11 @@ endif
 ifneq (${ENABLE_FEAT_IDTE3},0)
         $(info FEAT_IDTE3 is an experimental feature)
 endif #(ENABLE_FEAT_IDTE3)
+
+# Check DSU driver dependancies
+ifeq (${DSU_PDL2_SUPPORT}, 1)
+        ifeq (${USE_DSU_DRIVER}, 0)
+                $(error Build option USE_DSU_DRIVER needs to be set if \
+                DSU_PDL2_SUPPORT is set)
+        endif
+endif

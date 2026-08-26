@@ -131,9 +131,9 @@ Common build options
 
 -  ``DECRYPTION_SUPPORT``: This build flag enables the user to select the
    authenticated decryption algorithm to be used to decrypt firmware/s during
-   boot. It accepts 2 values: ``aes_gcm`` and ``none``. The default value of
-   this flag is ``none`` to disable firmware decryption which is an optional
-   feature as per TBBR.
+   boot. It accepts 3 values: ``aes_ccm``, ``aes_gcm`` and ``none``. The default
+   value of this flag is ``none`` to disable firmware decryption which is an
+   optional feature as per TBBR.
 
 -  ``DISABLE_BIN_GENERATION``: Boolean option to disable the generation
    of the binary image. If set to 1, then only the ELF image is built.
@@ -760,6 +760,14 @@ Common build options
    The DSU driver allows save/restore of DSU PMU registers through
    ``PRESERVE_DSU_PMU_REGS`` build option, provides access to PMU registers at
    EL1 and allows platforms to configure powerdown and power settings of DSU.
+
+
+-  ``DSU_PDL2_SUPPORT``: Boolean option to indicate that the platform
+   uses two CPU-level power domains CPUL1PD and CPUL2P2. In such platforms:
+   the core PDL2 power domain contains the core L2, debug and trace logic, as
+   well as part of the core asynchronous bridge that belongs to the VCORE
+   voltage domain. The PDL1 power domain contains the rest of the core logic.
+   This requires ``USE_DSU_DRIVER``.
 
 -  ``ARM_IO_IN_DTB``: This flag determines whether to use IO based on the
    firmware configuration framework. This will move the io_policies into a
@@ -1428,6 +1436,9 @@ flags support :ref:`enable_feat_mechanism` and take numeric values from 0 to 2.
 
 - ``ENABLE_FEAT_SRMASK```: Enables alias and bitwise write masks for EL1 control
   registers and equivalent bitwise write masks for NS EL2. Default value is ``0``.
+
+- ``ENABLE_FEAT_TRBE_EXC``: Enables trace buffer management events to be
+  reported as profiling exceptions. Default value is ``0``.
 
 GIC driver options
 --------------------

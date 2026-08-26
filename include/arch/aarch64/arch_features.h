@@ -94,7 +94,7 @@
 
 #define FEAT_TGRAN16K(gen)							\
 	gen(feat_tgran16K, id_aa64mmfr0_el1, FEAT_STATE_CHECKED,		\
-	    ID_AA64MMFR0_EL1_TGRAN16, 1U, 1U, FEAT_ENABLE_ALL_WORLDS)
+	    ID_AA64MMFR0_EL1_TGRAN16, 1U, 2U, FEAT_ENABLE_ALL_WORLDS)
 
 #define FEAT_AES(gen)								\
 	gen(feat_aes, id_aa64isar0_el1, ENABLE_FEAT_CRYPTO,			\
@@ -310,7 +310,7 @@
 /* === v9.0 features === */
 #define FEAT_TRBE(gen)								\
 	gen(feat_trbe, id_aa64dfr0_el1, ENABLE_TRBE_FOR_NS,			\
-	    ID_AA64DFR0_TRACEBUFFER, 1U, 1U, FEAT_ENABLE_NS)
+	    ID_AA64DFR0_TRACEBUFFER, 1U, 2U, FEAT_ENABLE_NS)
 
 /* === v9.2 features === */
 #define FEAT_RME(gen)								\
@@ -367,10 +367,6 @@
 	gen(feat_idte3, id_aa64mmfr2_el1, ENABLE_FEAT_IDTE3,			\
 	    ID_AA64MMFR2_EL1_IDS, 2U, 2U, FEAT_ENABLE_ALL_WORLDS)
 
-#define FEAT_SEBEP(gen)								\
-	gen(feat_sebep, id_aa64dfr0_el1, FEAT_STATE_CHECKED,			\
-	    ID_AA64DFR0_SEBEP, 1U, 1U, FEAT_ENABLE_ALL_WORLDS)
-
 /* === v9.5 features === */
 #define FEAT_FGWTE3(gen)							\
 	gen(feat_fgwte3, id_aa64mmfr4_el1, ENABLE_FEAT_FGWTE3,			\
@@ -420,6 +416,10 @@
 #define FEAT_SPE_NVM(gen)							\
 	gen(feat_spe_nvm, id_aa64dfr2_el1, ENABLE_FEAT_SPEV1P5,			\
 	    ID_AA64DFR2_SPE_NVM, 1U, 1U, FEAT_ENABLE_NS)
+
+#define FEAT_TRBE_EXC(gen)							\
+	gen(feat_trbe_exc, id_aa64dfr2_el1, ENABLE_FEAT_TRBE_EXC,		\
+	    ID_AA64DFR2_TRBE_EXC, 1U, 1U, FEAT_ENABLE_NS)
 
 /* Auxiliary features. Don't relate to an architectural feature directly */
 #define FEAT_AMU_AUX(gen)							\
@@ -513,6 +513,7 @@
 	FEAT_SPE_EXC(gen)							\
 	FEAT_SPE_NVM(gen)							\
 	FEAT_SRMASK(gen)							\
+	FEAT_TRBE_EXC(gen)							\
 	FEAT_MORELLO(gen)
 
 /*
@@ -529,8 +530,7 @@
 	FEAT_TRBE(gen)								\
 	FEAT_BRBE(gen)								\
 	FEAT_EBEP(gen)								\
-	FEAT_BRBEV1P1(gen)							\
-	FEAT_SEBEP(gen)
+	FEAT_BRBEV1P1(gen)
 
 CPUFEAT_LIST(CREATE_FEATURE_FUNCS)
 CPUFEAT_PERCPU_LIST(CREATE_FEATURE_FUNCS)
@@ -630,7 +630,7 @@ FEAT_MPAM_PE_BW_CTRL(CREATE_FEATURE_FUNCS)
  * Non-standard, not directly architectural helpers
  ******************************************************************************/
 __attribute__((always_inline))
-static inline bool is_armv7_gentimer_present(void)
+static inline bool is_armv7_gentimer_supported(void)
 {
 	/* The Generic Timer is always present in an ARMv8-A implementation */
 	return true;
@@ -655,7 +655,7 @@ static inline bool is_feat_crypto_supported(void)
 }
 
 __attribute__((always_inline))
-static inline bool is_feat_tgran4K_present(void)
+static inline bool is_feat_tgran4K_supported(void)
 {
 	unsigned int tgranx = (unsigned int)EXTRACT(ID_AA64MMFR0_EL1_TGRAN4,
 						    read_id_aa64mmfr0_el1());
@@ -663,11 +663,18 @@ static inline bool is_feat_tgran4K_present(void)
 }
 
 __attribute__((always_inline))
-static inline bool is_feat_tgran64K_present(void)
+static inline bool is_feat_tgran64K_supported(void)
 {
 	unsigned int tgranx = (unsigned int)EXTRACT(ID_AA64MMFR0_EL1_TGRAN64,
 						    read_id_aa64mmfr0_el1());
 	return (tgranx < 8U);
 }
 
+/* FEAT_DoubleFault2: Double Fault Extension v2 */
+__attribute__((always_inline))
+static inline bool is_feat_doublefault2_supported(void)
+{
+	/* this function is a placeholder until proper support is added */
+	return false;
+}
 #endif /* ARCH_FEATURES_H */

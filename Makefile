@@ -438,6 +438,13 @@ ifneq (${GENERATE_COT},0)
 endif
 
 ifneq (${DECRYPTION_SUPPORT},none)
+	ifeq ($(filter ${DECRYPTION_SUPPORT},aes_ccm aes_gcm),)
+        $(error Unsupported DECRYPTION_SUPPORT=${DECRYPTION_SUPPORT})
+	endif
+	DECRYPTION_ALGO_aes_ccm := ccm
+	DECRYPTION_ALGO_aes_gcm := gcm
+
+	ENC_ARGS += -a ${DECRYPTION_ALGO_${DECRYPTION_SUPPORT}}
 	ENC_ARGS += -f ${FW_ENC_STATUS}
 	ENC_ARGS += -k ${ENC_KEY}
 	ENC_ARGS += -n ${ENC_NONCE}
@@ -451,11 +458,11 @@ endif #(DECRYPTION_SUPPORT)
 ################################################################################
 
 ifdef BL1_SOURCES
-	NEED_BL1 := yes
+	NEED_BL1 ?= yes
 endif #(BL1_SOURCES)
 
 ifdef BL2_SOURCES
-	NEED_BL2 := yes
+	NEED_BL2 ?= yes
 
 	# Using BL2 implies that a BL33 image also needs to be supplied for the FIP and
 	# Certificate generation tools. This flag can be overridden by the platform.
@@ -475,7 +482,7 @@ ifdef BL2_SOURCES
 endif #(BL2_SOURCES)
 
 ifdef BL2U_SOURCES
-	NEED_BL2U := yes
+	NEED_BL2U ?= yes
 endif #(BL2U_SOURCES)
 
 # If SCP_BL2 is given, we always want FIP to include it.
@@ -489,7 +496,7 @@ ifneq (${ARCH},aarch32)
 	# When booting an EL3 payload, there is no need to compile the BL31
 	# image nor put it in the FIP.
 		ifndef EL3_PAYLOAD_BASE
-			NEED_BL31 := yes
+			NEED_BL31 ?= yes
 		endif
 	endif
 endif #(ARCH=aarch64)
@@ -498,13 +505,14 @@ endif #(ARCH=aarch64)
 ifneq (${GENERATE_COT},0)
     # Common cert_create options
     ifneq (${CREATE_KEYS},0)
-        $(eval CRT_ARGS += -n)
-        $(eval FWU_CRT_ARGS += -n)
-        $(eval BL2_CRT_ARGS += -n)
+        CRT_ARGS += -n
+        FWU_CRT_ARGS += -n
+        BL2_CRT_ARGS += -n
+
         ifneq (${SAVE_KEYS},0)
-            $(eval CRT_ARGS += -k)
-            $(eval FWU_CRT_ARGS += -k)
-            $(eval BL2_CRT_ARGS += -k)
+            CRT_ARGS += -k
+            FWU_CRT_ARGS += -k
+            BL2_CRT_ARGS += -k
         endif
     endif
     # Include TBBR makefile (unless the platform indicates otherwise)
@@ -556,7 +564,7 @@ endif
 ################################################################################
 
 # Boolean_Flags
-$(eval $(call assert_booleans,\
+$(call assert_booleans,\
     $(sort \
 	ALLOW_RO_XLAT_TABLES \
 	BL2_ENABLE_SP_LOAD \
@@ -660,10 +668,10 @@ $(eval $(call assert_booleans,\
 	TEST_IO_SHORT_READ_FI \
 	SDEI_SUPPORT \
 	SMC_PCI_SUPPORT \
-)))
+))
 
 # Numeric_Flags
-$(eval $(call assert_numerics,\
+$(call assert_numerics,\
     $(sort \
 	ARM_ARCH_MAJOR \
 	ARM_ARCH_MINOR \
@@ -713,6 +721,7 @@ $(eval $(call assert_numerics,\
 	ENABLE_FEAT_RNG_TRAP \
 	ENABLE_FEAT_SEL2 \
 	ENABLE_FEAT_SRMASK \
+	ENABLE_FEAT_TRBE_EXC \
 	ENABLE_FEAT_TCR2 \
 	ENABLE_FEAT_THE \
 	ENABLE_FEAT_SB \
@@ -747,10 +756,10 @@ $(eval $(call assert_numerics,\
 	W \
 	TEST_IO_SHORT_READ_FI_IMAGE_ID \
 	USE_GIC_DRIVER \
-)))
+))
 
 ifdef KEY_SIZE
-        $(eval $(call assert_numeric,KEY_SIZE))
+        $(call assert_numeric,KEY_SIZE)
 endif
 
 ifeq ($(filter $(SANITIZE_UB), on off trap),)
@@ -763,7 +772,7 @@ endif
 # platform to overwrite the default options
 ################################################################################
 
-$(eval $(call add_defines,\
+$(call add_defines,\
     $(sort \
 	ALLOW_RO_XLAT_TABLES \
 	ARM_ARCH_MAJOR \
@@ -812,6 +821,7 @@ $(eval $(call add_defines,\
 	ENABLE_SVE_FOR_SWD \
 	ENABLE_FEAT_RAS \
 	ENABLE_FEAT_SRMASK \
+	ENABLE_FEAT_TRBE_EXC \
 	FFH_SUPPORT \
 	ENCRYPT_BL31 \
 	ENCRYPT_BL32 \
@@ -950,7 +960,7 @@ $(eval $(call add_defines,\
 	SDEI_SUPPORT \
 	USE_GIC_DRIVER \
 	SMC_PCI_SUPPORT \
-)))
+))
 
 ifeq (${PLATFORM_REPORT_CTX_MEM_USE}, 1)
 ifeq (${DEBUG}, 0)

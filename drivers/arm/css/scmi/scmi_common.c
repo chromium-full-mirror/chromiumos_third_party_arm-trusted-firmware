@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2017-2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <assert.h>
+#include <inttypes.h>
 
 #include <arch_helpers.h>
 #include <common/debug.h>
@@ -43,6 +44,7 @@ void scmi_get_channel(scmi_channel_t *ch)
 void scmi_send_sync_command(scmi_channel_t *ch)
 {
 	mailbox_mem_t *mbx_mem = (mailbox_mem_t *)(ch->info->scmi_mbx_mem);
+	uint64_t timeout;
 
 	SCMI_MARK_CHANNEL_BUSY(mbx_mem->status);
 
@@ -61,9 +63,27 @@ void scmi_send_sync_command(scmi_channel_t *ch)
 	dmbsy();
 
 	/* Wait for channel to be free */
-	while (!SCMI_IS_CHANNEL_FREE(mbx_mem->status)) {
-		if (ch->info->delay != 0)
-			udelay(ch->info->delay);
+	if (ch->info->timeout != 0U) {
+		timeout = timeout_init_us(ch->info->timeout);
+		while (!SCMI_IS_CHANNEL_FREE(mbx_mem->status) &&
+		       !timeout_elapsed(timeout)) {
+			if (ch->info->delay != 0) {
+				udelay(ch->info->delay);
+			}
+		}
+
+		/* Ensure command completed within timeout */
+		if (!SCMI_IS_CHANNEL_FREE(mbx_mem->status)) {
+			ERROR("SCMI channel timed out (%" PRIu32 " us)\n",
+			      ch->info->timeout);
+			panic();
+		}
+	} else {
+		while (!SCMI_IS_CHANNEL_FREE(mbx_mem->status)) {
+			if (ch->info->delay != 0) {
+				udelay(ch->info->delay);
+			}
+		}
 	}
 
 	/*
@@ -154,14 +174,17 @@ int scmi_proto_msg_attr(void *p, uint32_t proto_id,
 }
 
 /*
- * SCMI Driver initialization API. Returns initialized channel on success
- * or NULL on error. The return type is an opaque void pointer.
+ * Initialize an SCMI channel.
+ *
+ * Initializes the SCMI channel provided by `ch`, with an optional callback
+ * responsible for initializing individual SCMI protocols. This callback is
+ * expected to retrun `0` on success, o a non-zero error code on failure.
+ *
+ * This function returns a handle to the initialized SCMI channel, or NULL if
+ * initialization failed for any reason.
  */
-void *scmi_init(scmi_channel_t *ch)
+void *scmi_init(scmi_channel_t *ch, scmi_protocol_init_fn_t init_protocols)
 {
-	uint32_t version;
-	int ret;
-
 	assert(ch && ch->info);
 	assert(ch->info->db_reg_addr);
 	assert(ch->info->db_modify_mask);
@@ -174,34 +197,9 @@ void *scmi_init(scmi_channel_t *ch)
 
 	ch->is_initialized = 1;
 
-	ret = scmi_proto_version(ch, SCMI_PWR_DMN_PROTO_ID, &version);
-	if (ret != SCMI_E_SUCCESS) {
-		WARN("SCMI power domain protocol version message failed\n");
+	if ((init_protocols != NULL) && (init_protocols(ch) != 0)) {
 		goto error;
 	}
-
-	if (!is_scmi_version_compatible(SCMI_PWR_DMN_PROTO_VER, version)) {
-		WARN("SCMI power domain protocol version 0x%x incompatible with driver version 0x%x\n",
-			version, SCMI_PWR_DMN_PROTO_VER);
-		goto error;
-	}
-
-	VERBOSE("SCMI power domain protocol version 0x%x detected\n", version);
-
-	ret = scmi_proto_version(ch, SCMI_SYS_PWR_PROTO_ID, &version);
-	if ((ret != SCMI_E_SUCCESS)) {
-		WARN("SCMI system power protocol version message failed\n");
-		goto error;
-	}
-
-	if (!is_scmi_version_compatible(SCMI_SYS_PWR_PROTO_VER, version)) {
-		WARN("SCMI system power management protocol version 0x%x incompatible with driver version 0x%x\n",
-			version, SCMI_SYS_PWR_PROTO_VER);
-		goto error;
-	}
-
-	VERBOSE("SCMI system power management protocol version 0x%x detected\n",
-						version);
 
 	INFO("SCMI driver initialized\n");
 

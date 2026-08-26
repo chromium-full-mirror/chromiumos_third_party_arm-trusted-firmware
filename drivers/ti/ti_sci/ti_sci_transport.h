@@ -1,7 +1,7 @@
 /*
  * Texas Instruments SCI Transport Protocol Header
  *
- * Copyright (C) 2018-2025 Texas Instruments Incorporated - http://www.ti.com/
+ * Copyright (C) 2018-2025 Texas Instruments Incorporated - https://www.ti.com/
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -19,7 +19,7 @@
 enum ti_sci_transport_chan_id {
 #if !K3_SEC_PROXY_LITE
 	RX_SECURE_TRANSPORT_CHANNEL_ID = 1,
-	TX_SECURE_TRANSPORT_CHANNEL_ID,
+	TX_SECURE_TRANSPORT_CHANNEL_ID = 3,
 #else
 	RX_SECURE_TRANSPORT_CHANNEL_ID = 8,
 	/*

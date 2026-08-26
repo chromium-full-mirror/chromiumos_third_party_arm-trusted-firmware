@@ -14,6 +14,9 @@
 #include <drivers/generic_delay_timer.h>
 #include <drivers/qti/accesscontrol/accesscontrol.h>
 #include <drivers/qti/accesscontrol/xpu.h>
+#include <drivers/qti/chipinfo/chipinfo.h>
+#include <drivers/qti/pdc/pdc.h>
+#include <drivers/qti/pwr_utils/pwr_utils.h>
 #include <drivers/qti/qtimer/qtimer.h>
 #include <drivers/qti/sec_core/sec_core.h>
 #include <drivers/qti/smmu/smmu.h>
@@ -26,7 +29,6 @@
 #include <qti_interrupt_svc.h>
 #include <qti_plat.h>
 #include <qti_uart_console.h>
-#include <qtiseclib_interface.h>
 
 /* Variable to hold QTI UART configuration */
 static console_t g_qti_console_uart;
@@ -37,12 +39,6 @@ static console_t g_qti_console_uart;
  */
 static entry_point_info_t bl32_image_ep_info;
 static entry_point_info_t bl33_image_ep_info;
-
-/*
- * Variable to hold bl31 cold boot status. Default value 0x0 means yet to boot.
- * Any other value means cold booted.
- */
-uint32_t g_qti_bl31_cold_booted;
 
 /*******************************************************************************
  * Perform any BL31 early platform setup common to ARM standard platforms.
@@ -100,17 +96,21 @@ void bl31_platform_setup(void)
 
 	plat_qti_gic_driver_init();
 	plat_qti_gic_init();
+	qti_pdc_init();
+	qti_pwr_utils_init();
+
+	if (qti_chipinfo_init() != CHIPINFO_SUCCESS) {
+		WARN("ChipInfo initialization error\n");
+	}
 	qti_smmu_init();
 	qti_interrupt_svc_init(bl32_image_ep_info.pc != 0);
 	qti_sec_core_init();
 	qti_qtimer_init();
-	if (qti_watchdog_init())
+	if (qti_watchdog_init()) {
 		ERROR("Watchdog initialization error\n");
+	}
 	qti_accesscontrol_init();
-	qtiseclib_bl31_platform_setup();
-
-	/* set boot state to cold boot complete. */
-	g_qti_bl31_cold_booted = 0x1;
+	plat_qti_bl31_setup_post();
 }
 
 /*******************************************************************************

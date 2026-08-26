@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025-2026 Texas Instruments Incorporated - https://www.ti.com
+ * Copyright (C) 2025-2026 Texas Instruments Incorporated - https://www.ti.com/
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -58,6 +58,16 @@
  * the depends field.
  */
 #define TI_PSC_PD_DEPENDS		BIT(2)
+
+/*
+ * Flag indicating to skip waiting for power domain transitions
+ *
+ * Set in ti_psc_pd_data.flags to indicate that ti_psc_pd_wait() should
+ * return immediately without polling hardware status. This is used for
+ * power domains where transitions complete asynchronously based on
+ * hardware conditions rather than PSC status registers.
+ */
+#define TI_PSC_PD_SKIP_WAIT		BIT(3)
 
 /*
  * PSC power domain constant data
@@ -349,6 +359,11 @@ ti_pd_idx_t ti_psc_pd_idx(struct ti_device *psc_dev, const struct ti_psc_pd *pd)
  * Polls the hardware status registers until the power domain transition
  * completes. This function blocks until the power domain reaches its
  * target state.
+ *
+ * If the power domain has the TI_PSC_PD_SKIP_WAIT flag set, this function
+ * returns immediately without polling. This is used for power domains where
+ * transitions complete asynchronously based on hardware conditions rather
+ * than PSC status register updates.
  */
 void ti_psc_pd_wait(struct ti_device *psc_dev, struct ti_psc_pd *pd);
 

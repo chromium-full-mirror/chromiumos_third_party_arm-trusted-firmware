@@ -265,11 +265,7 @@ static int socfpga_system_reset2(int is_vendor, int reset_type,
 	mmio_setbits_32(SOCFPGA_RSTMGR(COLDMODRST), 0x100);
 #endif
 
-	while (1)
-		wfi();
-
-	/* Should not reach here */
-	return 0;
+	return PSCI_E_SUCCESS;
 }
 
 int socfpga_validate_power_state(unsigned int power_state,

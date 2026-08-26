@@ -799,6 +799,13 @@ NXP SoC Part LX2160A and its platform port
 :|F|: plat/nxp/soc-lx2160a/lx2160aqds
 :|F|: plat/nxp/soc-lx2160a/lx2160ardb
 
+Freebox Nodebox
+^^^^^^^^^^^^^^^
+:|M|: Vincent Jardin <vjardin@free.fr>
+:|G|: `vjardin`_
+:|F|: plat/nxp/soc-lx2160a/nbxv3
+:|F|: docs/plat/nxp/nbxv3.rst
+
 NXP SoC Part LS1028A and its platform port
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 :|M|: Jiafei Pan <jiafei.pan@nxp.com>
@@ -842,8 +849,8 @@ NXP SoC Part S32G274A and its platform port
 
 QEMU platform port
 ^^^^^^^^^^^^^^^^^^
-:|M|: Jens Wiklander <jens.wiklander@linaro.org>
-:|G|: `jenswi-linaro`_
+:|M|: Jens Wiklander <jens.wiklander@oss.qualcomm.com>
+:|G|: `jenswikl`_
 :|F|: docs/plat/qemu.rst
 :|F|: plat/qemu/
 
@@ -890,15 +897,16 @@ Raspberry Pi 4 platform port
 :|F|: drivers/rpi3/
 :|F|: include/drivers/rpi3/
 
-Renesas rcar-gen3 platform port
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-:|M|: Marek Vasut <marek.vasut@gmail.com>
+Renesas R-Car Gen3, Gen4, Gen5 platform port
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:|M|: Marek Vasut <marek.vasut+renesas@mailbox.org>
 :|G|: `marex`_
 :|F|: docs/plat/rcar-gen3.rst
-:|F|: plat/renesas/common
-:|F|: plat/renesas/rcar
 :|F|: drivers/renesas/common
-:|F|: drivers/renesas/rcar
+:|F|: drivers/renesas/rcar\*
+:|F|: include/drivers/renesas/rcar\*
+:|F|: plat/renesas/common
+:|F|: plat/renesas/rcar\*
 :|F|: tools/renesas/rcar_layout_create
 
 Renesas RZ/A platform port
@@ -945,7 +953,7 @@ STMicroelectronics platform ports
 :|F|: drivers/st/
 :|F|: fdts/stm32\*
 :|F|: include/drivers/st/
-:|F|: include/dt-bindings/\*/stm32\*
+:|F|: include/dt-bindings/\*/\*stm32\*
 :|F|: plat/st/
 :|F|: tools/fiptool/plat_fiptool/st/
 :|F|: tools/stm32image/
@@ -991,8 +999,8 @@ Secure Payloads and Dispatchers
 
 OP-TEE dispatcher
 ^^^^^^^^^^^^^^^^^
-:|M|: Jens Wiklander <jens.wiklander@linaro.org>
-:|G|: `jenswi-linaro`_
+:|M|: Jens Wiklander <jens.wiklander@oss.qualcomm.com>
+:|G|: `jenswikl`_
 :|F|: docs/components/spd/optee-dispatcher.rst
 :|F|: services/spd/opteed/
 
@@ -1132,7 +1140,7 @@ Conventional Changelog Extensions
 .. _javieralso-arm: https://github.com/javieralso-arm
 .. _jayanthchidanand-arm: https://github.com/jayanthchidanand-arm
 .. _jcorbier: https://github.com/jcorbier
-.. _jenswi-linaro: https://github.com/jenswi-linaro
+.. _jenswikl: https://github.com/jenswikl
 .. _jf549: https://github.com/jf549
 .. _JiafeiPan: https://github.com/JiafeiPan
 .. _joannafarley-arm: https://github.com/joannafarley-arm

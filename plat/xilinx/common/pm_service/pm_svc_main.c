@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2019-2022, Xilinx, Inc. All rights reserved.
- * Copyright (c) 2022-2025, Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2026, Advanced Micro Devices, Inc. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -589,7 +589,7 @@ uint64_t pm_smc_handler(uint32_t smc_fid, uint64_t x1, uint64_t x2, uint64_t x3,
 	uint32_t pm_arg[PAYLOAD_ARG_CNT] = {0};
 	uint32_t security_flag = NON_SECURE;
 	uint32_t api_id;
-	bool status = false, status_tmp = false;
+	volatile bool status = false, status_tmp = false;
 	const uint64_t x[4] = {x1, x2, x3, x4};
 
 	/* Handle case where PM wasn't initialized properly */
@@ -630,7 +630,7 @@ uint64_t pm_smc_handler(uint32_t smc_fid, uint64_t x1, uint64_t x2, uint64_t x3,
 	}
 
 	ret = eemi_psci_debugfs_handler(api_id, pm_arg, handle,
-					(uint32_t)flags);
+					security_flag);
 	if (ret !=  (uintptr_t)0) {
 		return ret;
 	}

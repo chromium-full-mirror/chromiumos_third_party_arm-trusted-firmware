@@ -43,6 +43,7 @@ BL31_SOURCES		+=	bl31/bl31_main.c				\
 				common/runtime_svc.c				\
 				common/smc_validation.c				\
 				lib/cpus/errata_common.c			\
+				lib/cpus/errata_common_asm.S			\
 				lib/per_cpu/aarch64/per_cpu_asm.S		\
 				lib/per_cpu/per_cpu.c				\
 				plat/common/aarch64/platform_mp_stack.S		\
@@ -214,7 +215,7 @@ BL31_SOURCES		+=	services/oem/chromeos/widevine_smc_handlers.c
 endif
 
 ifeq (${FIRME_SUPPORT},1)
-BL31_SOURCES		+=	services/std_svc/firme/firme_main.c \
+BL31_SOURCES		+=	services/std_svc/firme/firme_svc.c \
 				services/std_svc/firme/firme_base_service.c \
 				services/std_svc/firme/firme_granule_management_service.c \
 				services/std_svc/firme/firme_mecid.c
@@ -244,26 +245,28 @@ $(eval BL31_CPPFLAGS += $(call make_defines, \
         CRYPTO_SUPPORT \
 )))
 
-$(eval $(call assert_booleans,\
+$(call assert_booleans,\
     $(sort \
 	CRASH_REPORTING \
+	DSU_PDL2_SUPPORT \
 	EL3_EXCEPTION_HANDLING \
 	FIRME_SUPPORT \
 	FIRME_SUPPORT_IDE_KM \
 	USE_DSU_DRIVER \
-)))
+))
 
 # Numeric_Flags
-$(eval $(call assert_numerics,\
+$(call assert_numerics,\
     $(sort \
 	CRYPTO_SUPPORT \
-)))
+))
 
-$(eval $(call add_defines,\
+$(call add_defines,\
     $(sort \
 	CRASH_REPORTING \
+	DSU_PDL2_SUPPORT \
 	EL3_EXCEPTION_HANDLING \
 	USE_DSU_DRIVER \
 	FIRME_SUPPORT \
 	FIRME_SUPPORT_IDE_KM \
-)))
+))

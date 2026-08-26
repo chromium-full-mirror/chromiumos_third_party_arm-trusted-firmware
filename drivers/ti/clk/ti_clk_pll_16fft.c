@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025-2026 Texas Instruments Incorporated - https://www.ti.com
+ * Copyright (C) 2025-2026 Texas Instruments Incorporated - https://www.ti.com/
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -487,7 +487,7 @@ static int32_t ti_clk_pll_16fft_bypass(struct ti_clk *clock_ptr, bool bypass)
 	if (bypass && ((ctrl & PLL_16FFT_CTRL_BYPASS_EN) == 0U)) {
 		ctrl |= PLL_16FFT_CTRL_BYPASS_EN;
 		ti_pll_16fft_write(pll, PLL_16FFT_CTRL, ctrl);
-	} else if ((ctrl & PLL_16FFT_CTRL_BYPASS_EN) == PLL_16FFT_CTRL_BYPASS_EN) {
+	} else if (!bypass && ((ctrl & PLL_16FFT_CTRL_BYPASS_EN) == PLL_16FFT_CTRL_BYPASS_EN)) {
 		/* Disable bypass only if its bypassed */
 		ctrl &= (uint32_t)~PLL_16FFT_CTRL_BYPASS_EN;
 		ti_pll_16fft_write(pll, PLL_16FFT_CTRL, ctrl);
