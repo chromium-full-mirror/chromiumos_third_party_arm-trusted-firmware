@@ -354,6 +354,10 @@ ERRATA_A78_2779479	?=0
 # revisions r0p0, r1p0, r1p1, r1p2 of the Cortex-A78 cpu and is still open.
 ERRATA_A78_3888017	?=0
 
+# Flag to apply erratum 4302972 workaround during reset. This erratum applies to
+# revisions r0p0, r1p0, r1p1, r1p2 of the Cortex-A78 cpu and is still open.
+ERRATA_A78_4302972	?=0
+
 # Flag to apply erratum 1941500 workaround during reset. This erratum applies
 # to revisions r0p0 and r0p1 of the A78 AE cpu. It is still open.
 ERRATA_A78_AE_1941500	?=0
@@ -817,6 +821,10 @@ $(eval $(call add_define,ERRATA_A78_2779479))
 # Process ERRATA_A78_3888017 flag
 $(eval $(call assert_boolean,ERRATA_A78_3888017))
 $(eval $(call add_define,ERRATA_A78_3888017))
+
+# Process ERRATA_A78_4302972 flag
+$(eval $(call assert_boolean,ERRATA_A78_4302972))
+$(eval $(call add_define,ERRATA_A78_4302972))
 
 # Process ERRATA_A78_AE_1941500 flag
 $(eval $(call assert_boolean,ERRATA_A78_AE_1941500))
