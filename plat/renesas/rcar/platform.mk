@@ -366,8 +366,7 @@ BL2_SOURCES	+=	plat/renesas/rcar/bl2_plat_setup.c	\
 ifeq (${RCAR_GEN3_BL33_GZIP},1)
 include lib/zlib/zlib.mk
 
-BL2_SOURCES	+=	common/image_decompress.c               \
-			$(ZLIB_SOURCES)
+BL2_SOURCES	+=	common/image_decompress.c
 endif
 
 ifneq (${ENABLE_STACK_PROTECTOR},0)

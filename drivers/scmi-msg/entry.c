@@ -14,7 +14,6 @@
 #pragma weak scmi_msg_get_clock_handler
 #pragma weak scmi_msg_get_rstd_handler
 #pragma weak scmi_msg_get_pd_handler
-#pragma weak scmi_msg_get_voltage_handler
 #pragma weak scmi_msg_get_sensor_handler
 
 scmi_msg_handler_t scmi_msg_get_clock_handler(struct scmi_msg *msg __unused)
@@ -28,11 +27,6 @@ scmi_msg_handler_t scmi_msg_get_rstd_handler(struct scmi_msg *msg __unused)
 }
 
 scmi_msg_handler_t scmi_msg_get_pd_handler(struct scmi_msg *msg __unused)
-{
-	return NULL;
-}
-
-scmi_msg_handler_t scmi_msg_get_voltage_handler(struct scmi_msg *msg __unused)
 {
 	return NULL;
 }

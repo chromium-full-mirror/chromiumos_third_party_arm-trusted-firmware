@@ -121,14 +121,6 @@
 	.endm
 #endif
 
-	/* Macro for error synchronization */
-	.macro synchronize_errors
-	/* Complete any stores that may return an abort */
-	dsb	sy
-	/* Synchronise the CPU context with the completion of the dsb */
-	isb
-	.endm
-
 	/*
 	 * Helper macro to generate the best mov/movw/movt combinations
 	 * according to the value to be moved.

@@ -121,8 +121,7 @@ ifeq (${FIP_GZIP},1)
 
 include lib/zlib/zlib.mk
 
-BL2_SOURCES		+=	common/image_decompress.c		\
-				$(ZLIB_SOURCES)
+BL2_SOURCES		+=	common/image_decompress.c
 
 $(eval $(call add_define,UNIPHIER_DECOMPRESS_GZIP))
 

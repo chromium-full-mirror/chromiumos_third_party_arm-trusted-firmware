@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2024, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2022-2026, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -141,8 +141,8 @@ static int get_plain_pk_from_asn1(void *pk_ptr, unsigned int pk_len, void **plai
 }
 
 #if STM32MP_CRYPTO_ROM_LIB
-uint32_t verify_signature(uint8_t *hash_in, uint8_t *pubkey_in,
-			  uint8_t *signature, uint32_t ecc_algo)
+static uint32_t verify_signature(uint8_t *hash_in, uint8_t *pubkey_in,
+				 uint8_t *signature, uint32_t ecc_algo)
 {
 	int ret;
 

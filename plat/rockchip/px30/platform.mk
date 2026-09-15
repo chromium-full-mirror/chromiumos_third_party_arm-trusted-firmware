@@ -1,5 +1,5 @@
 #
-#Copyright (c) 2019-2025, Arm Limited and Contributors. All rights reserved.
+#Copyright (c) 2019-2026, Arm Limited and Contributors. All rights reserved.
 #
 #SPDX-License-Identifier: BSD-3-Clause
 #
@@ -62,8 +62,6 @@ BL31_SOURCES		+=	${RK_GIC_SOURCES}				\
 ifdef PLAT_RK_SECURE_DDR_MINILOADER
 BL31_SOURCES		+=	${RK_PLAT_COMMON}/drivers/parameter/ddr_parameter.c
 endif
-
-ENABLE_PLAT_COMPAT	:=	0
 
 include lib/libfdt/libfdt.mk
 

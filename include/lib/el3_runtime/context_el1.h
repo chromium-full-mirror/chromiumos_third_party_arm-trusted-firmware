@@ -11,6 +11,8 @@
 
 #ifndef __ASSEMBLER__
 
+#include <stdint.h>
+
 /*******************************************************************************
  * EL1 Registers:
  * AArch64 EL1 system register context structure for preserving the

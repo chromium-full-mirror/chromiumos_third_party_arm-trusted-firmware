@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2024, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2026, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -211,6 +211,16 @@ int plat_spmc_shmem_reclaim(struct ffa_mtd *desc)
 	return 0;
 }
 
+/*
+ * Allow the platform to validate the memory regions supplied for the
+ * RX/TX buffers.
+ */
+bool plat_spmc_rxtx_validate(uintptr_t rx_address, uintptr_t tx_address,
+			size_t buffer_size)
+{
+	return true;
+}
+
 #endif
 
 void bl31_platform_setup(void)
@@ -245,7 +255,7 @@ static uint64_t hikey_debug_fiq_handler(uint32_t id,
 
 	return 0;
 }
-#elif defined(SPD_spmd) && (SPMC_AT_EL3 == 0)
+#elif defined(SPD_spmd)
 /*
  * A dummy implementation of the platform handler for Group0 secure interrupt.
  */

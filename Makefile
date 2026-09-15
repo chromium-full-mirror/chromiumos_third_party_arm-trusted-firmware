@@ -169,8 +169,6 @@ endif
 ################################################################################
 # Common sources and include directories
 ################################################################################
-include lib/compiler-rt/compiler-rt.mk
-
 # Allow overriding the timestamp, for example for reproducible builds, or to
 # synchronize timestamps across multiple projects.
 # This must be set to a C string (including quotes where applicable).
@@ -191,8 +189,7 @@ BL_COMMON_SOURCES	+=	common/bl_common.c			\
 				plat/common/plat_bl_common.c		\
 				plat/common/plat_log_common.c		\
 				plat/common/${ARCH}/plat_common.c	\
-				plat/common/${ARCH}/platform_helpers.S	\
-				${COMPILER_RT_SRCS}
+				plat/common/${ARCH}/platform_helpers.S
 
 ifeq ($($(ARCH)-cc-id),arm-clang)
 	BL_COMMON_SOURCES	+=	lib/${ARCH}/armclang_printf.S
@@ -668,6 +665,8 @@ $(call assert_booleans,\
 	TEST_IO_SHORT_READ_FI \
 	SDEI_SUPPORT \
 	SMC_PCI_SUPPORT \
+	FIRME_SUPPORT \
+	FIRME_SUPPORT_IDE_KM \
 ))
 
 # Numeric_Flags
@@ -960,6 +959,8 @@ $(call add_defines,\
 	SDEI_SUPPORT \
 	USE_GIC_DRIVER \
 	SMC_PCI_SUPPORT \
+	FIRME_SUPPORT \
+	FIRME_SUPPORT_IDE_KM \
 ))
 
 ifeq (${PLATFORM_REPORT_CTX_MEM_USE}, 1)
@@ -1011,6 +1012,12 @@ endif #(SPD)
 # Configure the flags for the specified compiler and linker
 ################################################################################
 include ${MAKE_HELPERS_DIRECTORY}cflags.mk
+
+################################################################################
+# Include compiler-rt. It is built with MAKE_LIB so it must be included after
+# some macros are defined, especially BUILD_PLAT
+################################################################################
+include lib/compiler-rt/compiler-rt.mk
 
 ################################################################################
 # Build targets

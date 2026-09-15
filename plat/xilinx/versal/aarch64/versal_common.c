@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2018-2020, Arm Limited and Contributors. All rights reserved.
- * Copyright (c) 2022-2024, Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2026, Advanced Micro Devices, Inc. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -18,6 +18,8 @@
 
 uint32_t platform_id, platform_version;
 uint32_t cpu_clock;
+
+static uint32_t platform_idcode, platform_version_raw;
 
 /*
  * Table of regions to map using the MMU.
@@ -46,9 +48,9 @@ void versal_config_setup(void)
 
 void board_detection(void)
 {
+#if (TFA_NO_PM == 0)
 	uint32_t plat_info[2];
 
-#if (TFA_NO_PM == 0)
 	if (pm_get_chipid(plat_info) != PM_RET_SUCCESS) {
 		/* If the call is failed we cannot proceed with further
 		 * setup. TF-A to panic in this situation.
@@ -56,12 +58,15 @@ void board_detection(void)
 		NOTICE("Failed to read the chip information");
 		panic();
 	}
+	platform_idcode = plat_info[0];
+	platform_version_raw = plat_info[1];
 #else
-	plat_info[1] = mmio_read_32(PMC_TAP_VERSION);
+	platform_idcode = mmio_read_32(PMC_TAP_IDCODE);
+	platform_version_raw = mmio_read_32(PMC_TAP_VERSION);
 #endif
 
-	platform_id = FIELD_GET(PLATFORM_MASK, plat_info[1]);
-	platform_version = FIELD_GET(PLATFORM_VERSION_MASK, plat_info[1]);
+	platform_id = FIELD_GET(PLATFORM_MASK, platform_version_raw);
+	platform_version = FIELD_GET(PLATFORM_VERSION_MASK, platform_version_raw);
 
 	if (platform_id == VERSAL_COSIM) {
 		platform_id = VERSAL_QEMU;
@@ -112,4 +117,18 @@ uint32_t get_uart_clk(void)
 	}
 
 	return uart_clock;
+}
+
+/*
+ * Versal-specific implementations of PMC_TAP accessors.
+ * PMC_TAP is not mapped at EL3 runtime on Versal, so we use cached values.
+ */
+uint32_t get_pmc_tap_idcode(void)
+{
+	return platform_idcode;
+}
+
+uint32_t get_pmc_tap_version(void)
+{
+	return platform_version_raw;
 }

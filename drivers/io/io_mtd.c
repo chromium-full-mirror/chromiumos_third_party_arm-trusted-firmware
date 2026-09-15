@@ -211,9 +211,12 @@ static int mtd_len(io_entity_t *entity, size_t *length)
 	assert(length != NULL);
 
 	cur = (mtd_dev_state_t *)entity->info;
+
+#ifndef __aarch64__
 	if (cur->size > (unsigned long long)SIZE_MAX) {
 		return -EINVAL;
 	}
+#endif
 
 	*length = (size_t)cur->size;
 	return 0;

@@ -97,7 +97,6 @@ endif
 
 include lib/zlib/zlib.mk
 PLAT_INCLUDES		+=	-Ilib/zlib
-BL2_SOURCES		+=	$(ZLIB_SOURCES)
 
 BL31_SOURCES		+=	drivers/arm/cci/cci.c			\
 				drivers/arm/pl061/pl061_gpio.c		\

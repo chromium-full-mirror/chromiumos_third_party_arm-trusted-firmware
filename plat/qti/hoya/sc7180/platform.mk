@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017-2025, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2017-2026, Arm Limited and Contributors. All rights reserved.
 # Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -15,9 +15,6 @@ SEPARATE_CODE_AND_RODATA	:=	1
 USE_COHERENT_MEM		:=	0
 WARMBOOT_ENABLE_DCACHE_EARLY	:=	1
 HW_ASSISTED_COHERENCY		:=	1
-
-# Disable the PSCI platform compatibility layer
-ENABLE_PLAT_COMPAT		:=	0
 
 #Enable errata for cortex_a55 and cortex_a76
 ERRATA_A55_1530923 		:= 	1
@@ -138,4 +135,3 @@ else
 # use library provided by QTISECLIB_PATH
 LDLIBS += $(QTISECLIB_PATH)
 endif
-

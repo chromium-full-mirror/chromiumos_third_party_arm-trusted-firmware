@@ -9,9 +9,9 @@
 
 #ifndef __ASSEMBLER__
 
-#if ENABLE_FEAT_D128
 #include <stdint.h>
 
+#if ENABLE_FEAT_D128
 typedef uint128_t sysreg_t;
 
 #define PAR_EL1_D128	(((sysreg_t)(1ULL)) << (64))

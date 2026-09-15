@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2025, STMicroelectronics - All Rights Reserved
+ * Copyright (c) 2015-2026, STMicroelectronics - All Rights Reserved
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -2173,7 +2173,7 @@ static enum usb_status dwc3_set_dev_speed(dwc3_handle_t *dwc3_handle, uint8_t sp
  *         the configuration information for the specified USBx peripheral.
  * @retval HAL status
  */
-enum usb_status dwc3_dev_init(dwc3_handle_t *dwc3_handle, uint8_t speed, uint8_t intr_dev)
+static enum usb_status dwc3_dev_init(dwc3_handle_t *dwc3_handle, uint8_t speed, uint8_t intr_dev)
 {
 	uint32_t reg;
 	uint8_t i;

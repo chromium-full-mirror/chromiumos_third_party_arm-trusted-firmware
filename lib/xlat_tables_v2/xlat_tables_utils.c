@@ -270,7 +270,7 @@ void xlat_tables_print(xlat_ctx_t *ctx)
 	VERBOSE("  Entries @initial lookup level: %u\n",
 		ctx->base_table_entries);
 
-#if PLAT_XLAT_TABLES_DYNAMIC
+#if defined(PLAT_XLAT_TABLES_DYNAMIC) && PLAT_XLAT_TABLES_DYNAMIC
 	used_page_tables = 0;
 	for (int i = 0; i < ctx->tables_num; ++i) {
 		if (ctx->tables_mapped_regions[i] != 0)

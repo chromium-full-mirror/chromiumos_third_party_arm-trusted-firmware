@@ -7,7 +7,7 @@
 ZLIB_PATH	:=	lib/zlib
 
 # Imported from zlib 1.2.11 (do not modify them)
-ZLIB_SOURCES	:=	$(addprefix $(ZLIB_PATH)/,	\
+LIBZLIB_SRCS	:=	$(addprefix $(ZLIB_PATH)/,	\
 					adler32.c	\
 					crc32.c		\
 					inffast.c	\
@@ -16,10 +16,10 @@ ZLIB_SOURCES	:=	$(addprefix $(ZLIB_PATH)/,	\
 					zutil.c)
 
 # Implemented for TF
-ZLIB_SOURCES	+=	$(addprefix $(ZLIB_PATH)/,	\
+LIBZLIB_SRCS	+=	$(addprefix $(ZLIB_PATH)/,	\
 					tf_gunzip.c)
 
 INCLUDES	+=	-Iinclude/lib/zlib
 
-# REVISIT: the following flags need not be given globally
-TF_CFLAGS	+=	-DZ_SOLO -DDEF_WBITS=31
+LIBZLIB_CFLAGS	:=	-DZ_SOLO -DDEF_WBITS=31
+$(eval $(call MAKE_LIB,zlib))

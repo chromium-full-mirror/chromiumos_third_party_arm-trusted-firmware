@@ -30,7 +30,7 @@ static inline __attribute__((unused)) void xlat_clean_dcache_range(uintptr_t add
 	}
 }
 
-#if PLAT_XLAT_TABLES_DYNAMIC
+#if defined(PLAT_XLAT_TABLES_DYNAMIC) && PLAT_XLAT_TABLES_DYNAMIC
 
 /*
  * The following functions assume that they will be called using subtables only.
@@ -290,7 +290,7 @@ static inline unsigned int  xlat_tables_va_to_index(const uintptr_t table_base_v
 	return (unsigned int)((va - table_base_va) >> XLAT_ADDR_SHIFT(level));
 }
 
-#if PLAT_XLAT_TABLES_DYNAMIC
+#if defined(PLAT_XLAT_TABLES_DYNAMIC) && PLAT_XLAT_TABLES_DYNAMIC
 
 /*
  * From the given arguments, it decides which action to take when unmapping the
@@ -608,7 +608,7 @@ static uintptr_t xlat_tables_map_region(xlat_ctx_t *ctx, mmap_region_t *mm,
 	table_idx_va = xlat_tables_find_start_va(mm, table_base_va, level);
 	table_idx = xlat_tables_va_to_index(table_base_va, table_idx_va, level);
 
-#if PLAT_XLAT_TABLES_DYNAMIC
+#if defined(PLAT_XLAT_TABLES_DYNAMIC) && PLAT_XLAT_TABLES_DYNAMIC
 	if (level > ctx->base_level)
 		xlat_table_inc_regions_count(ctx, table_base);
 #endif
@@ -768,7 +768,7 @@ static int mmap_add_region_check(const xlat_ctx_t *ctx, const mmap_region_t *mm)
 		 */
 		if (fully_overlapped_va) {
 
-#if PLAT_XLAT_TABLES_DYNAMIC
+#if defined(PLAT_XLAT_TABLES_DYNAMIC) && PLAT_XLAT_TABLES_DYNAMIC
 			if (((mm->attr & MT_DYNAMIC) != 0U) ||
 			    ((mm_cursor->attr & MT_DYNAMIC) != 0U)) {
 				return -EPERM;
@@ -989,7 +989,7 @@ void mmap_add_ctx(xlat_ctx_t *ctx, const mmap_region_t *mm)
 	}
 }
 
-#if PLAT_XLAT_TABLES_DYNAMIC
+#if defined(PLAT_XLAT_TABLES_DYNAMIC) && PLAT_XLAT_TABLES_DYNAMIC
 
 int mmap_add_dynamic_region_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
 {
@@ -1248,7 +1248,7 @@ void __init init_xlat_tables_ctx(xlat_ctx_t *ctx)
 	/* All tables must be zeroed before mapping any region. */
 	zeromem(ctx->base_table, ctx->base_table_entries * sizeof(uint64_t));
 
-#if PLAT_XLAT_TABLES_DYNAMIC
+#if defined(PLAT_XLAT_TABLES_DYNAMIC) && PLAT_XLAT_TABLES_DYNAMIC
 	zeromem(ctx->tables_mapped_regions, ctx->tables_num * sizeof(uint32_t));
 #endif
 	for (int i = 0; i < ctx->tables_num; i++) {

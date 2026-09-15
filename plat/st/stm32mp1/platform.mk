@@ -88,6 +88,8 @@ endif
 endif
 
 PKA_USE_NIST_P256	?=	0
+PKA_USE_NIST_P521	?=	0
+PKA_USE_BRAINPOOL_P256R1 ?=	0
 PKA_USE_BRAINPOOL_P256T1 ?=	0
 
 # Disable Neon support: runtime may conflict with non-secure world
@@ -159,8 +161,10 @@ endif
 # Enable flags for C files
 $(call assert_booleans,\
 	$(sort \
+		PKA_USE_BRAINPOOL_P256R1 \
 		PKA_USE_BRAINPOOL_P256T1 \
 		PKA_USE_NIST_P256 \
+		PKA_USE_NIST_P521 \
 		STM32MP_CRYPTO_ROM_LIB \
 		STM32MP_DDR_32BIT_INTERFACE \
 		STM32MP_DDR_DUAL_AXI_PORT \
@@ -189,8 +193,10 @@ $(call assert_numerics,\
 $(call add_defines,\
 	$(sort \
 		DWL_BUFFER_BASE \
+		PKA_USE_BRAINPOOL_P256R1 \
 		PKA_USE_BRAINPOOL_P256T1 \
 		PKA_USE_NIST_P256 \
+		PKA_USE_NIST_P521 \
 		PLAT_PARTITION_MAX_ENTRIES \
 		PLAT_TBBR_IMG_DEF \
 		STM32_HASH_VER \

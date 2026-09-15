@@ -52,8 +52,6 @@ WARNING2 := $(WARNING1)
 WARNING2 += -Wold-style-definition
 WARNING2 += -Wmissing-prototypes
 WARNING2 += -Wmissing-format-attribute
-# TF-A aims to comply with this eventually. Effort too large at present
-WARNING2 += -Wundef
 # currently very involved and many platforms set this off
 WARNING2 += -Wunused-const-variable=2
 
@@ -68,6 +66,15 @@ WARNING3 += -Wconversion
 WARNING3 += -Wpacked
 WARNING3 += -Wpointer-arith
 WARNING3 += -Wswitch-default
+
+# The -Wundef cannot be easily handled through warning flags.
+# This would bring warning for libs (compiler-rt, zlib).
+# Instead add it to BL_FLAGS that is only used by MAKE_C macro.
+# TODO: remove the W=1 check for -Wundef when all the related warnings
+# are corrected.
+ifeq ($(shell test $(W) -ge 1 && echo true),true)
+BL_FLAGS += -Wundef
+endif
 
 cflags-common	+=	$(WARNING$(W))
 ifneq (${E},0)

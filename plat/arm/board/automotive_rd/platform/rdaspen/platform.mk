@@ -6,7 +6,7 @@
 # RD-Aspen platform.
 
 RDASPEN_BASE		 =	plat/arm/board/automotive_rd/platform/rdaspen
-RDASPEN_CPU_SOURCES	:=	lib/cpus/aarch64/cortex_a720_ae.S
+RDASPEN_CPU_SOURCES	:=	lib/cpus/aarch64/cortex_a720ae.S
 
 PLAT_INCLUDES		+=	-I${RDASPEN_BASE}/include/ 	\
 				-I${RDASPEN_BASE}/ras/include/	\
@@ -66,6 +66,7 @@ FAULT_INJECTION_SUPPORT			?=	1
 
 
 # ERRATA
+ERRATA_A720_AE_3456103			:=	1
 ERRATA_A720_AE_3699562			:=	1
 
 include ${RSE_COMMS_BOOT_MK}

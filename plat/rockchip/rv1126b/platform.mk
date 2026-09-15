@@ -70,7 +70,6 @@ BL31_SOURCES		+=	${RK_GIC_SOURCES}				\
 				drivers/scmi-msg/smt.c				\
 				lib/cpus/aarch64/cortex_a53.S			\
 				$(LIBFDT_SRCS)					\
-				$(ZLIB_SOURCES)					\
 				${RK_PLAT_COMMON}/aarch64/plat_helpers.S	\
 				${RK_PLAT_COMMON}/aarch64/platform_common.c	\
 				${RK_PLAT_COMMON}/bl31_plat_setup.c		\
@@ -100,7 +99,6 @@ ERRATA_A53_843419		:=	1
 ERRATA_A53_855873		:=	1
 ERRATA_A53_1530924		:=	1
 
-ENABLE_PLAT_COMPAT		:=	0
 MULTI_CONSOLE_API		:=	1
 CTX_INCLUDE_EL2_REGS		:=	0
 CTX_INCLUDE_AARCH32_REGS	:=	0

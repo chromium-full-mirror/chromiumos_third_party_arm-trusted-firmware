@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2022, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2018-2026, Arm Limited and Contributors. All rights reserved.
 # Copyright (c) 2021-2022, Xilinx, Inc. All rights reserved.
 # Copyright (c) 2022-2026, Advanced Micro Devices, Inc. All rights reserved.
 #
@@ -31,6 +31,13 @@ PL011_GENERIC_UART := 1
 IPI_CRC_CHECK := 0
 GIC_ENABLE_V4_EXTN :=  0
 GICV3_SUPPORT_GIC600 := 1
+
+# Enable Handoff protocol using transfer lists
+TRANSFER_LIST                   ?= 0
+
+ifeq (${TRANSFER_LIST},1)
+include lib/transfer_list/transfer_list.mk
+endif
 
 ifdef CUSTOM_PKG_PATH
 include plat/amd/common/custom_pkg.mk
@@ -152,7 +159,7 @@ PLAT_BL_COMMON_SOURCES	:=	\
 				${XLAT_TABLES_LIB_SRCS}
 
 BL31_SOURCES		+=	drivers/arm/cci/cci.c				\
-				lib/cpus/aarch64/cortex_a78_ae.S		\
+				lib/cpus/aarch64/cortex_a78ae.S		\
 				lib/cpus/aarch64/cortex_a78.S			\
 				plat/common/plat_psci_common.c
 
@@ -214,11 +221,7 @@ CORTEX_A78_AE_H_INC     := 1
 $(eval $(call add_define, CORTEX_A78_AE_H_INC))
 endif
 
-# Enable Handoff protocol using transfer lists
-TRANSFER_LIST                   ?= 0
-
 ifeq (${TRANSFER_LIST},1)
-include lib/transfer_list/transfer_list.mk
 BL31_SOURCES           +=	plat/amd/common/plat_fdt.c
 BL31_SOURCES           +=	plat/amd/common/plat_xfer_list.c
 else

@@ -9,9 +9,6 @@ PLAT_QEMU_COMMON_PATH	:=	plat/qemu/common
 
 CRASH_REPORTING		:= 1
 
-# Disable the PSCI platform compatibility layer
-ENABLE_PLAT_COMPAT	:= 0
-
 SEPARATE_CODE_AND_RODATA := 1
 ENABLE_STACK_PROTECTOR	 := 0
 

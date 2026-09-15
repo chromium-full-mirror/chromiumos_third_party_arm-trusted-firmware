@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024-2025, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2024-2026, Arm Limited and Contributors. All rights reserved.
 # Copyright (c) 2024, The Linux Foundation. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -33,9 +33,6 @@ ERRATA_A76_1868343				:=	1
 ERRATA_A76_1946160				:=	1
 ERRATA_A76_2743102				:=	1
 WORKAROUND_CVE_2025_10263			:=	1
-
-# Disable the PSCI platform compatibility layer
-ENABLE_PLAT_COMPAT				:=	0
 
 # Enable PSCI v1.0 extended state ID format
 PSCI_EXTENDED_STATE_ID			:=	1
@@ -154,4 +151,3 @@ else
 # use library provided by QTISECLIB_PATH
 LDLIBS += $(QTISECLIB_PATH)
 endif
-

@@ -405,11 +405,15 @@ static int fip_file_open(io_dev_info_t *dev_info, const uintptr_t spec,
 		if ((size == 0U) ||
 		    (offset >= fip_size64) ||
 		    (size > fip_size64) ||
-		    (offset + size < offset) ||
 		    (offset + size > fip_size64) ||
+#ifdef __aarch64__
+		    check_u64_overflow(offset, size)
+#else
 		    (offset > (uint64_t)SIZE_MAX) ||
 		    (size > (uint64_t)SIZE_MAX) ||
-		    (offset + size > (uint64_t)SIZE_MAX)) {
+		    (offset + size > (uint64_t)SIZE_MAX)
+#endif
+		   ) {
 			ERROR("FIP entry bounds invalid\n");
 			result = -EINVAL;
 			goto fip_file_open_close;

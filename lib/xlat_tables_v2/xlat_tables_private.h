@@ -13,7 +13,7 @@
 
 #include <lib/xlat_tables/xlat_tables_defs.h>
 
-#if PLAT_XLAT_TABLES_DYNAMIC
+#if defined(PLAT_XLAT_TABLES_DYNAMIC) && PLAT_XLAT_TABLES_DYNAMIC
 /*
  * Private shifts and masks to access fields of an mmap attribute
  */

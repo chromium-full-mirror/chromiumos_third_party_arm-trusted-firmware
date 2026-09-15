@@ -298,7 +298,7 @@ void mmap_add_region_alloc_va_ctx(xlat_ctx_t *ctx, mmap_region_t *mm);
  */
 void mmap_add_alloc_va(mmap_region_t *mm);
 
-#if PLAT_XLAT_TABLES_DYNAMIC
+#if defined(PLAT_XLAT_TABLES_DYNAMIC) && PLAT_XLAT_TABLES_DYNAMIC
 /*
  * Add a dynamic region with defined base PA and base VA. This type of region
  * can be added and removed even after the translation tables are initialized.

@@ -711,7 +711,6 @@ static const char *clk_stm32_get_oscillator_name(enum stm32_osc id)
 	return NULL;
 }
 
-#if !STM32MP_M33_TDCID
 static void clk_oscillator_set_bypass(struct stm32_clk_priv *priv, int id,
 				      bool digbyp, bool bypass)
 {
@@ -801,7 +800,6 @@ static int clk_oscillator_wait_ready_on(struct stm32_clk_priv *priv, int id)
 {
 	return clk_oscillator_wait_ready(priv, id, true);
 }
-#endif /* !STM32MP_M33_TDCID */
 #endif /* IMAGE_BL2 */
 
 static unsigned long clk_stm32_osc_recalc_rate(struct stm32_clk_priv *priv,
@@ -910,10 +908,8 @@ static void clk_stm32_osc_init(struct stm32_clk_priv *priv, int id)
 static struct stm32_clk_ops clk_stm32_osc_ops = {
 	.recalc_rate	= clk_stm32_osc_recalc_rate,
 	.is_enabled	= clk_stm32_osc_gate_is_enabled,
-#if !STM32MP_M33_TDCID
 	.enable		= clk_stm32_osc_gate_enable,
 	.disable	= clk_stm32_osc_gate_disable,
-#endif
 	.init		= clk_stm32_osc_init,
 };
 

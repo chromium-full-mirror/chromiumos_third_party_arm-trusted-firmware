@@ -44,6 +44,7 @@
 
 /* For platform detection */
 #define PMC_TAP				U(0xF11A0000)
+#define PMC_TAP_IDCODE			PMC_TAP
 #define PMC_TAP_VERSION			(PMC_TAP + 0x4U)
 # define PMC_VERSION			GENMASK(7U, 0U)
 # define PS_VERSION			GENMASK(15U, 8U)
@@ -54,6 +55,8 @@
 #define PMC_TAP_IDCODE_MASK		GENMASK_32(27U, 0U)
 #define PSXC_VSLGEN2_IDCODE		U(0x04DB0093)
 #define PSXC_2VM3654_IDCODE		U(0x04D98093)
+
+#define PLAT_SOC_NAME			"Versal Gen 2"
 
 /* Global timer reset */
 #define PSX_CRF			U(0xEC200000)

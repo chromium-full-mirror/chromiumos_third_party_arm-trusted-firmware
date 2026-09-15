@@ -15,10 +15,13 @@
 #include <drivers/qti/accesscontrol/accesscontrol.h>
 #include <drivers/qti/accesscontrol/xpu.h>
 #include <drivers/qti/chipinfo/chipinfo.h>
+#include <drivers/qti/clock/clock.h>
 #include <drivers/qti/pdc/pdc.h>
 #include <drivers/qti/pwr_utils/pwr_utils.h>
 #include <drivers/qti/qtimer/qtimer.h>
+#include <drivers/qti/rpmh/rpmh.h>
 #include <drivers/qti/sec_core/sec_core.h>
+#include <drivers/qti/smem/smem.h>
 #include <drivers/qti/smmu/smmu.h>
 #include <drivers/qti/watchdog/watchdog.h>
 #include <lib/bl_aux_params/bl_aux_params.h>
@@ -86,6 +89,15 @@ void bl31_plat_arch_setup(void)
 	enable_mmu_el3(0);
 }
 
+/*
+ * Boot-time init that needs the TF-A init-only clocks held. Add future
+ * clock-dependent init calls here rather than bracketing them inline.
+ */
+static void clocked_boot_init(void)
+{
+	qti_accesscontrol_init();
+}
+
 /*******************************************************************************
  * Perform any BL31 platform setup common to ARM standard platforms
  ******************************************************************************/
@@ -98,6 +110,8 @@ void bl31_platform_setup(void)
 	plat_qti_gic_init();
 	qti_pdc_init();
 	qti_pwr_utils_init();
+	qti_smem_init();
+	qti_rpmh_init();
 
 	if (qti_chipinfo_init() != CHIPINFO_SUCCESS) {
 		WARN("ChipInfo initialization error\n");
@@ -109,7 +123,10 @@ void bl31_platform_setup(void)
 	if (qti_watchdog_init()) {
 		ERROR("Watchdog initialization error\n");
 	}
-	qti_accesscontrol_init();
+
+	qti_clock_init(clocked_boot_init);
+	qti_rpmh_deinit();
+
 	plat_qti_bl31_setup_post();
 }
 

@@ -55,4 +55,6 @@
 #define __predict_true(exp)     (exp)
 #define __predict_false(exp)    (exp)
 
+#define __BSD_VISIBLE		0
+
 #endif /* CDEFS_H */

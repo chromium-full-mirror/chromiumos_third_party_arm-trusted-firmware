@@ -28,11 +28,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-COMPILER_RT_SRCS	:=	lib/compiler-rt/builtins/popcountdi2.c		\
+LIBCOMPILER_RT_SRCS	:=	lib/compiler-rt/builtins/popcountdi2.c		\
 				lib/compiler-rt/builtins/popcountsi2.c
 
 ifeq (${ARCH},aarch32)
-COMPILER_RT_SRCS	+=	lib/compiler-rt/builtins/arm/aeabi_ldivmod.S	\
+LIBCOMPILER_RT_SRCS	+=	lib/compiler-rt/builtins/arm/aeabi_ldivmod.S	\
 				lib/compiler-rt/builtins/arm/aeabi_uldivmod.S	\
 				lib/compiler-rt/builtins/arm/aeabi_memcpy.S	\
 				lib/compiler-rt/builtins/arm/aeabi_memset.S	\
@@ -42,3 +42,5 @@ COMPILER_RT_SRCS	+=	lib/compiler-rt/builtins/arm/aeabi_ldivmod.S	\
 				lib/compiler-rt/builtins/lshrdi3.c		\
 				lib/compiler-rt/builtins/udivmoddi4.c
 endif
+
+$(eval $(call MAKE_LIB,compiler_rt))

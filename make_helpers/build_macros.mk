@@ -407,7 +407,7 @@ $(eval BL_CFLAGS := $($(4)_CFLAGS))
 
 $(OBJ): $(2) $(filter-out %.d,$(MAKEFILE_LIST)) | $$$$(@D)/ $(BL_INCLUDE_DIRS:%=%/)
 	$$(s)echo "  CC      $$<"
-	$$(q)$($(ARCH)-cc) $$(LTO_CFLAGS) $$(TF_CFLAGS) $(BL_CPPFLAGS) $(BL_CFLAGS) $(call MAKE_DEP,$(DEP),$(OBJ)) -c $$< -o $$@
+	$$(q)$($(ARCH)-cc) $$(LTO_CFLAGS) $$(TF_CFLAGS) $(BL_CPPFLAGS) $(BL_CFLAGS)  $$(BL_FLAGS) $(call MAKE_DEP,$(DEP),$(OBJ)) -c $$< -o $$@
 
 -include $(DEP)
 

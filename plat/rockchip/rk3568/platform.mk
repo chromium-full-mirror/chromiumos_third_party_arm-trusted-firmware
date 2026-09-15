@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023-2025, Arm Limited and Contributors. All rights reserved.
+# Copyright (c) 2023-2026, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -94,7 +94,6 @@ BL31_SOURCES		+=	${RK_GIC_SOURCES}				\
 				${RK_PLAT_SOC}/drivers/pmu/pmu.c		\
 				${RK_PLAT_SOC}/plat_sip_calls.c
 
-ENABLE_PLAT_COMPAT	:=	0
 MULTI_CONSOLE_API	:=	1
 # System coherency is managed in hardware
 HW_ASSISTED_COHERENCY	:=	1

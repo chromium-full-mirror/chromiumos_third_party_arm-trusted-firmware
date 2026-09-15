@@ -26,7 +26,7 @@ int handle_sysreg_trap(uint64_t esr_el3, cpu_context_t *ctx, u_register_t flags)
 {
 	uint64_t opcode = EXTRACT(ESR_ISS, esr_el3) & ~(MASK(ISS_SYS64_DIR) | MASK(ISS_SYS64_RT));
 	uint8_t rt = EXTRACT(ISS_SYS64_RT, esr_el3);
-	bool is_read = EXTRACT(ISS_SYS64_DIR, opcode);
+	bool is_read = EXTRACT(ISS_SYS64_DIR, esr_el3);
 
 	if (is_feat_idte3_supported() &&
 	    ((opcode >= ISS_SYSREG_OPCODE_IDREG_MIN &&
@@ -113,7 +113,7 @@ int handle_sysreg_trap(uint64_t esr_el3, cpu_context_t *ctx, u_register_t flags)
  * The code here is based on pseudocode described in the Arm ARM (DDI0487). They
  * can also be found in the Arm A-profile A64 Instruction Set Architecture
  * document (DDI0602) available at
- * https://developer.arm.com/documentation/ddi0602/latest/.
+ * https://support.arm.com/documentation/ddi0602/latest/Shared-Pseudocode.
  *
  * NOTE: This piece of code must be reviewed every release against the latest
  * sequence to ensure that we keep up with new arch features.

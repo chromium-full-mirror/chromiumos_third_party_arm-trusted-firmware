@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025, ARM Limited and Contributors. All rights reserved.
+# Copyright (c) 2025-2026, Arm Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -101,7 +101,6 @@ ERRATA_A53_1530924		:=	1
 
 ERRATA_A72_1319367		:=	1
 
-ENABLE_PLAT_COMPAT		:=	0
 MULTI_CONSOLE_API		:=	1
 CTX_INCLUDE_EL2_REGS		:=	0
 CTX_INCLUDE_AARCH32_REGS	:=	0

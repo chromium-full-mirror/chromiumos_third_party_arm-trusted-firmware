@@ -2,6 +2,9 @@
  * Copyright (c) 2022-2026, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * TRM: https://support.arm.com/documentation/107734/latest
+ * SDEN: https://support.arm.com/documentation/109231/latest
  */
 
 #include <arch.h>
@@ -187,20 +190,11 @@ func neoverse_v3_cpu_reg_dump
 endfunc neoverse_v3_cpu_reg_dump
 
 #if WORKAROUND_CVE_2025_0647 && defined(IMAGE_BL31)
-declare_cpu_ops_eh neoverse_v3, NEOVERSE_V3_VNAE_MIDR, \
-	neoverse_v3_reset_func, \
-	neoverse_v3_impl_defined_el3_handler, \
-	neoverse_v3_core_pwr_dwn
-
 declare_cpu_ops_eh neoverse_v3, NEOVERSE_V3_MIDR, \
 	neoverse_v3_reset_func, \
 	neoverse_v3_impl_defined_el3_handler, \
 	neoverse_v3_core_pwr_dwn
 #else
-declare_cpu_ops neoverse_v3, NEOVERSE_V3_VNAE_MIDR, \
-	neoverse_v3_reset_func, \
-	neoverse_v3_core_pwr_dwn
-
 declare_cpu_ops neoverse_v3, NEOVERSE_V3_MIDR, \
 	neoverse_v3_reset_func, \
 	neoverse_v3_core_pwr_dwn

@@ -97,7 +97,6 @@ endif
 
 include lib/zlib/zlib.mk
 PLAT_INCLUDES		+=	-Ilib/zlib
-BL2_SOURCES		+=	$(ZLIB_SOURCES)
 
 HIKEY_GIC_SOURCES	:=	drivers/arm/gic/common/gic_common.c	\
 				drivers/arm/gic/v2/gicv2_main.c		\

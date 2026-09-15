@@ -32,6 +32,11 @@ ifeq ($(findstring clang,$(notdir $(CC))),)
 TF_CFLAGS			+=	-Wformat-signedness
 endif
 
+# TODO: those flags should be removed from here when they are enabled in cflags.mk
+BL_FLAGS			+=	-Wundef
+BL_FLAGS			+=	-Wold-style-definition
+BL_FLAGS			+=	-Wmissing-prototypes
+
 # Boot devices
 STM32MP_EMMC			?=	0
 STM32MP_SDMMC			?=	0
@@ -198,7 +203,6 @@ PLAT_BL_COMMON_SOURCES		+=	drivers/clk/clk.c				\
 					plat/st/common/stm32mp_dt.c
 
 BL2_SOURCES			+=	${FCONF_SOURCES} ${FCONF_DYN_SOURCES}
-BL2_SOURCES			+=	$(ZLIB_SOURCES)
 
 BL2_SOURCES			+=	drivers/io/io_fip.c				\
 					plat/st/common/bl2_io_storage.c			\

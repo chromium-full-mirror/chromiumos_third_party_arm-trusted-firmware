@@ -78,7 +78,7 @@ struct xlat_ctx {
 	 * Keep track of how many regions are mapped in each table. The base
 	 * table can't be unmapped so it isn't needed to keep track of it.
 	 */
-#if PLAT_XLAT_TABLES_DYNAMIC
+#if defined(PLAT_XLAT_TABLES_DYNAMIC) && PLAT_XLAT_TABLES_DYNAMIC
 	int *tables_mapped_regions;
 #endif /* PLAT_XLAT_TABLES_DYNAMIC */
 
@@ -112,7 +112,7 @@ struct xlat_ctx {
 	int xlat_regime;
 };
 
-#if PLAT_XLAT_TABLES_DYNAMIC
+#if defined(PLAT_XLAT_TABLES_DYNAMIC) && PLAT_XLAT_TABLES_DYNAMIC
 #define XLAT_ALLOC_DYNMAP_STRUCT(_ctx_name, _xlat_tables_count)		\
 	static int _ctx_name##_mapped_regions[_xlat_tables_count];
 
