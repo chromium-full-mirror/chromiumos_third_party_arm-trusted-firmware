@@ -1044,8 +1044,9 @@ static inline void tlbipaallos(void)
 }
 
 /*
- * TLBI RPALOS instructions
- * (TLB Range Invalidate GPT Information by PA, Last level, Outer Shareable)
+ * TLBI RPA*OS instructions
+ * (TLB Range Invalidate GPT Information by PA, Any or Last level,
+ * Outer Shareable)
  *
  * command SIZE, bits [47:44] field:
  * 0b0000	4KB
@@ -1071,6 +1072,13 @@ static inline void tlbipaallos(void)
 #define TLBI_SZ_512G		9UL
 
 #define	TLBI_SIZE_SHIFT		U(44)
+
+#define TLBIRPAOS(_addr, _size)				\
+{								\
+	u_register_t arg = ((_addr) >> TLBI_ADDR_SHIFT) |	\
+			   ((_size) << TLBI_SIZE_SHIFT);	\
+	__asm__("sys #6, c8, c4, #3, %0" : : "r" (arg));	\
+}
 
 #define TLBIRPALOS(_addr, _size)				\
 {								\
