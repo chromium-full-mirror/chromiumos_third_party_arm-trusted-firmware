@@ -102,7 +102,7 @@ void mt_gic_distif_restore(void)
 
 void mt_gic_rdistif_save(void)
 {
-	unsigned int proc_num;
+	unsigned int i, proc_num;
 	uintptr_t gicr_base;
 	gicv3_redist_ctx_t *ctx;
 
@@ -110,18 +110,32 @@ void mt_gic_rdistif_save(void)
 	gicr_base = gicv3_driver_data->rdistif_base_addrs[proc_num];
 	ctx = &rdist_ctx[proc_num];
 
+	/*
+	 * Wait for any write to GICR_CTLR to complete before trying to save any
+	 * state.
+	 */
+	gicr_wait_for_pending_write(gicr_base);
+
+	ctx->gicr_ctlr = mmio_read_32(gicr_base + GICR_CTLR);
 	ctx->gicr_igroupr0 = mmio_read_32(gicr_base + GICR_IGROUPR0);
 	ctx->gicr_isenabler0 = mmio_read_32(gicr_base + GICR_ISENABLER0);
 	ctx->gicr_icfgr0 = mmio_read_32(gicr_base + GICR_ICFGR0);
 	ctx->gicr_icfgr1 = mmio_read_32(gicr_base + GICR_ICFGR1);
 	ctx->gicr_igrpmodr0 = mmio_read_32(gicr_base + GICR_IGRPMODR0);
+	ctx->gicr_ispendr0 = mmio_read_32(gicr_base + GICR_ISPENDR0);
+	ctx->gicr_isactiver0 = mmio_read_32(gicr_base + GICR_ISACTIVER0);
+	ctx->gicr_nsacr = mmio_read_32(gicr_base + GICR_NSACR);
+
+	for (i = 0U; i < GICR_NUM_REGS(IPRIORITYR); ++i)
+		ctx->gicr_ipriorityr[i] =
+			gicr_read_ipriorityr(gicr_base, i << IPRIORITYR_SHIFT);
 
 	rdist_has_saved[proc_num] = 1;
 }
 
 void mt_gic_rdistif_restore(void)
 {
-	unsigned int proc_num;
+	unsigned int i, proc_num;
 	uintptr_t gicr_base;
 	const gicv3_redist_ctx_t *ctx;
 
@@ -131,10 +145,21 @@ void mt_gic_rdistif_restore(void)
 		ctx = &rdist_ctx[proc_num];
 
 		mmio_write_32(gicr_base + GICR_IGROUPR0, ctx->gicr_igroupr0);
-		mmio_write_32(gicr_base + GICR_ISENABLER0, ctx->gicr_isenabler0);
+		mmio_write_32(gicr_base + GICR_IGRPMODR0, ctx->gicr_igrpmodr0);
+		mmio_write_32(gicr_base + GICR_NSACR, ctx->gicr_nsacr);
 		mmio_write_32(gicr_base + GICR_ICFGR0, ctx->gicr_icfgr0);
 		mmio_write_32(gicr_base + GICR_ICFGR1, ctx->gicr_icfgr1);
-		mmio_write_32(gicr_base + GICR_IGRPMODR0, ctx->gicr_igrpmodr0);
+
+		for (i = 0U; i < GICR_NUM_REGS(IPRIORITYR); ++i)
+			gicr_write_ipriorityr(gicr_base, i << IPRIORITYR_SHIFT,
+					      ctx->gicr_ipriorityr[i]);
+
+		mmio_write_32(gicr_base + GICR_ISPENDR0, ctx->gicr_ispendr0);
+		mmio_write_32(gicr_base + GICR_ISACTIVER0, ctx->gicr_isactiver0);
+		mmio_write_32(gicr_base + GICR_ISENABLER0, ctx->gicr_isenabler0);
+		mmio_write_32(gicr_base + GICR_CTLR, ctx->gicr_ctlr);
+
+		gicr_wait_for_pending_write(gicr_base);
 	}
 }
 
