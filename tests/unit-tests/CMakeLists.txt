@@ -94,3 +94,4 @@ include(tests/lib/object_pool/test_object_pool.cmake)
 # present in the repository. This needs to be resolved to run the test
 # include(tests/lib/fdt/test_fdt.cmake)
 include(tests/lib/gpt/test_gpt.cmake)
+include(tests/services/firme/test_firme_gm_geometry.cmake)
