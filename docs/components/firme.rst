@@ -81,6 +81,29 @@ Implementation details
 - ``FIRME_GM_GPI_SET`` is implemented on top of TF-A's generic GPT transition
   helper and returns the number of successfully transitioned granules.
 
+Granule management geometry
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The internal ``firme_gm_geometry.h`` interface provides immutable GPT geometry.
+Initialization validates and caches ``GPCCR_EL3`` and ``GPTBR_EL3`` before
+granule management requests are accepted. Consumers query sizes, counts and
+address calculations without accessing the backend's representation.
+
+PAR and L1-object validators check alignment, extent overflow and PPS bounds.
+L1 storage must be nonzero, table-aligned and occupy a whole number of granules.
+An extent ending exactly at PPS is geometrically valid. These checks do not
+establish ownership, live descriptor state or mapping availability.
+
+The L0 address query validates a PAR base and returns the descriptor address;
+the caller performs any descriptor access. L1 index and GPI-shift queries take
+an already validated granule address. Geometry performs no GPT mutations,
+reservation operations or cache maintenance.
+
+The ``firme_gm_geometry`` and ``firme_gm_gpi_geometry`` CppUTest suites cover
+architectural configurations, validation boundaries and the existing GPI
+consumer. Run them with ``make unit-tests``. L1 GPT lifecycle operations remain
+unimplemented on this branch.
+
 --------------
 
 *Copyright (c) 2026, Arm Limited and Contributors. All rights reserved.*

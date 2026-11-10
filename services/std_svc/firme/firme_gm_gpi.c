@@ -10,21 +10,19 @@
 #include <limits.h>
 #include <stdint.h>
 
+#include "firme_gm_geometry.h"
 #include "firme_gm_private.h"
 
 #include <arch.h>
 #include <arch_features.h>
+#include <arch_helpers.h>
 #include <common/debug.h>
 #include <lib/extensions/rme.h>
 #include <lib/gpt_rme/gpt_rme.h>
 #include <lib/smccc.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
+#include <plat/common/common_def.h>
 #include <services/firme/firme_granule_mgmt.h>
-#include <services/firme_svc.h>
-
-/* This value comes from read_gptbr_el3 */
-#define GPT_L0BASE	((uintptr_t)((read_gptbr_el3() >> GPTBR_BADDR_SHIFT) \
-			& GPTBR_BADDR_MASK) << GPTBR_BADDR_VAL_SHIFT)
 
 /* Get the descriptor or NSE bits from GPI encoding. */
 #define GPI_TO_DESC(_gpi)	(firme_gpi_config[_gpi].desc)
@@ -33,18 +31,12 @@
 	 ((uint64_t)firme_gpi_config[_gpi].nse2 << GPT_NSE2_SHIFT))
 
 /* Get the index into the L1 table from a physical address */
-#define GPT_L1_INDEX(_pa)	\
-	(((_pa) >> (unsigned int)GPT_L1_IDX_SHIFT(firme_gpt_config.pgs_bits)) & \
-	 GPT_L1_IDX_MASK(firme_gpt_config.pgs_bits))
+#define GPT_L1_INDEX(_pa)	firme_gm_get_l1_entry_index(_pa)
 
 /* Number of 128-bit L1 entries in 2MB, 32MB and 512MB */
-#define L1_QWORDS_2MB	(firme_gpt_config.l1_cnt_2mb / 2U)
+#define L1_QWORDS_2MB	(firme_gm_get_l1_entries_per_2mb() / 2U)
 #define L1_QWORDS_32MB	(L1_QWORDS_2MB * 16U)
 #define L1_QWORDS_512MB	(L1_QWORDS_32MB * 16U)
-
-/* Size in bytes of L1 entries in 2MB, 32MB */
-#define L1_BYTES_2MB	(firme_gpt_config.l1_cnt_2mb * sizeof(uint64_t))
-#define L1_BYTES_32MB	(L1_BYTES_2MB * 16U)
 
 /*
  * Lookup table used to speed up granule transitions by associating GPIs and
@@ -70,14 +62,6 @@ typedef struct {
 	unsigned int gpi;
 } firme_gpi_info_t;
 
-typedef struct {
-	uint8_t pps_bits;
-	uint8_t pgs_bits;
-
-	/* Number of L1 entries in 2MB, depending on GPCCR_EL3.PGS */
-	uint8_t l1_cnt_2mb;
-} firme_gpt_config_t;
-
 typedef void (*gpt_shatter_func)(uintptr_t base,
 				 const firme_gpi_info_t *gpi_info,
 				 uint64_t l1_desc);
@@ -91,8 +75,6 @@ typedef struct {
 	gpt_tlbi_func function;
 	size_t mask;
 } gpt_tlbi_lookup_t;
-
-static firme_gpt_config_t firme_gpt_config;
 
 /*
  * This table allows us to easily look up GPI-specific information such as
@@ -165,12 +147,11 @@ __unused static bool check_fuse_2mb(uint64_t base,
 				    const firme_gpi_info_t *gpi_info,
 				    uint64_t l1_desc)
 {
-	/* Last L1 entry index in 2MB block */
-	unsigned int long idx = GPT_L1_INDEX(ALIGN_2MB(base)) +
-						firme_gpt_config.l1_cnt_2mb - 1UL;
-
 	/* Number of L1 entries in 2MB block */
-	unsigned int cnt = firme_gpt_config.l1_cnt_2mb;
+	unsigned int cnt = firme_gm_get_l1_entries_per_2mb();
+
+	/* Last L1 entry index in 2MB block */
+	unsigned long idx = GPT_L1_INDEX(ALIGN_2MB(base)) + cnt - 1UL;
 
 	/*
 	 * Start check from the last L1 entry and continue until the first
@@ -215,9 +196,11 @@ __unused static void fuse_2mb(uint64_t base, const firme_gpi_info_t *gpi_info,
 __unused static bool check_fuse_32mb(uint64_t base, const firme_gpi_info_t *gpi_info,
 					uint64_t l1_desc)
 {
+	const size_t l1_entries_2mb = firme_gm_get_l1_entries_per_2mb();
+
 	/* The 1st L1 entry index of the last 2MB block in 32MB */
 	unsigned long idx = GPT_L1_INDEX(ALIGN_32MB(base)) +
-					(15UL * firme_gpt_config.l1_cnt_2mb);
+			    (15UL * l1_entries_2mb);
 
 	/* 2MB Contiguous descriptor */
 	uint64_t l1_cont_desc = GPT_L1_CONT_DESC(l1_desc, 2MB);
@@ -238,7 +221,7 @@ __unused static bool check_fuse_32mb(uint64_t base, const firme_gpi_info_t *gpi_
 			/* Non-matching L1 entry found */
 			return false;
 		}
-		idx -= firme_gpt_config.l1_cnt_2mb;
+		idx -= l1_entries_2mb;
 	}
 
 	return true;
@@ -273,9 +256,11 @@ __unused static void fuse_32mb(uint64_t base, const firme_gpi_info_t *gpi_info,
 __unused static bool check_fuse_512mb(uint64_t base, const firme_gpi_info_t *gpi_info,
 					uint64_t l1_desc)
 {
+	const size_t l1_entries_32mb = firme_gm_get_l1_entries_per_2mb() * 16U;
+
 	/* The 1st L1 entry index of the last 32MB block in 512MB */
 	unsigned long idx = GPT_L1_INDEX(ALIGN_512MB(base)) +
-					(15UL * 16UL * firme_gpt_config.l1_cnt_2mb);
+			    (15UL * l1_entries_32mb);
 
 	/* 32MB Contiguous descriptor */
 	uint64_t l1_cont_desc = GPT_L1_CONT_DESC(l1_desc, 32MB);
@@ -296,7 +281,7 @@ __unused static bool check_fuse_512mb(uint64_t base, const firme_gpi_info_t *gpi
 			/* Non-matching L1 entry found */
 			return false;
 		}
-		idx -= 16UL * firme_gpt_config.l1_cnt_2mb;
+		idx -= l1_entries_32mb;
 	}
 
 	return true;
@@ -377,6 +362,7 @@ static void shatter_2mb(uintptr_t base, const firme_gpi_info_t *gpi_info,
 static void shatter_32mb(uintptr_t base, const firme_gpi_info_t *gpi_info,
 				uint64_t l1_desc)
 {
+	const size_t l1_entries_2mb = firme_gm_get_l1_entries_per_2mb();
 	unsigned long idx = GPT_L1_INDEX(ALIGN_2MB(base));
 	const uint64_t *l1_gran = &gpi_info->gpt_l1_addr[idx];
 	uint64_t l1_cont_desc = GPT_L1_CONT_DESC(l1_desc, 2MB);
@@ -393,14 +379,15 @@ static void shatter_32mb(uintptr_t base, const firme_gpi_info_t *gpi_info,
 	for (unsigned int i = 0U; i < 16U; i++) {
 		/* Fill with Granules or Contiguous descriptors */
 		fill_desc(l1, (l1 == l1_gran) ? l1_desc : l1_cont_desc,
-							L1_QWORDS_2MB);
-		l1 = (uint64_t *)((uintptr_t)l1 + L1_BYTES_2MB);
+			  l1_entries_2mb / 2U);
+		l1 += l1_entries_2mb;
 	}
 }
 
 static void shatter_512mb(uintptr_t base, const firme_gpi_info_t *gpi_info,
 				uint64_t l1_desc)
 {
+	const size_t l1_entries_32mb = firme_gm_get_l1_entries_per_2mb() * 16U;
 	unsigned long idx = GPT_L1_INDEX(ALIGN_32MB(base));
 	const uint64_t *l1_32mb = &gpi_info->gpt_l1_addr[idx];
 	uint64_t l1_cont_desc = GPT_L1_CONT_DESC(l1_desc, 32MB);
@@ -420,10 +407,10 @@ static void shatter_512mb(uintptr_t base, const firme_gpi_info_t *gpi_info,
 			shatter_32mb(base, gpi_info, l1_desc);
 		} else {
 			/* Fill 32MB with Contiguous descriptors */
-			fill_desc(l1, l1_cont_desc, L1_QWORDS_32MB);
+			fill_desc(l1, l1_cont_desc, l1_entries_32mb / 2U);
 		}
 
-		l1 = (uint64_t *)((uintptr_t)l1 + L1_BYTES_32MB);
+		l1 += l1_entries_32mb;
 	}
 }
 
@@ -520,16 +507,19 @@ static bool is_gpi_valid(unsigned int gpi)
 
 static void tlbi_page_dsbosh(uintptr_t base)
 {
-	uint8_t pgs = EXTRACT(GPCCR_PGS, read_gpccr_el3());
-	/* Look-up table for invalidation TLBs for 4KB, 16KB and 64KB pages */
-	static const gpt_tlbi_lookup_t tlbi_page_lookup[] = {
-		{ tlbirpalos_4k, ~(SZ_4K - 1UL) },
-		{ tlbirpalos_64k, ~(SZ_64K - 1UL) },
-		{ tlbirpalos_16k, ~(SZ_16K - 1UL) }
-	};
-
-
-	tlbi_page_lookup[pgs].function(base & tlbi_page_lookup[pgs].mask);
+	switch (firme_gm_get_granule_size()) {
+	case SZ_4K:
+		tlbirpalos_4k(base & ~(SZ_4K - 1UL));
+		break;
+	case SZ_16K:
+		tlbirpalos_16k(base & ~(SZ_16K - 1UL));
+		break;
+	case SZ_64K:
+		tlbirpalos_64k(base & ~(SZ_64K - 1UL));
+		break;
+	default:
+		panic();
+	}
 	dsbosh();
 }
 
@@ -579,7 +569,7 @@ static inline void gpt_write_entry(uint64_t base, uint8_t target_gpi,
 
 static void flush_page_to_popa(uintptr_t addr)
 {
-	size_t size = GPT_PGS_ACTUAL_SIZE(firme_gpt_config.pgs_bits);
+	size_t size = firme_gm_get_granule_size();
 
 	if (is_feat_mte2_supported()) {
 		flush_dcache_to_popa_range_mte2(addr, size);
@@ -637,11 +627,17 @@ static inline void gpt_undelegate(uint64_t base, uint8_t target_gpi,
  */
 static int get_gpi_params(uint64_t base, firme_gpi_info_t *gpi_info)
 {
-	uint64_t gpt_l0_desc, *gpt_l0_base;
+	uint64_t gpt_l0_desc;
+	uintptr_t l0_address;
+	int rc;
 	__unused unsigned int block_idx;
 
-	gpt_l0_base = (uint64_t *)GPT_L0BASE;
-	gpt_l0_desc = gpt_l0_base[GPT_L0_IDX(base)];
+	rc = firme_gm_get_l0_entry_address(
+		round_down(base, firme_gm_get_par_size()), &l0_address);
+	if (rc != 0) {
+		return rc;
+	}
+	gpt_l0_desc = *(uint64_t *)l0_address;
 	if (GPT_L0_TYPE(gpt_l0_desc) != GPT_L0_TYPE_TBL_DESC) {
 		VERBOSE("GPT: Granule is not covered by a table descriptor!\n");
 		VERBOSE("      Base=0x%"PRIx64"\n", base);
@@ -651,7 +647,7 @@ static int get_gpi_params(uint64_t base, firme_gpi_info_t *gpi_info)
 	/* Get the table index and GPI shift from PA */
 	gpi_info->gpt_l1_addr = GPT_L0_TBLD_ADDR(gpt_l0_desc);
 	gpi_info->idx = (unsigned int)GPT_L1_INDEX(base);
-	gpi_info->gpi_shift = GPT_L1_GPI_IDX(firme_gpt_config.pgs_bits, base) << 2;
+	gpi_info->gpi_shift = firme_gm_get_l1_gpi_shift(base);
 
 	return 0;
 }
@@ -676,14 +672,11 @@ static int gm_gpi_set(uint64_t base, uint8_t target_gpi, uint8_t src_sec_state)
 	int res;
 	size_t size;
 
-	/* Ensure that the tables have been set up before taking requests */
-	assert((unsigned long)GPT_L0BASE != 0UL);
-
 	/* Ensure that MMU and caches are enabled */
 	assert((read_sctlr_el3() & SCTLR_C_BIT) != 0UL);
 
 	/* Calculate total region size and zero out granule count. */
-	size = GPT_PGS_ACTUAL_SIZE(firme_gpt_config.pgs_bits);
+	size = firme_gm_get_granule_size();
 
 	/* Make sure target GPI is valid. */
 	if (!is_gpi_valid(target_gpi)) {
@@ -702,7 +695,7 @@ static int gm_gpi_set(uint64_t base, uint8_t target_gpi, uint8_t src_sec_state)
 
 	/* Make sure base and size are valid */
 	if (((base & (size - 1UL)) != 0UL) ||
-	    ((base + size) >= GPT_PPS_ACTUAL_SIZE(firme_gpt_config.pps_bits))) {
+	    ((base + size) >= firme_gm_get_pps_size())) {
 		VERBOSE("GPT: Invalid granule transition address range!\n");
 		VERBOSE("      Base=0x%" PRIx64 "\n", base);
 		VERBOSE("      Size=%lu\n", size);
@@ -788,24 +781,7 @@ uint32_t firme_gm_gpi_set(uint64_t base, uint64_t gcnt, uint64_t attrs,
 
 void firme_gm_gpi_init(void)
 {
-	const uint8_t pps_to_bits[] = { PPS_4GB_T, PPS_64GB_T, PPS_1TB_T,
-		PPS_4TB_T, PPS_16TB_T, PPS_256TB_T, PPS_4PB_T };
-	const uint8_t pgs_to_bits[] = { PGS_4KB_P, PGS_64KB_P, PGS_16KB_P };
-	uint8_t pps_val;
-	uint8_t pgs_val;
-
 	assert(is_feat_rme_supported());
-
-	pps_val = EXTRACT(GPCCR_PPS, read_gpccr_el3());
-	pgs_val = EXTRACT(GPCCR_PGS, read_gpccr_el3());
-
-	assert(pps_val < ARRAY_SIZE(pps_to_bits));
-	assert(pgs_val < ARRAY_SIZE(pgs_to_bits));
-
-	firme_gpt_config.pps_bits = pps_to_bits[pps_val];
-	firme_gpt_config.pgs_bits = pgs_to_bits[pgs_val];
-
-	firme_gpt_config.l1_cnt_2mb = GPT_L1_ENTRY_COUNT_2MB(firme_gpt_config.pgs_bits);
 
 	/* Enable these GPIs in NSO/NSP transition policies used by GPI set */
 	if (is_feat_rme_gdi_supported()) {
