@@ -1604,6 +1604,12 @@ Common build options
 
 -  ``FIRME_SUPPORT``: This option enables the FIRME service in TF-A.
 
+-  ``FIRME_GM_RESERVATIONS_MAX``: Maximum simultaneous L1 GPT lifecycle
+   reservations. Accepts values from 1 to 64; the default is 64. Each slot
+   holds one target PAR address for CREATE or DESTROY. Size this static registry
+   for the expected number of concurrent lifecycle operations. Exhaustion
+   returns busy.
+
 -  ``FIRME_SUPPORT_IDE_KM``: Boolean flag to enable the IDE key management FIRME
    service. This service gets enabled for NS instance when ``ENABLE_RMM`` is 0
    or for Realm instance when ``ENABLE_RMM`` is 1. This flag depends on

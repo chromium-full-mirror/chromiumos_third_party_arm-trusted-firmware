@@ -495,6 +495,9 @@ TEST_IO_SHORT_READ_FI_IMAGE_ID	:= 0
 # Enable the FIRME interface.
 FIRME_SUPPORT			:= 0
 
+# Maximum simultaneous FIRME granule management reservations (1-64).
+FIRME_GM_RESERVATIONS_MAX		:= 64
+
 # FIRME IDE KM support.
 FIRME_SUPPORT_IDE_KM		:= 0
 
