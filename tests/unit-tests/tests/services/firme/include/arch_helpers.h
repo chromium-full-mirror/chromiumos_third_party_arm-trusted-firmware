@@ -18,6 +18,14 @@ uint64_t read_gptbr_el3(void);
 uint64_t read_sctlr_el3(void);
 void dsbosh(void);
 void dsboshst(void);
+void clean_dcache_range(uintptr_t address, size_t size);
+void flush_dcache_range(uintptr_t address, size_t size);
+void test_tlbirpaos(uintptr_t address, unsigned long size);
+#define TLBIRPAOS(address, size) test_tlbirpaos(address, size)
+#define TLBI_SZ_1G	6UL
+#define TLBI_SZ_16G	7UL
+#define TLBI_SZ_64G	8UL
+#define TLBI_SZ_512G	9UL
 void tlbirpalos_4k(uintptr_t address);
 void tlbirpalos_16k(uintptr_t address);
 void tlbirpalos_64k(uintptr_t address);

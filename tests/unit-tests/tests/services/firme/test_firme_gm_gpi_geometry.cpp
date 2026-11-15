@@ -74,6 +74,27 @@ bool is_feat_mte2_supported(void)
 void dsbosh(void) { }
 void dsboshst(void) { }
 
+void clean_dcache_range(uintptr_t address, size_t size)
+{
+	(void)address;
+	(void)size;
+	FAIL("A granule transition must not initialize a whole table");
+}
+
+void flush_dcache_range(uintptr_t address, size_t size)
+{
+	(void)address;
+	(void)size;
+	FAIL("A granule transition must not publish or scrub a whole table");
+}
+
+void test_tlbirpaos(uintptr_t address, unsigned long size)
+{
+	(void)address;
+	(void)size;
+	FAIL("A granule transition must not invalidate a whole PAR");
+}
+
 void firme_gpt_lock(uint64_t base)
 {
 	(void)base;

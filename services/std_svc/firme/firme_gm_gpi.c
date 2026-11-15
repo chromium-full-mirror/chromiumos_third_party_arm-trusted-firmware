@@ -9,8 +9,10 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "firme_gm_geometry.h"
+#include "firme_gm_tables.h"
 #include "firme_gm_private.h"
 
 #include <arch.h>
@@ -473,16 +475,7 @@ static void read_gpi(firme_gpi_info_t *gpi_info)
 	}
 }
 
-/*
- * This function checks to see if a GPI value is valid.
- * todo: is_gpi_transition_permitted check should be enough?
- *
- * Parameters
- *   gpi		GPI to check for validity.
- *
- * Return
- *   true for a valid GPI, false for an invalid one.
- */
+/* Descriptor validity is independent of the caller's transition policy. */
 static bool is_gpi_valid(unsigned int gpi)
 {
 	switch (gpi) {
@@ -503,6 +496,229 @@ static bool is_gpi_valid(unsigned int gpi)
 	default:
 		return false;
 	}
+}
+
+/* Lifecycle callers reserve the target to stabilize its L0 association. */
+static int read_l0(uint64_t target_addr, uint64_t *descriptor)
+{
+	uintptr_t address;
+	int rc = firme_gm_get_l0_entry_address(target_addr, &address);
+
+	if (rc != 0) {
+		return rc;
+	}
+
+	*descriptor = __atomic_load_n((uint64_t *)address, __ATOMIC_ACQUIRE);
+	return 0;
+}
+
+int firme_gm_tables_get_block(uint64_t target_addr, uint8_t *gpi)
+{
+	uint64_t descriptor;
+	uint8_t block_gpi;
+	int rc;
+
+	if (gpi == NULL) {
+		return -EINVAL;
+	}
+
+	rc = read_l0(target_addr, &descriptor);
+	if (rc != 0) {
+		return rc;
+	}
+
+	block_gpi = GPT_L0_BLKD_GPI(descriptor);
+	if (!is_gpi_valid(block_gpi) ||
+	    (descriptor != GPT_L0_BLK_DESC(block_gpi))) {
+		return -EINVAL;
+	}
+
+	*gpi = block_gpi;
+	return 0;
+}
+
+int firme_gm_tables_get_donor(uint64_t target_addr, uint64_t *donor_addr)
+{
+	uint64_t descriptor;
+	uint64_t donor;
+	int rc;
+
+	if (donor_addr == NULL) {
+		return -EINVAL;
+	}
+
+	rc = read_l0(target_addr, &descriptor);
+	if (rc != 0) {
+		return rc;
+	}
+
+	donor = (uintptr_t)GPT_L0_TBLD_ADDR(descriptor);
+	if (descriptor != GPT_L0_TBL_DESC(donor)) {
+		return -EINVAL;
+	}
+
+	/* Lifecycle validates donor geometry before mapping or accessing it. */
+	*donor_addr = donor;
+	return 0;
+}
+
+void firme_gm_tables_init(uintptr_t table_va, uint8_t gpi)
+{
+	uint64_t *table = (uint64_t *)table_va;
+	uint64_t entry_count = firme_gm_get_l1_entry_count();
+	uint64_t descriptor = GPT_BUILD_L1_DESC(gpi);
+
+	assert((table_va != 0U) && is_aligned(table_va, sizeof(*table)));
+	assert((entry_count != 0U) && is_gpi_valid(gpi));
+
+	for (uint64_t entry_index = 0U; entry_index < entry_count; entry_index++) {
+		table[entry_index] = descriptor;
+	}
+
+	clean_dcache_range(table_va, firme_gm_get_l1_table_size());
+	dsbosh();
+}
+
+static int l1_gpi(uint64_t descriptor, uint8_t *gpi)
+{
+	uint8_t value;
+
+	if ((descriptor & GPT_L1_TYPE_CONT_DESC_MASK) ==
+	    GPT_L1_TYPE_CONT_DESC) {
+		uint64_t contig = GPT_L1_CONT_CONTIG(descriptor);
+		uint64_t expected;
+
+		value = GPT_L1_CONT_GPI(descriptor);
+		expected = GPT_L1_GPI_CONT_DESC(value,
+			GPT_L1_TYPE_CONT_DESC |
+			(contig << GPT_L1_CONT_DESC_CONTIG_SHIFT));
+		if ((contig == 0U) || (descriptor != expected)) {
+			return -EINVAL;
+		}
+	} else {
+		value = GPT_L1_GRAN_GPI(descriptor);
+		if (descriptor != GPT_BUILD_L1_DESC(value)) {
+			return -EINVAL;
+		}
+	}
+
+	if (!is_gpi_valid(value)) {
+		return -EINVAL;
+	}
+
+	*gpi = value;
+	return 0;
+}
+
+int firme_gm_tables_validate(uintptr_t table_va, uint8_t *gpi)
+{
+	const uint64_t *table = (const uint64_t *)table_va;
+	uint64_t entry_count = firme_gm_get_l1_entry_count();
+	uint8_t common_gpi = 0U;
+
+	if ((gpi == NULL) || (table_va == 0U) ||
+	    !is_aligned(table_va, sizeof(*table)) || (entry_count == 0U)) {
+		return -EINVAL;
+	}
+
+	/*
+	 * Mixed granule/contiguous forms are valid when all effective GPIs agree
+	 * (Arm DDI 0615, RNNHCF). Inspect every word, including contiguous tails.
+	 */
+	for (uint64_t entry_index = 0U; entry_index < entry_count; entry_index++) {
+		uint8_t entry_gpi;
+
+		if (l1_gpi(table[entry_index], &entry_gpi) != 0) {
+			return -EINVAL;
+		}
+
+		if (entry_index == 0U) {
+			common_gpi = entry_gpi;
+		} else if (entry_gpi != common_gpi) {
+			return -EINVAL;
+		}
+	}
+
+	*gpi = common_gpi;
+	return 0;
+}
+
+static int publish_l0(uint64_t target_addr, uint64_t expected,
+		      uint64_t replacement)
+{
+	uintptr_t address;
+	u_register_t tlbi_size;
+	uint64_t *descriptor;
+	int rc = firme_gm_get_l0_entry_address(target_addr, &address);
+
+	if (rc != 0) {
+		return rc;
+	}
+
+	switch (firme_gm_get_par_size()) {
+	case SZ_1G:
+		tlbi_size = TLBI_SZ_1G;
+		break;
+	case (ULL(16) * SZ_1G):
+		tlbi_size = TLBI_SZ_16G;
+		break;
+	case (ULL(64) * SZ_1G):
+		tlbi_size = TLBI_SZ_64G;
+		break;
+	case (ULL(512) * SZ_1G):
+		tlbi_size = TLBI_SZ_512G;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	descriptor = (uint64_t *)address;
+	if (__atomic_load_n(descriptor, __ATOMIC_ACQUIRE) != expected) {
+		return -ESTALE;
+	}
+
+	__atomic_store_n(descriptor, replacement, __ATOMIC_RELEASE);
+	flush_dcache_range(address, sizeof(*descriptor));
+	dsboshst();
+	TLBIRPAOS(target_addr, tlbi_size);
+	dsbosh();
+	return 0;
+}
+
+int firme_gm_tables_attach(uint64_t target_addr, uint64_t donor_addr,
+			   uint8_t expected_gpi)
+{
+	if (!is_gpi_valid(expected_gpi) ||
+	    (firme_gm_validate_l1_object(donor_addr) != 0)) {
+		return -EINVAL;
+	}
+
+	return publish_l0(target_addr, GPT_L0_BLK_DESC(expected_gpi),
+			  GPT_L0_TBL_DESC(donor_addr));
+}
+
+int firme_gm_tables_detach(uint64_t target_addr, uint64_t expected_donor,
+			   uint8_t gpi)
+{
+	if (!is_gpi_valid(gpi) ||
+	    (firme_gm_validate_l1_object(expected_donor) != 0)) {
+		return -EINVAL;
+	}
+
+	return publish_l0(target_addr, GPT_L0_TBL_DESC(expected_donor),
+			  GPT_L0_BLK_DESC(gpi));
+}
+
+void firme_gm_tables_scrub(uintptr_t table_va)
+{
+	size_t size = firme_gm_get_l1_table_size();
+
+	assert((table_va != 0U) && is_aligned(table_va, sizeof(uint64_t)));
+	assert(size != 0U);
+
+	memset((void *)table_va, 0, size);
+	flush_dcache_range(table_va, size);
+	dsbosh();
 }
 
 static void tlbi_page_dsbosh(uintptr_t base)
@@ -628,16 +844,14 @@ static inline void gpt_undelegate(uint64_t base, uint8_t target_gpi,
 static int get_gpi_params(uint64_t base, firme_gpi_info_t *gpi_info)
 {
 	uint64_t gpt_l0_desc;
-	uintptr_t l0_address;
 	int rc;
 	__unused unsigned int block_idx;
 
-	rc = firme_gm_get_l0_entry_address(
-		round_down(base, firme_gm_get_par_size()), &l0_address);
+	rc = read_l0(round_down(base, firme_gm_get_par_size()), &gpt_l0_desc);
 	if (rc != 0) {
 		return rc;
 	}
-	gpt_l0_desc = *(uint64_t *)l0_address;
+
 	if (GPT_L0_TYPE(gpt_l0_desc) != GPT_L0_TYPE_TBL_DESC) {
 		VERBOSE("GPT: Granule is not covered by a table descriptor!\n");
 		VERBOSE("      Base=0x%"PRIx64"\n", base);

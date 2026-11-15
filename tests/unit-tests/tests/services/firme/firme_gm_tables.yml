@@ -1,0 +1,44 @@
+#
+# Copyright (c) 2026, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
+# Exercise the table operations without linking the transition backend into
+# the focused table and lifecycle fixtures. All bodies come from production.
+elements:
+- file: services/std_svc/firme/firme_gm_gpi.c
+  type: include
+- file: services/std_svc/firme/firme_gm_gpi.c
+  type: function
+  name: is_gpi_valid
+- file: services/std_svc/firme/firme_gm_gpi.c
+  type: function
+  name: read_l0
+- file: services/std_svc/firme/firme_gm_gpi.c
+  type: function
+  name: firme_gm_tables_get_block
+- file: services/std_svc/firme/firme_gm_gpi.c
+  type: function
+  name: firme_gm_tables_get_donor
+- file: services/std_svc/firme/firme_gm_gpi.c
+  type: function
+  name: firme_gm_tables_init
+- file: services/std_svc/firme/firme_gm_gpi.c
+  type: function
+  name: l1_gpi
+- file: services/std_svc/firme/firme_gm_gpi.c
+  type: function
+  name: firme_gm_tables_validate
+- file: services/std_svc/firme/firme_gm_gpi.c
+  type: function
+  name: publish_l0
+- file: services/std_svc/firme/firme_gm_gpi.c
+  type: function
+  name: firme_gm_tables_attach
+- file: services/std_svc/firme/firme_gm_gpi.c
+  type: function
+  name: firme_gm_tables_detach
+- file: services/std_svc/firme/firme_gm_gpi.c
+  type: function
+  name: firme_gm_tables_scrub
