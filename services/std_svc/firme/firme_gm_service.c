@@ -85,7 +85,7 @@ firme_granule_mgmt_service_get_feature_reg(firme_instance_e instance,
 	*reg = registers[reg_index];
 	if ((reg_index == 0U) && (instance == FIRME_REALM) &&
 	    firme_gm_lifecycle_is_supported()) {
-		*reg |= FIRME_GM_L1_CREATE_BIT;
+		*reg |= FIRME_GM_L1_CREATE_BIT | FIRME_GM_L1_DESTROY_BIT;
 	}
 
 	return FIRME_SUCCESS;
@@ -98,6 +98,10 @@ u_register_t firme_granule_mgmt_service_handler(firme_instance_e instance,
 						void *handle, uint64_t flags)
 {
 	if (!is_feat_rme_supported()) {
+		if (smc_fid == FIRME_GM_L1_GPT_DESTROY_FID) {
+			SMC_RET3(handle, FIRME_NOT_SUPPORTED, 0U, 0U);
+		}
+
 		SMC_RET1(handle, FIRME_NOT_SUPPORTED);
 	}
 
@@ -108,14 +112,24 @@ u_register_t firme_granule_mgmt_service_handler(firme_instance_e instance,
 		}
 
 		SMC_RET1(handle, firme_gm_create(x1, x2));
+	case FIRME_GM_L1_GPT_DESTROY_FID: {
+		struct firme_gm_destroy_result result;
+
+		if (instance != FIRME_REALM) {
+			SMC_RET3(handle, FIRME_NOT_SUPPORTED, 0U, 0U);
+		}
+
+		result = firme_gm_destroy(x1);
+		SMC_RET3(handle, result.status, 0U, result.donor_addr);
+	}
 	case FIRME_GM_GPI_SET_FID: {
 		int ret;
-		uint64_t gcnt = 0;
+		uint64_t completed_granules = 0U;
 
-		ret = firme_gm_gpi_set(x1, x2, x3, flags, &gcnt);
+		ret = firme_gm_gpi_set(x1, x2, x3, flags, &completed_granules);
 		switch (ret) {
 		case 0:
-			SMC_RET2(handle, FIRME_SUCCESS, gcnt);
+			SMC_RET2(handle, FIRME_SUCCESS, completed_granules);
 		case -EINVAL:
 			SMC_RET2(handle, FIRME_INVALID_PARAMETERS, 0);
 		case -EPERM:

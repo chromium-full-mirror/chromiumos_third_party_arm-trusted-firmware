@@ -253,6 +253,10 @@ uint64_t firme_handler(uint32_t smc_fid, uint64_t x1, uint64_t x2, uint64_t x3,
 	if ((service == NULL) || !service->is_supported(instance)) {
 		VERBOSE("FIRME service %u is not available for ABI 0x%X.\n",
 			service_id, smc_fid);
+		if (smc_fid == FIRME_GM_L1_GPT_DESTROY_FID) {
+			SMC_RET3(handle, FIRME_NOT_SUPPORTED, 0U, 0U);
+		}
+
 		SMC_RET1(handle, FIRME_NOT_SUPPORTED);
 	}
 

@@ -43,6 +43,11 @@ static unsigned int published;
 static unsigned int completed_tlbis;
 static int mapping_error;
 static bool initialized;
+static bool destroying;
+static bool scrubbed;
+static bool ownership_checked;
+static bool change_donor_on_map;
+static unsigned int ownership_checks;
 static bool corrupt_before_attach;
 static bool fatal;
 static bool policy_present;
@@ -192,6 +197,10 @@ int firme_gm_map_root(uint64_t physical_addr, size_t size,
 	}
 
 	UNSIGNED_LONGS_EQUAL(0, mapped);
+	if (change_donor_on_map) {
+		l0[1] = (donor_addr + firme_gm_get_l1_table_size()) | 3;
+	}
+
 	mapping->va = (uintptr_t)table;
 	mapping->size = size;
 	mapped++;
@@ -224,6 +233,18 @@ int firme_l1_gpt_gpi_set(uint64_t base, uint64_t granule_count,
 	UNSIGNED_LONGLONGS_EQUAL(donor_addr + step.offset * granule_size, base);
 	UNSIGNED_LONGLONGS_EQUAL(step.requested, granule_count);
 	UNSIGNED_LONGS_EQUAL(step.target_gpi, target_gpi);
+	if (destroying) {
+		CHECK(scrubbed);
+		UNSIGNED_LONGS_EQUAL(0, mapped);
+		UNSIGNED_LONGLONGS_EQUAL(0x91, l0[1]);
+		check_words(table, firme_gm_get_l1_entry_count(), 0);
+	} else if (target_gpi == 10) {
+		CHECK_FALSE(initialized);
+		UNSIGNED_LONGLONGS_EQUAL(0x91, l0[1]);
+		check_words(table, firme_gm_get_l1_entry_count(),
+			    0xa5a5a5a5a5a5a5a5ULL);
+	}
+
 	transition_locks++;
 	for (size_t index = step.offset;
 	     index < step.offset + step.completed; index++) {
@@ -235,6 +256,24 @@ int firme_l1_gpt_gpi_set(uint64_t base, uint64_t granule_count,
 	transition_unlocks++;
 	check_admission();
 	return step.status;
+}
+
+int firme_gm_gpi_check(uint64_t base, uint64_t count, uint8_t expected_gpi)
+{
+	check_admission();
+	ownership_checks++;
+	UNSIGNED_LONGLONGS_EQUAL(donor_addr, base);
+	UNSIGNED_LONGLONGS_EQUAL(firme_gm_get_l1_granule_count(), count);
+	UNSIGNED_LONGS_EQUAL(10, expected_gpi);
+	UNSIGNED_LONGS_EQUAL(0, mapped);
+	for (size_t index = 0; index < count; index++) {
+		if (ownership[index] != expected_gpi) {
+			return -EACCES;
+		}
+	}
+
+	ownership_checked = true;
+	return 0;
 }
 
 void clean_dcache_range(uintptr_t address, size_t size)
@@ -253,12 +292,33 @@ void clean_dcache_range(uintptr_t address, size_t size)
 void flush_dcache_range(uintptr_t address, size_t size)
 {
 	check_admission();
-	UNSIGNED_LONGLONGS_EQUAL((uintptr_t)&l0[1], address);
-	UNSIGNED_LONGLONGS_EQUAL(8, size);
-	CHECK(initialized);
-	UNSIGNED_LONGS_EQUAL(0, mapped);
-	UNSIGNED_LONGLONGS_EQUAL(donor_addr | 3, l0[1]);
-	published++;
+	if (destroying) {
+		CHECK(ownership_checked);
+		UNSIGNED_LONGS_EQUAL(1, mapped);
+		check_ownership(0, firme_gm_get_l1_granule_count(), 10);
+		UNSIGNED_LONGLONGS_EQUAL(0x91, l0[1]);
+		if (address == (uintptr_t)table) {
+			UNSIGNED_LONGLONGS_EQUAL(firme_gm_get_l1_table_size(), size);
+			UNSIGNED_LONGS_EQUAL(1, completed_tlbis);
+			check_words(table, size / 8, 0);
+			scrubbed = true;
+		} else {
+			UNSIGNED_LONGLONGS_EQUAL((uintptr_t)&l0[1], address);
+			UNSIGNED_LONGLONGS_EQUAL(8, size);
+			CHECK_FALSE(scrubbed);
+			check_words(table, firme_gm_get_l1_entry_count(),
+				    0x9999999999999999ULL);
+			published++;
+		}
+	} else {
+		UNSIGNED_LONGLONGS_EQUAL((uintptr_t)&l0[1], address);
+		UNSIGNED_LONGLONGS_EQUAL(8, size);
+		CHECK(initialized);
+		UNSIGNED_LONGS_EQUAL(0, mapped);
+		UNSIGNED_LONGLONGS_EQUAL(donor_addr | 3, l0[1]);
+		published++;
+	}
+
 	maintenance_calls++;
 }
 
@@ -314,6 +374,8 @@ TEST_GROUP(firme_gm_lifecycle) {
 		published = completed_tlbis = 0;
 		mapping_error = 0;
 		initialized = corrupt_before_attach = false;
+		destroying = scrubbed = ownership_checked = change_donor_on_map = false;
+		ownership_checks = 0;
 		fatal = false;
 		policy_present = true;
 		active_reservation = NULL;
@@ -514,4 +576,279 @@ TEST(firme_gm_lifecycle, create_large_real_geometry_covers_complete_table)
 	steps = { { 0, 64, 10, 64, 0 } };
 	LONGS_EQUAL(FIRME_SUCCESS, firme_gm_create(target_addr, donor_addr));
 	UNSIGNED_LONGS_EQUAL(1, completed_tlbis);
+}
+
+static void attach_fixture(void)
+{
+	destroying = true;
+	l0[1] = donor_addr | 3;
+	memset(ownership, 10, sizeof(ownership));
+	memset(table, 0x99, firme_gm_get_l1_table_size());
+}
+
+static void check_destroy(int expected_status)
+{
+	firme_gm_destroy_result result = firme_gm_destroy(target_addr);
+
+	LONGS_EQUAL(expected_status, result.status);
+	UNSIGNED_LONGLONGS_EQUAL(expected_status == FIRME_SUCCESS ? donor_addr : 0,
+				result.donor_addr);
+}
+
+TEST(firme_gm_lifecycle, destroy_scrubs_then_releases_fresh_suffixes)
+{
+	attach_fixture();
+	steps = { { 0, 32, 9, 4, 0 }, { 4, 28, 9, 15, 0 },
+		  { 19, 13, 9, 13, 0 } };
+	check_destroy(FIRME_SUCCESS);
+	check_ownership(0, 32, 9);
+	CHECK(scrubbed);
+	UNSIGNED_LONGS_EQUAL(1, ownership_checks);
+	UNSIGNED_LONGS_EQUAL(1, published);
+}
+
+TEST(firme_gm_lifecycle, destroy_terminal_release_error_is_fatal)
+{
+	attach_fixture();
+	steps = { { 0, 32, 9, 5, -EIO } };
+	panic_environment_t environment;
+
+	fatal = true;
+	if (SETUP_PANIC_ENVIRONMENT(environment)) {
+		firme_gm_destroy(target_addr);
+		FAIL("DESTROY returned after a terminal release failure");
+	}
+
+	check_ownership(0, 5, 9);
+	check_ownership(5, 27, 10);
+	check_admission();
+	UNSIGNED_LONGS_EQUAL(0, mapped);
+	CHECK(scrubbed);
+	UNSIGNED_LONGLONGS_EQUAL(0x91, l0[1]);
+}
+
+TEST(firme_gm_lifecycle, destroy_zero_progress_after_detach_is_fatal)
+{
+	attach_fixture();
+	steps = { { 0, 32, 9, 0, 0 } };
+	panic_environment_t environment;
+
+	fatal = true;
+	if (SETUP_PANIC_ENVIRONMENT(environment)) {
+		firme_gm_destroy(target_addr);
+		FAIL("DESTROY returned after a zero-progress release");
+	}
+
+	CHECK(scrubbed);
+	check_ownership(0, 32, 10);
+}
+
+TEST(firme_gm_lifecycle, destroy_missing_table_and_invalid_descriptor)
+{
+	check_destroy(FIRME_NO_ENTRY);
+	l0[1] = 0x92;
+	check_destroy(FIRME_INVALID_PARAMETERS);
+	UNSIGNED_LONGS_EQUAL(0, mapping_calls);
+}
+
+TEST(firme_gm_lifecycle, destroy_invalid_target_has_zero_output_and_no_admission)
+{
+	target_addr++;
+	check_destroy(FIRME_INVALID_PARAMETERS);
+	UNSIGNED_LONGS_EQUAL(0, reserve_calls);
+	UNSIGNED_LONGS_EQUAL(0, mapping_calls);
+}
+
+TEST(firme_gm_lifecycle, destroy_validates_discovered_donor_geometry)
+{
+	attach_fixture();
+	l0[1] = (donor_addr + 4096) | 3;
+	check_destroy(FIRME_INVALID_PARAMETERS);
+	UNSIGNED_LONGS_EQUAL(1, reserve_calls);
+	UNSIGNED_LONGS_EQUAL(0, mapping_calls);
+	UNSIGNED_LONGS_EQUAL(0, ownership_checks);
+}
+
+TEST(firme_gm_lifecycle, destroy_self_describing_donor_is_rejected)
+{
+	l0[1] = target_addr | 3;
+	check_destroy(FIRME_DENIED);
+	UNSIGNED_LONGS_EQUAL(0, mapping_calls);
+}
+
+TEST(firme_gm_lifecycle, destroy_checks_entire_donor_before_access)
+{
+	attach_fixture();
+	ownership[31] = 9;
+	check_destroy(FIRME_DENIED);
+	UNSIGNED_LONGS_EQUAL(1, ownership_checks);
+	UNSIGNED_LONGS_EQUAL(0, mapping_calls);
+	UNSIGNED_LONGS_EQUAL(0, maintenance_calls);
+	UNSIGNED_LONGLONGS_EQUAL(donor_addr | 3, l0[1]);
+}
+
+TEST(firme_gm_lifecycle, destroy_mapping_failure_is_recoverable)
+{
+	attach_fixture();
+	const int errors[] = { -ENOMEM, -EBUSY, -EPERM, -EACCES };
+	const int statuses[] = { FIRME_BUSY, FIRME_BUSY,
+		FIRME_DENIED, FIRME_DENIED };
+
+	for (size_t index = 0; index < 4; index++) {
+		mapping_error = errors[index];
+		check_destroy(statuses[index]);
+		UNSIGNED_LONGS_EQUAL(index + 1, ownership_checks);
+		UNSIGNED_LONGS_EQUAL(0, maintenance_calls);
+		check_ownership(0, 32, 10);
+		UNSIGNED_LONGLONGS_EQUAL(donor_addr | 3, l0[1]);
+	}
+}
+
+TEST(firme_gm_lifecycle, destroy_heterogeneous_or_malformed_table_is_unchanged)
+{
+	attach_fixture();
+	const uint64_t invalid_entries[] = { 0x999999999999999bULL,
+		0xbbbbbbbbbbbbbbbbULL, 0x12 };
+
+	for (uint64_t invalid_entry : invalid_entries) {
+		table[16383] = invalid_entry;
+		check_destroy(FIRME_DENIED);
+		UNSIGNED_LONGLONGS_EQUAL(invalid_entry, table[16383]);
+		UNSIGNED_LONGLONGS_EQUAL(donor_addr | 3, l0[1]);
+		UNSIGNED_LONGS_EQUAL(0, maintenance_calls);
+	}
+}
+
+TEST(firme_gm_lifecycle, destroy_stale_detach_never_scrubs_or_releases)
+{
+	attach_fixture();
+	change_donor_on_map = true;
+	check_destroy(FIRME_OP_CONFLICT);
+	check_words(table, 16384, 0x9999999999999999ULL);
+	check_ownership(0, 32, 10);
+	UNSIGNED_LONGS_EQUAL(0, maintenance_calls);
+}
+
+TEST(firme_gm_lifecycle, destroy_large_real_geometry_scrubs_complete_table)
+{
+	configure_geometry(true);
+	attach_fixture();
+	steps = { { 0, 64, 9, 64, 0 } };
+	check_destroy(FIRME_SUCCESS);
+	CHECK(scrubbed);
+	check_ownership(0, 64, 9);
+}
+
+TEST(firme_gm_lifecycle, destroy_does_not_reserve_donor_par)
+{
+	attach_fixture();
+	LONGS_EQUAL(0, __real_firme_gm_reserve(donor_addr,
+					     &donor_target_reservation));
+	steps = { { 0, 32, 9, 3, 0 }, { 3, 29, 9, 29, 0 } };
+	check_destroy(FIRME_SUCCESS);
+	check_ownership(0, 32, 9);
+}
+
+TEST(firme_gm_lifecycle, malformed_platform_policy_disables_lifecycle)
+{
+	excluded_range.top--;
+	firme_gm_lifecycle_init();
+	CHECK_FALSE(firme_gm_lifecycle_is_supported());
+	check_destroy(FIRME_NOT_SUPPORTED);
+	excluded_range.top = excluded_range.base;
+	firme_gm_lifecycle_init();
+	CHECK_FALSE(firme_gm_lifecycle_is_supported());
+	excluded_range.top = firme_gm_get_pps_size() + target_addr;
+	firme_gm_lifecycle_init();
+	CHECK_FALSE(firme_gm_lifecycle_is_supported());
+	policy.exceptions = NULL;
+	firme_gm_lifecycle_init();
+	CHECK_FALSE(firme_gm_lifecycle_is_supported());
+	UNSIGNED_LONGS_EQUAL(0, reserve_calls);
+}
+
+TEST(firme_gm_lifecycle, subgranule_table_geometry_disables_lifecycle)
+{
+	gpccr = 1ULL << 14;
+	LONGS_EQUAL(0, firme_gm_geometry_init());
+	UNSIGNED_LONGS_EQUAL(8192, firme_gm_get_l1_table_size());
+	UNSIGNED_LONGS_EQUAL(65536, firme_gm_get_granule_size());
+	firme_gm_lifecycle_init();
+	CHECK_FALSE(firme_gm_lifecycle_is_supported());
+	check_destroy(FIRME_NOT_SUPPORTED);
+	UNSIGNED_LONGS_EQUAL(0, reserve_calls);
+}
+
+TEST(firme_gm_lifecycle, create_boundary_inputs_reach_mapping)
+{
+	mapping_error = -ENOMEM;
+	donor_addr = firme_gm_get_pps_size() - firme_gm_get_l1_table_size();
+	LONGS_EQUAL(FIRME_NO_MEMORY, firme_gm_create(target_addr, donor_addr));
+	donor_addr = firme_gm_get_l1_table_size();
+	LONGS_EQUAL(FIRME_NO_MEMORY, firme_gm_create(target_addr, donor_addr));
+	configure_geometry(true);
+	mapping_error = -ENOMEM;
+	target_addr = firme_gm_get_pps_size() - firme_gm_get_par_size();
+	l0[8191] = 0x91;
+	LONGS_EQUAL(FIRME_NO_MEMORY, firme_gm_create(target_addr, donor_addr));
+	UNSIGNED_LONGS_EQUAL(3, mapping_calls);
+}
+
+TEST(firme_gm_lifecycle, destroy_target_conflict_has_no_donor_access)
+{
+	attach_fixture();
+	struct firme_gm_reservation *competitor = NULL;
+
+	LONGS_EQUAL(0, __real_firme_gm_reserve(target_addr, &competitor));
+	check_destroy(FIRME_OP_CONFLICT);
+	__real_firme_gm_release(&competitor);
+	UNSIGNED_LONGS_EQUAL(0, ownership_checks);
+	UNSIGNED_LONGS_EQUAL(0, mapping_calls);
+}
+
+TEST(firme_gm_lifecycle, transition_errors_preserve_status_and_clean_admission)
+{
+	const int errors[] = { -EINVAL, -ENOMEM, -EAGAIN, -EINPROGRESS };
+	const int statuses[] = { FIRME_INVALID_PARAMETERS, FIRME_NO_MEMORY,
+		FIRME_BUSY, FIRME_OP_CONFLICT };
+
+	for (size_t index = 0; index < ARRAY_SIZE(errors); index++) {
+		steps = { { 0, 32, 10, 0, errors[index] } };
+		next_step = 0;
+		LONGS_EQUAL(statuses[index], firme_gm_create(target_addr, donor_addr));
+		POINTERS_EQUAL(NULL, active_reservation);
+		UNSIGNED_LONGS_EQUAL(0, mapped);
+	}
+
+	UNSIGNED_LONGS_EQUAL(0, maintenance_calls);
+}
+
+TEST(firme_gm_lifecycle, invalid_backend_completed_count_is_fatal)
+{
+	steps = { { 0, 32, 10, 33, 0 } };
+	panic_environment_t environment;
+
+	fatal = true;
+	if (SETUP_PANIC_ENVIRONMENT(environment)) {
+		firme_gm_create(target_addr, donor_addr);
+		FAIL("CREATE accepted a completed count larger than its request");
+	}
+
+	check_admission();
+	UNSIGNED_LONGS_EQUAL(0, maintenance_calls);
+	UNSIGNED_LONGLONGS_EQUAL(0x91, l0[1]);
+}
+
+TEST(firme_gm_lifecycle, overlapping_policy_ranges_disable_lifecycle)
+{
+	firme_gpt_manager_range ranges[] = {
+		{ 0, 2 * target_addr, false },
+		{ target_addr, 3 * target_addr, true },
+	};
+
+	policy = { true, ranges, ARRAY_SIZE(ranges) };
+	firme_gm_lifecycle_init();
+	CHECK_FALSE(firme_gm_lifecycle_is_supported());
+	check_destroy(FIRME_NOT_SUPPORTED);
+	UNSIGNED_LONGS_EQUAL(0, reserve_calls);
 }
