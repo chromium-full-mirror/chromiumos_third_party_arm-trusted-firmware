@@ -14,6 +14,7 @@
 #include "firme_gm_geometry.h"
 #include "firme_gm_tables.h"
 #include "firme_gm_private.h"
+#include "firme_gm_mapping.h"
 
 #include <arch.h>
 #include <arch_features.h>
@@ -841,7 +842,8 @@ static inline void gpt_undelegate(uint64_t base, uint8_t target_gpi,
  * Helper to retrieve the gpt_l1_* information from the base address
  * returned in gpi_info.
  */
-static int get_gpi_params(uint64_t base, firme_gpi_info_t *gpi_info)
+static int get_gpi_params(uint64_t base, firme_gpi_info_t *gpi_info,
+			  struct firme_gm_mapping *mapping)
 {
 	uint64_t gpt_l0_desc;
 	int rc;
@@ -858,8 +860,15 @@ static int get_gpi_params(uint64_t base, firme_gpi_info_t *gpi_info)
 		return -EINVAL;
 	}
 
-	/* Get the table index and GPI shift from PA */
-	gpi_info->gpt_l1_addr = GPT_L0_TBLD_ADDR(gpt_l0_desc);
+	/* Map the L1 table containing the requested granule descriptor. */
+	rc = firme_gm_map_root((uintptr_t)GPT_L0_TBLD_ADDR(gpt_l0_desc),
+			      firme_gm_get_l1_table_size(), mapping);
+	if (rc != 0) {
+		return rc;
+	}
+
+	/* Get the table index and GPI shift from PA. */
+	gpi_info->gpt_l1_addr = (uint64_t *)mapping->va;
 	gpi_info->idx = (unsigned int)GPT_L1_INDEX(base);
 	gpi_info->gpi_shift = firme_gm_get_l1_gpi_shift(base);
 
@@ -883,6 +892,7 @@ static int get_gpi_params(uint64_t base, firme_gpi_info_t *gpi_info)
 static int gm_gpi_set(uint64_t base, uint8_t target_gpi, uint8_t src_sec_state)
 {
 	firme_gpi_info_t gpi_info = { 0, NULL, 0, 0, 0 };
+	struct firme_gm_mapping mapping = { 0 };
 	int res;
 	size_t size;
 
@@ -909,7 +919,7 @@ static int gm_gpi_set(uint64_t base, uint8_t target_gpi, uint8_t src_sec_state)
 
 	/* Make sure base and size are valid */
 	if (((base & (size - 1UL)) != 0UL) ||
-	    ((base + size) >= firme_gm_get_pps_size())) {
+	    ((base + size) > firme_gm_get_pps_size())) {
 		VERBOSE("GPT: Invalid granule transition address range!\n");
 		VERBOSE("      Base=0x%" PRIx64 "\n", base);
 		VERBOSE("      Size=%lu\n", size);
@@ -917,7 +927,7 @@ static int gm_gpi_set(uint64_t base, uint8_t target_gpi, uint8_t src_sec_state)
 	}
 
 	/* Get GPI info for next granule to transition. */
-	res = get_gpi_params(base, &gpi_info);
+	res = get_gpi_params(base, &gpi_info, &mapping);
 	if (res != 0) {
 		return res;
 	}
@@ -932,6 +942,7 @@ static int gm_gpi_set(uint64_t base, uint8_t target_gpi, uint8_t src_sec_state)
 		VERBOSE("(%s) Sec state %u is not allowed to transition %u to %u!\n",
 			__func__, src_sec_state, gpi_info.gpi, target_gpi);
 		firme_gpt_unlock(base);
+		firme_gm_unmap_root(&mapping);
 		return -EPERM;
 	}
 
@@ -962,35 +973,108 @@ static int gm_gpi_set(uint64_t base, uint8_t target_gpi, uint8_t src_sec_state)
 	}
 #endif
 
+	/* Complete PoPA maintenance before reporting this granule complete. */
+	dsbosh();
 	firme_gpt_unlock(base);
+	firme_gm_unmap_root(&mapping);
 
 	return 0;
 }
 
-uint32_t firme_gm_gpi_set(uint64_t base, uint64_t gcnt, uint64_t attrs,
-			  uint64_t flags, uint64_t *gcnt_ret)
+static bool valid_granule_request(uint64_t base, uint64_t granule_count)
 {
-	uint32_t ret;
-	uint8_t target_gpi;
-	uint32_t src_sec_state = caller_sec_state(flags);
+	uint64_t size;
+	uint64_t end;
+	size_t granule_size = firme_gm_get_granule_size();
 
-	assert(is_feat_rme_supported());
+	return (granule_size != 0U) && (granule_count != 0U) &&
+	       is_aligned(base, granule_size) &&
+	       !__builtin_mul_overflow(granule_count, (uint64_t)granule_size,
+				       &size) &&
+	       !__builtin_add_overflow(base, size, &end) &&
+	       (end <= firme_gm_get_pps_size());
+}
 
-	if (gcnt == 0U) {
+int firme_l1_gpt_gpi_set(uint64_t base, uint64_t granule_count,
+			 uint8_t target_gpi, uint64_t *completed_granules)
+{
+	int rc;
+
+	if (completed_granules == NULL) {
 		return -EINVAL;
 	}
 
-	/* Extract target GPI value from attributes in x3. */
+	*completed_granules = 0U;
+	if (!valid_granule_request(base, granule_count)) {
+		return -EINVAL;
+	}
+
+	/* Each call releases its locks and completes at most one granule. */
+	rc = gm_gpi_set(base, target_gpi, SMC_FROM_REALM);
+	if (rc == 0) {
+		*completed_granules = 1U;
+	}
+
+	return rc;
+}
+
+int firme_gm_gpi_check(uint64_t base, uint64_t granule_count,
+		       uint8_t expected_gpi)
+{
+	if (!valid_granule_request(base, granule_count) ||
+	    !is_gpi_valid(expected_gpi)) {
+		return -EINVAL;
+	}
+
+	for (uint64_t index = 0U; index < granule_count; index++) {
+		struct firme_gm_mapping mapping = { 0 };
+		firme_gpi_info_t info = { 0 };
+		uint64_t address = base + index * firme_gm_get_granule_size();
+		int rc = get_gpi_params(address, &info, &mapping);
+
+		if (rc != 0) {
+			return rc;
+		}
+
+		firme_gpt_lock(address);
+		read_gpi(&info);
+		rc = (info.gpi == expected_gpi) ? 0 : -EACCES;
+		firme_gpt_unlock(address);
+		firme_gm_unmap_root(&mapping);
+		if (rc != 0) {
+			return rc;
+		}
+	}
+
+	return 0;
+}
+
+int firme_gm_gpi_set(uint64_t base, uint64_t granule_count, uint64_t attrs,
+		     uint64_t flags, uint64_t *completed_granules)
+{
+	uint8_t target_gpi;
+	int rc;
+
+	assert(is_feat_rme_supported());
+
+	if (completed_granules == NULL) {
+		return -EINVAL;
+	}
+
+	*completed_granules = 0U;
+	if (!valid_granule_request(base, granule_count)) {
+		return -EINVAL;
+	}
+
 	target_gpi = (attrs >> FIRME_GM_GPI_SET_TGT_GPI_SHIFT) &
 		FIRME_GM_GPI_SET_TGT_GPI_MASK;
 
-	/* gpi set currently supports one granule  */
-	ret = gm_gpi_set(base, target_gpi, src_sec_state);
-	if (ret == 0) {
-		*gcnt_ret = 1U;
+	rc = gm_gpi_set(base, target_gpi, caller_sec_state(flags));
+	if (rc == 0) {
+		*completed_granules = 1U;
 	}
 
-	return ret;
+	return rc;
 }
 
 void firme_gm_gpi_init(void)

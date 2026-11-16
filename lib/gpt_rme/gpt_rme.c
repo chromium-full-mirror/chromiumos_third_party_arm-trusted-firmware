@@ -16,6 +16,9 @@
 #include <lib/extensions/rme.h>
 #include <lib/gpt_rme/gpt_rme.h>
 #include <lib/smccc.h>
+#if FIRME_SUPPORT
+#include <services/firme/firme_granule_mgmt.h>
+#endif
 #include <lib/xlat_tables/xlat_tables_v2.h>
 
 #if !ENABLE_FEAT_RME
@@ -107,6 +110,7 @@ static bitlock_t *gpt_bitlock;
 #define GPT_UNLOCK	bit_unlock(gpi_info.lock, gpi_info.mask)
 #endif /* RME_GPT_BITLOCK_BLOCK */
 
+#if !FIRME_SUPPORT
 static void tlbi_page_dsbosh(uintptr_t base)
 {
 	uint8_t pgs = EXTRACT(GPCCR_PGS, read_gpccr_el3());
@@ -120,6 +124,7 @@ static void tlbi_page_dsbosh(uintptr_t base)
 	tlbi_page_lookup[pgs].function(base & tlbi_page_lookup[pgs].mask);
 	dsbosh();
 }
+#endif
 
 /*
  * Helper function to fill out GPI entries in a single L1 table
@@ -227,6 +232,7 @@ static inline void write_gpt(uint64_t *gpt_l1_desc, uint64_t *gpt_l1_addr,
  * Helper to retrieve the gpt_l1_* information from the base address
  * returned in gpi_info.
  */
+#if !FIRME_SUPPORT
 static int get_gpi_params(uint64_t base, gpi_info_t *gpi_info)
 {
 	uint64_t gpt_l0_desc, *gpt_l0_base;
@@ -285,6 +291,7 @@ static void flush_page_to_popa(uintptr_t addr)
 		flush_dcache_to_popa_range(addr, size);
 	}
 }
+#endif /* !FIRME_SUPPORT */
 
 /*
  * Helper function to check if all L1 entries in 2MB block have
@@ -563,6 +570,25 @@ __unused static void shatter_block(uint64_t base, gpi_info_t *gpi_info,
  */
 int gpt_delegate_pas(uint64_t base, size_t size, unsigned int src_sec_state)
 {
+#if FIRME_SUPPORT
+	uint64_t completed_granules = 0U;
+	int rc;
+
+	if (size != GPT_PGS_ACTUAL_SIZE(g_pgs_bits)) {
+		return -EINVAL;
+	}
+
+	if ((src_sec_state != SMC_FROM_SECURE) &&
+	    (src_sec_state != SMC_FROM_REALM)) {
+		return -EPERM;
+	}
+
+	rc = firme_gm_gpi_set(base, 1U,
+		(src_sec_state == SMC_FROM_REALM) ? GPT_GPI_REALM : GPT_GPI_SECURE,
+		src_sec_state, &completed_granules);
+	/* GTSI and the Secure SiP adapter expose only address/PAS failures. */
+	return ((rc == 0) || (rc == -EINVAL)) ? rc : -EPERM;
+#else
 	gpi_info_t gpi_info;
 	uint64_t nse, __unused l1_desc;
 	unsigned int target_pas;
@@ -681,6 +707,7 @@ int gpt_delegate_pas(uint64_t base, size_t size, unsigned int src_sec_state)
 		base, gpi_info.gpi, target_pas);
 
 	return 0;
+#endif /* FIRME_SUPPORT */
 }
 
 /*
@@ -702,6 +729,25 @@ int gpt_delegate_pas(uint64_t base, size_t size, unsigned int src_sec_state)
  */
 int gpt_undelegate_pas(uint64_t base, size_t size, unsigned int src_sec_state)
 {
+#if FIRME_SUPPORT
+	uint64_t completed_granules = 0U;
+	int rc;
+
+	if (size != GPT_PGS_ACTUAL_SIZE(g_pgs_bits)) {
+		return -EINVAL;
+	}
+
+	if ((src_sec_state != SMC_FROM_SECURE) &&
+	    (src_sec_state != SMC_FROM_REALM)) {
+		return -EPERM;
+	}
+
+	rc = firme_gm_gpi_set(base, 1U,
+		GPT_GPI_NS,
+		src_sec_state, &completed_granules);
+	/* GTSI and the Secure SiP adapter expose only address/PAS failures. */
+	return ((rc == 0) || (rc == -EINVAL)) ? rc : -EPERM;
+#else
 	gpi_info_t gpi_info;
 	uint64_t nse, __unused l1_desc;
 	int res;
@@ -819,6 +865,7 @@ int gpt_undelegate_pas(uint64_t base, size_t size, unsigned int src_sec_state)
 		base, gpi_info.gpi, GPT_GPI_NS);
 
 	return 0;
+#endif /* FIRME_SUPPORT */
 }
 
 /*

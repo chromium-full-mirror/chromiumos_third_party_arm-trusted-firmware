@@ -54,8 +54,8 @@ Current status
 - Only a single FIRME version is supported per service.
 - The FIRME base service implements version and feature discovery through
   ``FIRME_SERVICE_VERSION`` and ``FIRME_SERVICE_FEATURES``.
-- ``FIRME_GM_GPI_SET`` is currently the only implemented granule management
-  operation.
+- Granule management implements ``FIRME_GM_GPI_SET`` and Realm-only
+  ``FIRME_GM_L1_GPT_CREATE`` on platforms with lifecycle support.
 - The IDE key management, MECID management, attestation, and integrated device
   management services are not implemented yet.
 - ``FIRME_GM_GPI_OP_CONTINUE_FID`` is mandatory in the ``1.0 alp2`` specification,
@@ -74,7 +74,8 @@ Implementation details
   feature registers.
 - The granule management service publishes two feature registers:
 
-  - register 0 advertises ``FIRME_GM_GPI_SET`` support only
+  - register 0 advertises ``FIRME_GM_GPI_SET`` and, for Realm callers on
+    supported platforms, ``FIRME_GM_L1_GPT_CREATE``
   - register 1 is populated at runtime from ``GPCCR_EL3`` and reports platform
     granule protection geometry such as page size, ``L0GPTSZ``, and ``PPS``
 
@@ -99,10 +100,23 @@ the caller performs any descriptor access. L1 index and GPI-shift queries take
 an already validated granule address. Geometry performs no GPT mutations,
 reservation operations or cache maintenance.
 
-The ``firme_gm_geometry`` and ``firme_gm_gpi_geometry`` CppUTest suites cover
-architectural configurations, validation boundaries and the existing GPI
-consumer. Run them with ``make unit-tests``. L1 GPT lifecycle operations remain
-unimplemented on this branch.
+L1 GPT creation
+~~~~~~~~~~~~~~~
+
+CREATE reserves the target PAR address, transitions the complete
+Non-secure donor to Root, initializes every L1 entry from the original block
+GPI, then publishes the table descriptor. A platform policy distinguishes
+Host-managed PARs from EL3-managed ranges. FVP keeps the first 4 GiB and its
+PCIe aperture under EL3 management. A donor cannot describe its own PAR.
+Dynamic Root mappings and valid platform policy are required for this feature.
+
+CREATE reserves its target address through cleanup and rollback. Donor
+granules are not reserved; GPI_SET and legacy delegation calls do not use
+the registry.
+
+Table operations and granule transitions share ``firme_gm_gpi.c`` and its
+descriptor helpers. The table interface retains caller-held target admission
+and its own initialization, validation, publication and scrubbing contracts.
 
 --------------
 

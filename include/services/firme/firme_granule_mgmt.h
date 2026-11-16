@@ -39,4 +39,12 @@
 #define FIRME_GM_L1_GPT_DESTROY_FID		FIRME_FID(FIRME_GM_FNUM_L1_GPT_DESTROY)
 #define FIRME_GM_GPI_OP_CONTINUE_FID		FIRME_FID(FIRME_GM_FNUM_GPI_OP_CONTINUE)
 
+#ifndef __ASSEMBLER__
+#include <stdint.h>
+
+/* Firmware adapter: generic errno status and a stateless completed prefix. */
+int firme_gm_gpi_set(uint64_t base, uint64_t granule_count, uint64_t attrs,
+		     uint64_t flags, uint64_t *completed_granules);
+#endif
+
 #endif /* FIRME_GRANULE_MGMT_H */

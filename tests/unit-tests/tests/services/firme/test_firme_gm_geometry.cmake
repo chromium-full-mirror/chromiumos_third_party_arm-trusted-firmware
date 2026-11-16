@@ -13,6 +13,12 @@ configure_file(
 	COPYONLY
 )
 
+configure_file(
+	${PROJECT_SOURCE_DIR}/mocks/include/common/debug.h
+	${CMAKE_CURRENT_BINARY_DIR}/firme_include/common/debug.h
+	COPYONLY
+)
+
 unit_test_add_suite(
 	NAME firme_gm_geometry
 	SOURCES
@@ -29,17 +35,21 @@ unit_test_add_suite(
 unit_test_add_suite(
 	NAME firme_gm_gpi_geometry
 	SOURCES
+		${PROJECT_SOURCE_DIR}/mocks/common/debug.cpp
 		${UNIT_TEST_PROJECT_PATH}/services/std_svc/firme/firme_gm_geometry.c
 		${UNIT_TEST_PROJECT_PATH}/services/std_svc/firme/firme_gm_gpi.c
+		${UNIT_TEST_PROJECT_PATH}/services/std_svc/firme/firme_gm_reservation.c
 		${CMAKE_CURRENT_LIST_DIR}/test_firme_gm_gpi_geometry.cpp
 	INCLUDE_DIRECTORIES
+		${CMAKE_CURRENT_BINARY_DIR}/firme_include
 		${CMAKE_CURRENT_LIST_DIR}/include
 		${UNIT_TEST_PROJECT_PATH}/services/std_svc/firme
 		${UNIT_TEST_PROJECT_PATH}/include
 		${UNIT_TEST_PROJECT_PATH}/include/arch/aarch64
-		${CMAKE_CURRENT_BINARY_DIR}/firme_include
+		${PROJECT_SOURCE_DIR}/mocks/include
 	COMPILE_DEFINITIONS
 		FIRME_SUPPORT=1
+		FIRME_GM_RESERVATIONS_MAX=64
 		ENABLE_FEAT_RME=1
 		ENABLE_RMM=1
 		RME_GPT_MAX_BLOCK=0

@@ -307,6 +307,10 @@ endif
 
 endif # (FIRME_SUPPORT_IDE_KM)
 
+ifeq (${FIRME_SUPPORT}${ENABLE_RMM},11)
+BL31_SOURCES		+=	plat/arm/board/fvp/fvp_firme_gpt_policy.c
+endif
+
 ifneq (${ENABLE_FEAT_RNG_TRAP},0)
 BL31_SOURCES		+=	plat/arm/board/fvp/fvp_sync_traps.c
 endif
